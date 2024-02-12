@@ -5,11 +5,11 @@ import jade.core.Agent;
 public class TickerAgent extends Agent {
     @Override
     protected void setup() {
-        AgentAction.registerAgent(this, "ticker");
+        AgentHelper.registerAgent(this, "ticker");
     }
 
     @Override
     protected void takeDown() {
-        AgentAction.deregisterAgent(this);
+        AgentHelper.deregisterAgent(this);
     }
 }

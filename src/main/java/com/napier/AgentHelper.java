@@ -6,7 +6,7 @@ import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
 
-public class AgentAction {
+public class AgentHelper {
     // TODO: Cite JADE workbook or JADE documentation
     public static void registerAgent(Agent a, String agentType) {
         // Create a Directory Facilitator Description with the AID of the agent

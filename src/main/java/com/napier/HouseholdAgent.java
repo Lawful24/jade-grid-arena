@@ -5,11 +5,11 @@ import jade.core.Agent;
 public class HouseholdAgent extends Agent {
     @Override
     protected void setup() {
-        AgentAction.registerAgent(this, "household");
+        AgentHelper.registerAgent(this, "household");
     }
 
     @Override
     protected void takeDown() {
-        AgentAction.deregisterAgent(this);
+        AgentHelper.deregisterAgent(this);
     }
 }
