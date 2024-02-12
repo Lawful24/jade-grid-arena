@@ -1,10 +1,13 @@
 package com.napier;
 
+import jade.core.AID;
 import jade.core.Agent;
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
+
+import java.util.ArrayList;
 
 public class AgentHelper {
     // TODO: Cite JADE workbook or JADE documentation
@@ -35,5 +38,28 @@ public class AgentHelper {
         } catch (FIPAException e) {
             e.printStackTrace();
         }
+    }
+
+    // TODO: Cite JADE workbook
+    public static ArrayList<AID> saveAgentContacts(Agent agent, String agentTypeToFind) {
+        ArrayList<AID> agentContacts = new ArrayList<>();
+
+        DFAgentDescription agentDescription = new DFAgentDescription();
+        ServiceDescription serviceDescription = new ServiceDescription();
+        serviceDescription.setType(agentTypeToFind);
+        agentDescription.addServices(serviceDescription);
+
+        try {
+            DFAgentDescription[] agentsOfType = DFService.search(agent, agentDescription);
+
+            for (DFAgentDescription foundAgent : agentsOfType) {
+                agentContacts.add(foundAgent.getName());
+                System.out.println("Added: " + foundAgent.getName());
+            }
+        } catch (FIPAException e) {
+            e.printStackTrace();
+        }
+
+        return agentContacts;
     }
 }

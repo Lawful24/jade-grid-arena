@@ -5,7 +5,7 @@ import jade.core.Agent;
 public class AdvertisingBoardAgent extends Agent {
     @Override
     protected void setup() {
-        AgentHelper.registerAgent(this, "advertising-board");
+        AgentHelper.registerAgent(this, "Advertising-board");
     }
 
     @Override
