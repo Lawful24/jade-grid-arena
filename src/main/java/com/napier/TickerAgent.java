@@ -60,10 +60,7 @@ public class TickerAgent extends Agent {
 
                     break;
                 case 1:
-                    MessageTemplate mt = MessageTemplate.MatchContent("Done");
-                    ACLMessage msg = myAgent.receive(mt);
-
-                    if (msg != null) {
+                    if (AgentHelper.receiveMessage(myAgent) != null) {
                         numFinReceived++;
 
                         if (numFinReceived >= householdAgents.size()) {

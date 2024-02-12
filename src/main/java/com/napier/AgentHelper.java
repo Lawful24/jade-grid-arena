@@ -6,6 +6,8 @@ import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
+import jade.lang.acl.ACLMessage;
+import jade.lang.acl.MessageTemplate;
 
 import java.util.ArrayList;
 
@@ -61,5 +63,9 @@ public class AgentHelper {
         }
 
         return agentContacts;
+    }
+
+    public static ACLMessage receiveMessage(Agent agentToReceive) {
+        return agentToReceive.receive(MessageTemplate.MatchContent("Done"));
     }
 }
