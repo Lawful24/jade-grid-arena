@@ -26,7 +26,7 @@ public class AgentHelper {
         try {
             DFService.register(a, dfAgentDescription);
         } catch (FIPAException e) {
-            e.printStackTrace();
+            System.err.println(e.toString());
         }
     }
 
@@ -36,7 +36,7 @@ public class AgentHelper {
         try {
             DFService.deregister(a);
         } catch (FIPAException e) {
-            e.printStackTrace();
+            System.err.println(e.toString());
         }
     }
 
@@ -57,7 +57,7 @@ public class AgentHelper {
                 System.out.println("Added: " + foundAgent.getName());
             }
         } catch (FIPAException e) {
-            e.printStackTrace();
+            System.err.println(e.toString());
         }
 
         return agentContacts;

@@ -19,7 +19,7 @@ public class Main {
         try (InputStream input = new FileInputStream("config.properties")) {
             properties.load(input);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println(e.getMessage());
         }
 
         initEnvironment();
@@ -44,7 +44,7 @@ public class Main {
             AgentController household = container.createNewAgent("Household", HouseholdAgent.class.getCanonicalName(), null);
             household.start();
         } catch (Exception e) {
-            System.out.println(e.toString());
+            System.err.println(e.getMessage());
         }
     }
 }

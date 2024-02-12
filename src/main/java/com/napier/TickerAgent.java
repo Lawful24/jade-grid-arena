@@ -12,11 +12,11 @@ public class TickerAgent extends Agent {
     // TODO: figure out how to import the max number of days as a property
     // configuration properties class?
     // global variable
-    private int maxNumOfDays;
+    private final int maxNumOfDays = 30;
 
     @Override
     protected void setup() {
-        AgentHelper.registerAgent(this, "ticker");
+        AgentHelper.registerAgent(this, "Ticker");
 
         doWait(2500);
         addBehaviour(new DailySyncBehaviour(this));
@@ -51,6 +51,8 @@ public class TickerAgent extends Agent {
                     for (AID id : householdAgents) {
                         tick.addReceiver(id);
                     }
+
+                    tick.addReceiver(advertisingAgent);
 
                     myAgent.send(tick);
                     step++;
@@ -97,6 +99,8 @@ public class TickerAgent extends Agent {
                 for (AID agent : householdAgents) {
                     msg.addReceiver(agent);
                 }
+
+                msg.addReceiver(advertisingAgent);
 
                 myAgent.send(msg);
                 myAgent.doDelete();
