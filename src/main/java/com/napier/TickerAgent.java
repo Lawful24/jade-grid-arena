@@ -4,7 +4,6 @@ import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
 import jade.lang.acl.ACLMessage;
-import jade.lang.acl.MessageTemplate;
 
 import java.util.ArrayList;
 
@@ -42,19 +41,18 @@ public class TickerAgent extends Agent {
         public void action() {
             switch (step) {
                 case 0:
+                    // Find all Household and Advertising-board agents
                     householdAgents = AgentHelper.saveAgentContacts(myAgent, "Household");
                     advertisingAgent = AgentHelper.saveAgentContacts(myAgent, "Advertising-board").getFirst();
 
-                    ACLMessage tick = new ACLMessage(ACLMessage.INFORM);
-                    tick.setContent("New day");
+                    // Collect all receivers
+                    ArrayList<AID> receivers = new ArrayList<>(householdAgents);
+                    receivers.add(advertisingAgent);
 
-                    for (AID id : householdAgents) {
-                        tick.addReceiver(id);
-                    }
+                    // Broadcast the start of the new day to other agents
+                    AgentHelper.sendMessage(myAgent, receivers, "New day", ACLMessage.INFORM);
 
-                    tick.addReceiver(advertisingAgent);
-
-                    myAgent.send(tick);
+                    // Progress the agent state
                     step++;
                     day++;
 
@@ -90,16 +88,14 @@ public class TickerAgent extends Agent {
             System.out.println("End of day " + day);
 
             if (day == maxNumOfDays) {
-                ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-                msg.setContent("Terminate");
+                // Collect all receivers
+                ArrayList<AID> receivers = new ArrayList<>(householdAgents);
+                receivers.add(advertisingAgent);
 
-                for (AID agent : householdAgents) {
-                    msg.addReceiver(agent);
-                }
+                // Broadcast the Terminate message to all other agents
+                AgentHelper.sendMessage(myAgent, receivers, "Terminate", ACLMessage.INFORM);
 
-                msg.addReceiver(advertisingAgent);
-
-                myAgent.send(msg);
+                // Terminate the ticker agent itself
                 myAgent.doDelete();
             } else {
                 reset();

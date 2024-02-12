@@ -10,6 +10,7 @@ import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class AgentHelper {
     // TODO: Cite JADE workbook or JADE documentation
@@ -65,6 +66,26 @@ public class AgentHelper {
         return agentContacts;
     }
 
+    public static void sendMessage(Agent agentToSend, ArrayList<AID> receivers, String content, int performative) {
+        // Check if provided int is a registered ACL performative
+        if (Arrays.asList(ACLMessage.getAllPerformativeNames()).contains(ACLMessage.getPerformative(performative))) {
+            // Build the message
+            ACLMessage message = new ACLMessage(performative);
+            message.setContent(content);
+
+            // Assign the receivers
+            for (AID agent : receivers) {
+                message.addReceiver(agent);
+            }
+
+            // Send the message
+            agentToSend.send(message);
+        } else {
+            System.err.println("Incorrect ACL performative: " + performative);
+        }
+    }
+
+    // TODO: Cite JADE workbook
     public static ACLMessage receiveMessage(Agent agentToReceive) {
         return agentToReceive.receive(MessageTemplate.MatchContent("Done"));
     }
