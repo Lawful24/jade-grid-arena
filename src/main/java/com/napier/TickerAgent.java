@@ -24,6 +24,7 @@ public class TickerAgent extends Agent {
 
     @Override
     protected void takeDown() {
+        AgentHelper.logActivity(getLocalName(), "Terminating...");
         AgentHelper.deregisterAgent(this);
     }
 
@@ -44,7 +45,7 @@ public class TickerAgent extends Agent {
                 case 0:
                     // Find all Household and Advertising-board agents
                     householdAgents = AgentHelper.saveAgentContacts(myAgent, "Household");
-                    //advertisingAgent = AgentHelper.saveAgentContacts(myAgent, "Advertising-board").getFirst();
+                    advertisingAgent = AgentHelper.saveAgentContacts(myAgent, "Advertising-board").getFirst();
 
                     // Collect all receivers
                     ArrayList<AID> receivers = new ArrayList<>(householdAgents);

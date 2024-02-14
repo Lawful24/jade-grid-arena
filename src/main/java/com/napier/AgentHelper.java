@@ -57,7 +57,7 @@ public class AgentHelper {
 
             for (DFAgentDescription foundAgent : agentsOfType) {
                 agentContacts.add(foundAgent.getName());
-                System.out.println("Added: " + foundAgent.getName());
+                AgentHelper.logActivity(agent.getLocalName(), "Registered: " + foundAgent.getName());
             }
         } catch (FIPAException e) {
             System.err.println(e.toString());
@@ -66,7 +66,24 @@ public class AgentHelper {
         return agentContacts;
     }
 
-    public static void sendMessage(Agent agentToSend, ArrayList<AID> receivers, String content, int performative) {
+    public static void sendMessage(Agent sender, AID receiver, String content, int performative) {
+        // Check if provided int is a registered ACL performative
+        if (Arrays.asList(ACLMessage.getAllPerformativeNames()).contains(ACLMessage.getPerformative(performative))) {
+            // Build the message
+            ACLMessage message = new ACLMessage(performative);
+            message.setContent(content);
+
+            // Assign the receiver
+            message.addReceiver(receiver);
+
+            // Send the message
+            sender.send(message);
+        } else {
+            System.err.println("Incorrect ACL performative: " + performative);
+        }
+    }
+
+    public static void sendMessage(Agent sender, ArrayList<AID> receivers, String content, int performative) {
         // Check if provided int is a registered ACL performative
         if (Arrays.asList(ACLMessage.getAllPerformativeNames()).contains(ACLMessage.getPerformative(performative))) {
             // Build the message
@@ -74,19 +91,29 @@ public class AgentHelper {
             message.setContent(content);
 
             // Assign the receivers
-            for (AID agent : receivers) {
-                message.addReceiver(agent);
+            for (AID receiver : receivers) {
+                message.addReceiver(receiver);
             }
 
             // Send the message
-            agentToSend.send(message);
+            sender.send(message);
         } else {
             System.err.println("Incorrect ACL performative: " + performative);
         }
     }
 
     // TODO: Cite JADE workbook
-    public static ACLMessage receiveMessage(Agent agentToReceive) {
-        return agentToReceive.receive(MessageTemplate.MatchContent("Done"));
+    public static ACLMessage receiveMessage(Agent agentToReceive, String messageContent) {
+        return agentToReceive.receive(MessageTemplate.MatchContent(messageContent));
+    }
+
+    // TODO: Cite JADE workbook
+    // TODO: rework this
+    public static ACLMessage receiveMessage(Agent agentToReceive, String messageContent, String optionalMessageContent) {
+        return agentToReceive.receive(MessageTemplate.or(MessageTemplate.MatchContent(messageContent), MessageTemplate.MatchContent(optionalMessageContent)));
+    }
+
+    public static void logActivity(String agentNickname, String logMessage) {
+        System.out.println(agentNickname + " says: " + logMessage);
     }
 }
