@@ -12,6 +12,7 @@ public class TickerAgent extends Agent {
     // configuration properties class?
     // global variable
     private final int maxNumOfDays = 30;
+    private int currentDay = 0;
 
     @Override
     protected void setup() {
@@ -29,7 +30,7 @@ public class TickerAgent extends Agent {
     public class DailySyncBehaviour extends Behaviour {
         private int step = 0;
         private int numFinReceived = 0;
-        private int day = 0;
+        //private int day = 0;
         private ArrayList<AID> householdAgents;
         private AID advertisingAgent;
 
@@ -43,22 +44,23 @@ public class TickerAgent extends Agent {
                 case 0:
                     // Find all Household and Advertising-board agents
                     householdAgents = AgentHelper.saveAgentContacts(myAgent, "Household");
-                    advertisingAgent = AgentHelper.saveAgentContacts(myAgent, "Advertising-board").getFirst();
+                    //advertisingAgent = AgentHelper.saveAgentContacts(myAgent, "Advertising-board").getFirst();
 
                     // Collect all receivers
                     ArrayList<AID> receivers = new ArrayList<>(householdAgents);
-                    receivers.add(advertisingAgent);
+                    //receivers.add(advertisingAgent);
 
                     // Broadcast the start of the new day to other agents
                     AgentHelper.sendMessage(myAgent, receivers, "New day", ACLMessage.INFORM);
 
                     // Progress the agent state
                     step++;
-                    day++;
+                    currentDay++;
 
                     break;
                 case 1:
-                    if (AgentHelper.receiveMessage(myAgent) != null) {
+                    doWait(1000);
+                    if (AgentHelper.receiveMessage(myAgent, "Done") != null) {
                         numFinReceived++;
 
                         if (numFinReceived >= householdAgents.size()) {
@@ -76,18 +78,10 @@ public class TickerAgent extends Agent {
         }
 
         @Override
-        public void reset() {
-            super.reset();
-            step = 0;
-            householdAgents.clear();
-            numFinReceived = 0;
-        }
-
-        @Override
         public int onEnd() {
-            System.out.println("End of day " + day);
+            AgentHelper.logActivity(myAgent.getLocalName(), "End of day " + currentDay);
 
-            if (day == maxNumOfDays) {
+            if (currentDay == maxNumOfDays) {
                 // Collect all receivers
                 ArrayList<AID> receivers = new ArrayList<>(householdAgents);
                 receivers.add(advertisingAgent);
@@ -98,8 +92,8 @@ public class TickerAgent extends Agent {
                 // Terminate the ticker agent itself
                 myAgent.doDelete();
             } else {
-                reset();
-                myAgent.addBehaviour(this);
+                // Recreate the sync behaviour and add it to the ticker's behaviour queue
+                myAgent.addBehaviour(new DailySyncBehaviour(myAgent));
             }
 
             return 0;
