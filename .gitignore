@@ -53,3 +53,6 @@ buildNumber.properties
 ## JADE ##
 APDescription.txt
 MTPs-Main-Container.txt
+
+## Project ##
+debug.config.properties
