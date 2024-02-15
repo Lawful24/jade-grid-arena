@@ -13,15 +13,8 @@ import java.util.Properties;
 
 public class Main {
     public static void main(String[] args) {
-        // Retrieve user parameters from the config file.
-        Properties properties = new Properties();
-
-        try (InputStream input = new FileInputStream("config.properties")) {
-            properties.load(input);
-        } catch (IOException e) {
-            System.err.println(e.getMessage());
-        }
-
+        RunConfiguration config = new RunConfiguration(true);
+        System.out.println(config);
         initEnvironment();
     }
 
