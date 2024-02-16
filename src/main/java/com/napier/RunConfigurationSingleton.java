@@ -6,7 +6,8 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Properties;
 
-public class RunConfiguration {
+public class RunConfigurationSingleton {
+    private static RunConfigurationSingleton instance;
     private long seed; // seed
     private String resultsFolderPath; // results.folder (folderName)
     private String pythonExePath; // python.executable (pythonExe)
@@ -27,7 +28,15 @@ public class RunConfiguration {
     private AgentStrategy[] agentTypes; // agent.typeRatio (could be a tuple then converted to an int array) (agentTypes)
     private double[] satisfactionCurve; // agent.satisfactionCurve (satisfactionCurve)
 
-    public RunConfiguration(boolean isDebug) {
+    public static RunConfigurationSingleton getInstance(boolean isDebug) {
+        if (instance == null) {
+            instance = new RunConfigurationSingleton(isDebug);
+        }
+
+        return instance;
+    }
+
+    private RunConfigurationSingleton(boolean isDebug) {
         // Retrieve user parameters from the config file.
         Properties properties = new Properties();
         loadPropertiesFromFile(properties, isDebug);

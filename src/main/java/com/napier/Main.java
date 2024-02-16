@@ -6,15 +6,10 @@ import jade.core.Runtime;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
-
 public class Main {
     public static void main(String[] args) {
-        RunConfiguration config = new RunConfiguration(true);
-        System.out.println(config);
+        RunConfigurationSingleton config = RunConfigurationSingleton.getInstance(true);
+
         initEnvironment();
     }
 
