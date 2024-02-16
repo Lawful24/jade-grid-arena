@@ -15,7 +15,7 @@ public class RunConfigurationSingleton {
     private int populationSize; // population.size (populationSize)
     private int numOfSlotsPerAgent; // agent.time-slots (slotsPerAgent)
     private int numOfUniqueTimeSlots; // simulation.uniqueTime-slots (uniqueTimeSlots)
-    // unused config variable: simulation.additionalDays
+    private int additionalDays; // simulation.additionalDays (days)
     private int numOfSimulationRuns; // simulation.runs (simulationRuns)
     private boolean isSingleAgentTypeUsed; // agent.singleType (singleAgentType)
     private AgentStrategy selectedSingleAgentType; // agent.selectedSingleType (selectedSingleType)
@@ -28,19 +28,20 @@ public class RunConfigurationSingleton {
     private AgentStrategy[] agentTypes; // agent.typeRatio (could be a tuple then converted to an int array) (agentTypes)
     private double[] satisfactionCurve; // agent.satisfactionCurve (satisfactionCurve)
 
-    public static RunConfigurationSingleton getInstance(boolean isDebug) {
+    public static RunConfigurationSingleton getInstance() {
         if (instance == null) {
-            instance = new RunConfigurationSingleton(isDebug);
+            instance = new RunConfigurationSingleton(true);
         }
 
         return instance;
     }
 
-    private RunConfigurationSingleton(boolean isDebug) {
-        // Retrieve user parameters from the config file.
+    private RunConfigurationSingleton(boolean debugMode) {
+        // Retrieve user parameters from the config file
         Properties properties = new Properties();
-        loadPropertiesFromFile(properties, isDebug);
+        loadPropertiesFromFile(properties, debugMode);
 
+        // Read the configuration variables from the config properties and store them in the attributes
         this.seed = Long.parseLong(properties.getProperty("seed"));
         this.resultsFolderPath = properties.getProperty("results.folder");
         this.pythonExePath = properties.getProperty("python.executable");
@@ -48,7 +49,7 @@ public class RunConfigurationSingleton {
         this.populationSize = Integer.parseInt(properties.getProperty("population.size"));
         this.numOfSlotsPerAgent = Integer.parseInt(properties.getProperty("agent.time-slots"));
         this.numOfUniqueTimeSlots = Integer.parseInt(properties.getProperty("simulation.uniqueTime-slots"));
-        // additional days?
+        this.additionalDays = Integer.parseInt(properties.getProperty("simulation.additionalDays"));
         this.numOfSimulationRuns = Integer.parseInt(properties.getProperty("simulation.runs"));
         this.isSingleAgentTypeUsed = Boolean.parseBoolean(properties.getProperty("agent.singleType"));
         this.selectedSingleAgentType = inputToStrategyEnum(properties.getProperty("agent.selectedSingleType"));

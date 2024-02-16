@@ -8,7 +8,8 @@ import jade.wrapper.ContainerController;
 
 public class Main {
     public static void main(String[] args) {
-        RunConfigurationSingleton config = RunConfigurationSingleton.getInstance(true);
+        RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+        // ^ Debug mode can be toggled in the RunConfigurationSingleton class
 
         initEnvironment();
     }
