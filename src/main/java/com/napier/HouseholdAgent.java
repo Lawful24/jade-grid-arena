@@ -9,12 +9,56 @@ import jade.lang.acl.ACLMessage;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class HouseholdAgent extends Agent {
+    // Agent arguments
+    private AgentStrategyType agentType;
+    private boolean usesSocialCapital;
+    private boolean madeInteraction;
+    private int numOfTimeSlotsWanted;
+    private int numOfUniqueTimeslots;
+    private ArrayList<TimeSlot> requestedTimeSlots;
+    private ArrayList<TimeSlot> allocatedTimeSlots;
+    private double[] satisfactionCurve;
+    private List<SlotSatisfactionPair> timeslotSatisfactionPairs;
+    private ArrayList<ArrayList<Integer>> favoursOwed = new ArrayList<>();
+    private ArrayList<ArrayList<Integer>> favoursGiven = new ArrayList<>();
+    private ArrayList<Integer> exchangeRequestReceived = new ArrayList<>();
+    private boolean isExchangeRequestApproved;
+    private int totalSocialCapital;
+    private int numOfDailyExchangesWithSocialCapital;
+    private int numOfDailyExchangesWithoutSocialCapital;
+    private int numOfDailyRejectedReceivedExchanges;
+    private int numOfDailyRejectedRequestedExchanges;
+    private int numOfDailyAcceptedRequestedExchanges;
+
+    // Agent contact attributes
     private AID tickerAgent;
     private AID advertisingAgent;
+
     @Override
     protected void setup() {
+        RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+        // Import the arguments
+        this.agentType = (AgentStrategyType)getArguments()[0];
+        this.usesSocialCapital = config.doesUtiliseSocialCapital();
+        this.numOfTimeSlotsWanted = config.getNumOfSlotsPerAgent();
+        this.numOfUniqueTimeslots = config.getNumOfUniqueTimeSlots();
+        this.satisfactionCurve = config.getSatisfactionCurve();
+
+        // Initialise local attributes
+        this.madeInteraction = false;
+        this.requestedTimeSlots = new ArrayList<>();
+        this.allocatedTimeSlots = new ArrayList<>();
+        this.timeslotSatisfactionPairs = new ArrayList<>();
+        this.totalSocialCapital = 0;
+        this.numOfDailyExchangesWithSocialCapital = 0;
+        this.numOfDailyExchangesWithoutSocialCapital = 0;
+        this.numOfDailyRejectedReceivedExchanges = 0;
+        this.numOfDailyRejectedRequestedExchanges = 0;
+        this.numOfDailyAcceptedRequestedExchanges = 0;
+
         AgentHelper.registerAgent(this, "Household");
 
         addBehaviour(new TickerDailyBehaviour(this));

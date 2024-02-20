@@ -3,35 +3,58 @@ package com.napier;
 import jade.core.Profile;
 import jade.core.ProfileImpl;
 import jade.core.Runtime;
-import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 
 public class Main {
     public static void main(String[] args) {
-        RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
-        // ^ Debug mode can be toggled in the RunConfigurationSingleton class
-
         initEnvironment();
     }
 
     private static void initEnvironment() {
+        RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+        // ^ Debug mode can be toggled in the RunConfigurationSingleton class
+
         // TODO: Comments and cite the JADE workbook
         Profile profile = new ProfileImpl();
         Runtime runtime = Runtime.instance();
         ContainerController container = runtime.createMainContainer(profile);
 
         try {
-            AgentController rma = container.createNewAgent("rma", "jade.tools.rma.rma", null);
-            rma.start();
+            container.createNewAgent("rma",
+                    "jade.tools.rma.rma",
+                    null
+            ).start();
 
-            AgentController ticker = container.createNewAgent("Ticker", TickerAgent.class.getCanonicalName(), null);
-            ticker.start();
+            container.createNewAgent(
+                    "Ticker",
+                    TickerAgent.class.getCanonicalName(),
+                    null
+            ).start();
 
-            AgentController advertisingBoard = container.createNewAgent("Board", AdvertisingBoardAgent.class.getCanonicalName(), null);
-            advertisingBoard.start();
+            container.createNewAgent(
+                    "Board",
+                    AdvertisingBoardAgent.class.getCanonicalName(),
+                    null
+            ).start();
 
-            AgentController household = container.createNewAgent("Household", HouseholdAgent.class.getCanonicalName(), null);
-            household.start();
+            for (int i = 1; i <= config.getPopulationCount(); i++) {
+                AgentStrategyType type;
+
+                if (i <= config.getSelfishPopulationCount()) {
+                    type = AgentStrategyType.SELFISH;
+                } else {
+                    type = AgentStrategyType.SOCIAL;
+                }
+
+                container.createNewAgent(
+                        "Household-" + i,
+                        HouseholdAgent.class.getCanonicalName(),
+                        new Object[] {
+                            type
+                        }
+                ).start();
+            }
+
         } catch (Exception e) {
             System.err.println(e.getMessage());
         }
