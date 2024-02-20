@@ -14,13 +14,13 @@ import java.util.List;
 public class HouseholdAgent extends Agent {
     // Agent arguments
     private AgentStrategyType agentType;
-    private boolean usesSocialCapital;
+    private final boolean utilisesSocialCapital = RunConfigurationSingleton.getInstance().doesUtiliseSocialCapital();
     private boolean madeInteraction;
-    private int numOfTimeSlotsWanted;
-    private int numOfUniqueTimeslots;
+    private final int numOfTimeSlotsWanted = RunConfigurationSingleton.getInstance().getNumOfSlotsPerAgent();
+    private final int numOfUniqueTimeSlots = RunConfigurationSingleton.getInstance().getNumOfUniqueTimeSlots();
     private ArrayList<TimeSlot> requestedTimeSlots;
     private ArrayList<TimeSlot> allocatedTimeSlots;
-    private double[] satisfactionCurve;
+    private final double[] satisfactionCurve = RunConfigurationSingleton.getInstance().getSatisfactionCurve();
     private List<SlotSatisfactionPair> timeslotSatisfactionPairs;
     private ArrayList<ArrayList<Integer>> favoursOwed = new ArrayList<>();
     private ArrayList<ArrayList<Integer>> favoursGiven = new ArrayList<>();
@@ -42,10 +42,7 @@ public class HouseholdAgent extends Agent {
         RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
         // Import the arguments
         this.agentType = (AgentStrategyType)getArguments()[0];
-        this.usesSocialCapital = config.doesUtiliseSocialCapital();
-        this.numOfTimeSlotsWanted = config.getNumOfSlotsPerAgent();
-        this.numOfUniqueTimeslots = config.getNumOfUniqueTimeSlots();
-        this.satisfactionCurve = config.getSatisfactionCurve();
+        System.out.println(agentType);
 
         // Initialise local attributes
         this.madeInteraction = false;

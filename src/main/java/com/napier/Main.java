@@ -20,37 +20,34 @@ public class Main {
         ContainerController container = runtime.createMainContainer(profile);
 
         try {
+            // Create and start the Remote Monitoring Agent
             container.createNewAgent("rma",
                     "jade.tools.rma.rma",
                     null
             ).start();
 
+            // Create and start the Ticker agent
             container.createNewAgent(
                     "Ticker",
                     TickerAgent.class.getCanonicalName(),
                     null
             ).start();
 
+            // Create and start the Advertising Board agent
             container.createNewAgent(
                     "Board",
                     AdvertisingBoardAgent.class.getCanonicalName(),
                     null
             ).start();
 
+            // Create as many Household agents as defined in the config.properties file (population.size)
             for (int i = 1; i <= config.getPopulationCount(); i++) {
-                AgentStrategyType type;
-
-                if (i <= config.getSelfishPopulationCount()) {
-                    type = AgentStrategyType.SELFISH;
-                } else {
-                    type = AgentStrategyType.SOCIAL;
-                }
-
+                // Set the nickname and the type based on the index in the population
                 container.createNewAgent(
                         "Household-" + i,
                         HouseholdAgent.class.getCanonicalName(),
                         new Object[] {
-                            type
+                            AgentHelper.determineAgentType(i)
                         }
                 ).start();
             }

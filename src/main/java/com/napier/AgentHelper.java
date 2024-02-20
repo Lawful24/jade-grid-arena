@@ -116,4 +116,26 @@ public class AgentHelper {
     public static void logActivity(String agentNickname, String logMessage) {
         System.out.println(agentNickname + " says: " + logMessage);
     }
+
+    public static AgentStrategyType determineAgentType(int householdAgentNumber) {
+        RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+        AgentStrategyType agentType;
+
+        // Check if only one agent type is supposed to be used
+        if (config.isSingleAgentTypeUsed()) {
+            agentType = config.getSelectedSingleAgentType();
+        } else {
+            // Set the agent type to a specific value based on the ratio provided in the configuration
+            // Check if the agent falls into the selfish or social group of the population
+            // e.g. with a population of 6 agents and a 2:1 selfish:social ratio, the number of selfish agents would be 4
+            // Therefore, agents 1-4 are selfish and 5-6 are social.
+            if (householdAgentNumber <= config.getSelfishPopulationCount()) {
+                agentType = AgentStrategyType.SELFISH;
+            } else {
+                agentType = AgentStrategyType.SOCIAL;
+            }
+        }
+
+        return agentType;
+    }
 }
