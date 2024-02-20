@@ -18,14 +18,14 @@ public class RunConfigurationSingleton {
     private int additionalDays; // simulation.additionalDays (days)
     private int numOfSimulationRuns; // simulation.runs (simulationRuns)
     private boolean isSingleAgentTypeUsed; // agent.singleType (singleAgentType)
-    private AgentStrategy selectedSingleAgentType; // agent.selectedSingleType (selectedSingleType)
+    private AgentStrategyType selectedSingleAgentType; // agent.selectedSingleType (selectedSingleType)
     private boolean doesUtiliseSocialCapital; // agent.useSocialCapital (socialCapital)
     private double beta; // agent.beta (β)
     private int comparisonLevel; // simulation.comparisonLevel (COMPARISON_LEVEL)
     private double[][] demandCurves; // demand.curves (demandCurves)
     private int[] availabilityCurve; // availability.curve (availabilityCurves)
     private int percentageOfAgentsToEvolve; // agents.evolvePercentage (numberOfAgentsToEvolve)
-    private AgentStrategy[] agentTypes; // agent.typeRatio (could be a tuple then converted to an int array) (agentTypes)
+    private AgentStrategyType[] agentTypes; // agent.typeRatio (could be a tuple then converted to an int array) (agentTypes)
     private double[] satisfactionCurve; // agent.satisfactionCurve (satisfactionCurve)
 
     public static RunConfigurationSingleton getInstance() {
@@ -93,6 +93,10 @@ public class RunConfigurationSingleton {
         return numOfUniqueTimeSlots;
     }
 
+    public int getAdditionalDays() {
+        return additionalDays;
+    }
+
     public int getNumOfSimulationRuns() {
         return numOfSimulationRuns;
     }
@@ -101,7 +105,7 @@ public class RunConfigurationSingleton {
         return isSingleAgentTypeUsed;
     }
 
-    public AgentStrategy getSelectedSingleAgentType() {
+    public AgentStrategyType getSelectedSingleAgentType() {
         return selectedSingleAgentType;
     }
 
@@ -129,7 +133,7 @@ public class RunConfigurationSingleton {
         return percentageOfAgentsToEvolve;
     }
 
-    public AgentStrategy[] getAgentTypes() {
+    public AgentStrategyType[] getAgentTypes() {
         return agentTypes;
     }
 
@@ -187,25 +191,25 @@ public class RunConfigurationSingleton {
     }
 
     // TODO: Flag as nullable
-    private AgentStrategy inputToStrategyEnum(String input) {
-        return input.equals("social") ? AgentStrategy.SOCIAL : input.equals("selfish") ? AgentStrategy.SELFISH : null;
+    private AgentStrategyType inputToStrategyEnum(String input) {
+        return input.equals("social") ? AgentStrategyType.SOCIAL : input.equals("selfish") ? AgentStrategyType.SELFISH : null;
     }
 
     // TODO: Cite Arena code
-    private AgentStrategy[] ratioToAgentTypeArray(String input) {
+    private AgentStrategyType[] ratioToAgentTypeArray(String input) {
         // Split the input string by colon
         String[] ratioParts = input.split(":");
         int a = Integer.parseInt(ratioParts[0]);
         int b = Integer.parseInt(ratioParts[1]);
 
-        AgentStrategy[] result = new AgentStrategy[a + b];
+        AgentStrategyType[] result = new AgentStrategyType[a + b];
 
         for (int i = 0; i < a; i++) {
-            result[i] = AgentStrategy.SELFISH;
+            result[i] = AgentStrategyType.SELFISH;
         }
 
         for (int i = a; i < a + b; i++) {
-            result[i] = AgentStrategy.SOCIAL;
+            result[i] = AgentStrategyType.SOCIAL;
         }
 
         return result;
