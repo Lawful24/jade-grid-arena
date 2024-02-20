@@ -1,6 +1,6 @@
 package com.napier;
 
-public enum AgentStrategy {
+public enum AgentStrategyType {
     SELFISH,
     SOCIAL
 }
