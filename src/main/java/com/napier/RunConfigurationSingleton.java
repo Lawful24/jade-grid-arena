@@ -8,25 +8,25 @@ import java.util.Properties;
 
 public class RunConfigurationSingleton {
     private static RunConfigurationSingleton instance;
-    private long seed; // seed
-    private String resultsFolderPath; // results.folder (folderName)
-    private String pythonExePath; // python.executable (pythonExe)
-    private String pythonScriptsPath; // python.scripts (pythonPath)
-    private int populationSize; // population.size (populationSize)
-    private int numOfSlotsPerAgent; // agent.time-slots (slotsPerAgent)
-    private int numOfUniqueTimeSlots; // simulation.uniqueTime-slots (uniqueTimeSlots)
-    private int additionalDays; // simulation.additionalDays (days)
-    private int numOfSimulationRuns; // simulation.runs (simulationRuns)
-    private boolean isSingleAgentTypeUsed; // agent.singleType (singleAgentType)
-    private AgentStrategyType selectedSingleAgentType; // agent.selectedSingleType (selectedSingleType)
-    private boolean doesUtiliseSocialCapital; // agent.useSocialCapital (socialCapital)
-    private double beta; // agent.beta (β)
-    private int comparisonLevel; // simulation.comparisonLevel (COMPARISON_LEVEL)
-    private double[][] demandCurves; // demand.curves (demandCurves)
-    private int[] availabilityCurve; // availability.curve (availabilityCurves)
-    private int percentageOfAgentsToEvolve; // agents.evolvePercentage (numberOfAgentsToEvolve)
-    private AgentStrategyType[] agentTypes; // agent.typeRatio (could be a tuple then converted to an int array) (agentTypes)
-    private double[] satisfactionCurve; // agent.satisfactionCurve (satisfactionCurve)
+    private final long seed; // seed
+    private final String resultsFolderPath; // results.folder (folderName)
+    private final String pythonExePath; // python.executable (pythonExe)
+    private final String pythonScriptsPath; // python.scripts (pythonPath)
+    private final int populationCount; // population.size (populationSize)
+    private final int numOfSlotsPerAgent; // agent.time-slots (slotsPerAgent)
+    private final int numOfUniqueTimeSlots; // simulation.uniqueTime-slots (uniqueTimeSlots)
+    private final int additionalDays; // simulation.additionalDays (days)
+    private final int numOfSimulationRuns; // simulation.runs (simulationRuns)
+    private final boolean isSingleAgentTypeUsed; // agent.singleType (singleAgentType)
+    private final AgentStrategyType selectedSingleAgentType; // agent.selectedSingleType (selectedSingleType)
+    private final boolean doesUtiliseSocialCapital; // agent.useSocialCapital (socialCapital)
+    private final double beta; // agent.beta (β)
+    private final int comparisonLevel; // simulation.comparisonLevel (COMPARISON_LEVEL)
+    private final double[][] demandCurves; // demand.curves (demandCurves)
+    private final int[] availabilityCurve; // availability.curve (availabilityCurves)
+    private final int percentageOfAgentsToEvolve; // agents.evolvePercentage (numberOfAgentsToEvolve)
+    private final int selfishPopulationCount; // based on agent.typeRatio (agentTypes)
+    private final double[] satisfactionCurve; // agent.satisfactionCurve (satisfactionCurve)
 
     public static RunConfigurationSingleton getInstance() {
         if (instance == null) {
@@ -46,7 +46,7 @@ public class RunConfigurationSingleton {
         this.resultsFolderPath = properties.getProperty("results.folder");
         this.pythonExePath = properties.getProperty("python.executable");
         this.pythonScriptsPath = properties.getProperty("python.scripts");
-        this.populationSize = Integer.parseInt(properties.getProperty("population.size"));
+        this.populationCount = Integer.parseInt(properties.getProperty("population.size"));
         this.numOfSlotsPerAgent = Integer.parseInt(properties.getProperty("agent.time-slots"));
         this.numOfUniqueTimeSlots = Integer.parseInt(properties.getProperty("simulation.uniqueTime-slots"));
         this.additionalDays = Integer.parseInt(properties.getProperty("simulation.additionalDays"));
@@ -59,7 +59,7 @@ public class RunConfigurationSingleton {
         this.demandCurves = inputToDouble2DArray(properties.getProperty("demand.curves"));
         this.availabilityCurve = inputToIntArray(properties.getProperty("availability.curve"));
         this.percentageOfAgentsToEvolve = Integer.parseInt(properties.getProperty("agents.evolvePercentage"));
-        this.agentTypes = ratioToAgentTypeArray(properties.getProperty("agent.typeRatio"));
+        this.selfishPopulationCount = ratioToSelfishPopulationCount(properties.getProperty("agent.typeRatio"));
         this.satisfactionCurve = inputToDoubleArray(properties.getProperty("agent.satisfactionCurve"));
     }
 
@@ -81,8 +81,8 @@ public class RunConfigurationSingleton {
         return pythonScriptsPath;
     }
 
-    public int getPopulationSize() {
-        return populationSize;
+    public int getPopulationCount() {
+        return populationCount;
     }
 
     public int getNumOfSlotsPerAgent() {
@@ -109,7 +109,7 @@ public class RunConfigurationSingleton {
         return selectedSingleAgentType;
     }
 
-    public boolean isDoesUtiliseSocialCapital() {
+    public boolean doesUtiliseSocialCapital() {
         return doesUtiliseSocialCapital;
     }
 
@@ -133,8 +133,8 @@ public class RunConfigurationSingleton {
         return percentageOfAgentsToEvolve;
     }
 
-    public AgentStrategyType[] getAgentTypes() {
-        return agentTypes;
+    public int getSelfishPopulationCount() {
+        return selfishPopulationCount;
     }
 
     public double[] getSatisfactionCurve() {
@@ -195,23 +195,18 @@ public class RunConfigurationSingleton {
         return input.equals("social") ? AgentStrategyType.SOCIAL : input.equals("selfish") ? AgentStrategyType.SELFISH : null;
     }
 
-    // TODO: Cite Arena code
-    private AgentStrategyType[] ratioToAgentTypeArray(String input) {
+    private int ratioToSelfishPopulationCount(String input) {
         // Split the input string by colon
         String[] ratioParts = input.split(":");
-        int a = Integer.parseInt(ratioParts[0]);
-        int b = Integer.parseInt(ratioParts[1]);
 
-        AgentStrategyType[] result = new AgentStrategyType[a + b];
+        // Store the ratio of selfish:social agents provided in the input
+        float selfishRatio = Float.parseFloat(ratioParts[0]);
+        float socialRatio = Float.parseFloat(ratioParts[1]);
 
-        for (int i = 0; i < a; i++) {
-            result[i] = AgentStrategyType.SELFISH;
-        }
+        // Calculate the amount of
+        float fraction = this.populationCount / (selfishRatio + socialRatio);
 
-        for (int i = a; i < a + b; i++) {
-            result[i] = AgentStrategyType.SOCIAL;
-        }
-
-        return result;
+        // Multiply the fraction of the population size by the ratio for each agent and round up the results
+        return Math.round(fraction * selfishRatio);
     }
 }
