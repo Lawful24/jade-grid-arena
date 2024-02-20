@@ -9,6 +9,7 @@ import jade.lang.acl.ACLMessage;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 public class HouseholdAgent extends Agent {
@@ -22,8 +23,8 @@ public class HouseholdAgent extends Agent {
     private ArrayList<TimeSlot> allocatedTimeSlots;
     private final double[] satisfactionCurve = RunConfigurationSingleton.getInstance().getSatisfactionCurve();
     private List<SlotSatisfactionPair> timeslotSatisfactionPairs;
-    private ArrayList<ArrayList<Integer>> favoursOwed = new ArrayList<>();
-    private ArrayList<ArrayList<Integer>> favoursGiven = new ArrayList<>();
+
+    private HashMap<AID, Integer> favours = new HashMap<>();
     private ArrayList<Integer> exchangeRequestReceived = new ArrayList<>();
     private boolean isExchangeRequestApproved;
     private int totalSocialCapital;
@@ -42,7 +43,6 @@ public class HouseholdAgent extends Agent {
         RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
         // Import the arguments
         this.agentType = (AgentStrategyType)getArguments()[0];
-        System.out.println(agentType);
 
         // Initialise local attributes
         this.madeInteraction = false;
