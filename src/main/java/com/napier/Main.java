@@ -13,6 +13,7 @@ public class Main {
     private static void initEnvironment() {
         RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
         // ^ Debug mode can be toggled in the RunConfigurationSingleton class
+        // TODO: Find a better way to toggle debug mode
 
         // TODO: Comments and cite the JADE workbook
         Profile profile = new ProfileImpl();

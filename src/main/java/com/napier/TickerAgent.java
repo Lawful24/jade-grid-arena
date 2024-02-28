@@ -9,10 +9,14 @@ import java.util.ArrayList;
 
 public class TickerAgent extends Agent {
     // TODO: figure out how to import the max number of days as a property
+    // there is no max number of days, the simulation runs until a takeover is achieved
     // configuration properties class?
     // global variable
     private final int maxNumOfDays = 30;
     private int currentDay = 0;
+
+    // Agent contact attributes
+    private ArrayList<AID> allAgents = new ArrayList<>();
 
     @Override
     protected void setup() {
@@ -41,6 +45,7 @@ public class TickerAgent extends Agent {
 
         @Override
         public void action() {
+            // TODO: Cite JADE workbook for the step logic
             switch (step) {
                 case 0:
                     // Find all Household and Advertising-board agents
@@ -48,11 +53,11 @@ public class TickerAgent extends Agent {
                     advertisingAgent = AgentHelper.saveAgentContacts(myAgent, "Advertising-board").getFirst();
 
                     // Collect all receivers
-                    ArrayList<AID> receivers = new ArrayList<>(householdAgents);
-                    //receivers.add(advertisingAgent);
+                    allAgents.addAll(householdAgents);
+                    allAgents.add(advertisingAgent);
 
                     // Broadcast the start of the new day to other agents
-                    AgentHelper.sendMessage(myAgent, receivers, "New day", ACLMessage.INFORM);
+                    AgentHelper.sendMessage(myAgent, allAgents, "New day", ACLMessage.INFORM);
 
                     // Progress the agent state
                     step++;
@@ -60,11 +65,10 @@ public class TickerAgent extends Agent {
 
                     break;
                 case 1:
-                    doWait(1000);
                     if (AgentHelper.receiveMessage(myAgent, "Done") != null) {
                         numFinReceived++;
 
-                        if (numFinReceived >= householdAgents.size()) {
+                        if (numFinReceived > householdAgents.size()) {
                             step++;
                         }
                     } else {
@@ -83,16 +87,14 @@ public class TickerAgent extends Agent {
             AgentHelper.logActivity(myAgent.getLocalName(), "End of day " + currentDay);
 
             if (currentDay == maxNumOfDays) {
-                // Collect all receivers
-                ArrayList<AID> receivers = new ArrayList<>(householdAgents);
-                receivers.add(advertisingAgent);
-
                 // Broadcast the Terminate message to all other agents
-                AgentHelper.sendMessage(myAgent, receivers, "Terminate", ACLMessage.INFORM);
+                AgentHelper.sendMessage(myAgent, allAgents, "Terminate", ACLMessage.INFORM);
 
                 // Terminate the ticker agent itself
                 myAgent.doDelete();
             } else {
+                allAgents.clear();
+
                 // Recreate the sync behaviour and add it to the ticker's behaviour queue
                 myAgent.addBehaviour(new DailySyncBehaviour(myAgent));
             }

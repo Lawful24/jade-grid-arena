@@ -12,11 +12,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AdvertisingBoardAgent extends Agent {
+    private ArrayList<TimeSlot> availableTimeSlots;
     private AID tickerAgent;
     private ArrayList<AID> householdAgents;
 
     @Override
     protected void setup() {
+        availableTimeSlots = new ArrayList<>();
         AgentHelper.registerAgent(this, "Advertising-board");
 
         addBehaviour(new TickerDailyBehaviour(this));
@@ -47,10 +49,12 @@ public class AdvertisingBoardAgent extends Agent {
 
                     ArrayList<Behaviour> cyclicBehaviours = new ArrayList<>();
                     SequentialBehaviour dailyTasks = new SequentialBehaviour();
+
                     // TODO: Add sub-behaviours here
-                    dailyTasks.addSubBehaviour(new CallItADayListenerBehaviour(myAgent, cyclicBehaviours));
+                    dailyTasks.addSubBehaviour(new GenerateTimeSlotsBehaviour(myAgent));
 
                     myAgent.addBehaviour(dailyTasks);
+                    myAgent.addBehaviour(new CallItADayListenerBehaviour(myAgent, cyclicBehaviours));
                 } else {
                     myAgent.doDelete();
                 }
@@ -71,6 +75,39 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
+    public class GenerateTimeSlotsBehaviour extends OneShotBehaviour {
+        public GenerateTimeSlotsBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+
+            availableTimeSlots.clear();
+
+            // TODO: Cite Arena code
+            // Fill the available time-slots with all the slots that exist each day.
+            int numOfRequiredTimeSlots = config.getPopulationCount() * config.getNumOfSlotsPerAgent();
+
+            for (int i = 1; i <= numOfRequiredTimeSlots; i++) {
+                // Selects a time-slot based on the demand curve.
+                int wheelSelector = RunConfigurationSingleton.getInstance().getRandom().nextInt(config.getTotalAvailableEnergy());
+                int wheelCalculator = 1; // if we start at 0, there will be 25 potential time slots in a day instead of 24
+                int timeSlotStart = 0;
+
+                while (wheelCalculator < wheelSelector) {
+                    wheelCalculator = wheelCalculator + (config.getBucketedAvailabilityCurve()[timeSlotStart]);
+                    timeSlotStart++;
+                }
+
+                availableTimeSlots.add(new TimeSlot(timeSlotStart));
+            }
+
+            AgentHelper.logActivity(myAgent.getLocalName(), "Time Slots generated: " + availableTimeSlots.size());
+        }
+    }
+
     public class CallItADayListenerBehaviour extends CyclicBehaviour {
         private int householdsDayOver = 0;
         private List<Behaviour> behavioursToRemove;
@@ -82,8 +119,7 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public void action() {
-            System.out.println("1");
-            System.out.println(myAgent.getLocalName());
+            // TODO: Cite JADE workbook
             ACLMessage doneMessage = AgentHelper.receiveMessage(myAgent, "Done");
 
             if (doneMessage != null) {
