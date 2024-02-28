@@ -5,9 +5,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Properties;
+import java.util.Random;
 
 public class RunConfigurationSingleton {
     private static RunConfigurationSingleton instance;
+    private static final Random random = new Random();
+
+    /* Configuration Properties */
     private final long seed; // seed
     private final String resultsFolderPath; // results.folder (folderName)
     private final String pythonExePath; // python.executable (pythonExe)
@@ -27,6 +31,10 @@ public class RunConfigurationSingleton {
     private final int percentageOfAgentsToEvolve; // agents.evolvePercentage (numberOfAgentsToEvolve)
     private final int selfishPopulationCount; // based on agent.typeRatio (agentTypes)
     private final double[] satisfactionCurve; // agent.satisfactionCurve (satisfactionCurve)
+
+    /* Calculated Values */
+    private final int[] bucketedAvailabilityCurve;
+    private final int totalAvailableEnergy;
 
     public static RunConfigurationSingleton getInstance() {
         if (instance == null) {
@@ -61,9 +69,17 @@ public class RunConfigurationSingleton {
         this.percentageOfAgentsToEvolve = Integer.parseInt(properties.getProperty("agents.evolvePercentage"));
         this.selfishPopulationCount = ratioToSelfishPopulationCount(properties.getProperty("agent.typeRatio"));
         this.satisfactionCurve = inputToDoubleArray(properties.getProperty("agent.satisfactionCurve"));
+
+        // Calculate values based on the configuration properties
+        this.bucketedAvailabilityCurve = this.bucketSortAvailabilityCurve();
+        this.totalAvailableEnergy = this.calculateTotalAvailableEnergy();
     }
 
     /* Accessors */
+
+    public Random getRandom() {
+        return random;
+    }
 
     public long getSeed() {
         return seed;
@@ -141,6 +157,14 @@ public class RunConfigurationSingleton {
         return satisfactionCurve;
     }
 
+    public int[] getBucketedAvailabilityCurve() {
+        return bucketedAvailabilityCurve;
+    }
+
+    public int getTotalAvailableEnergy() {
+        return totalAvailableEnergy;
+    }
+
     /* Helpers */
 
     private void loadPropertiesFromFile(Properties properties, boolean isDebug) {
@@ -208,5 +232,40 @@ public class RunConfigurationSingleton {
 
         // Multiply the fraction of the population size by the ratio for each agent and round up the results
         return Math.round(fraction * selfishRatio);
+    }
+
+    // TODO: Cite Arena code
+    private int[] bucketSortAvailabilityCurve() {
+        // The availability curve is bucketed before the simulations for efficiency, as they will all use the same bucketed values.
+        int[] bucketedAvailabilityCurve = new int[this.numOfUniqueTimeSlots];
+
+        int bucket = 0;
+        int bucketFill = 0;
+        int bucketValue = 0;
+
+        for (int element : this.availabilityCurve) {
+            bucketValue += element;
+            bucketFill++;
+
+            if (bucketFill == 2) {
+                bucketedAvailabilityCurve[bucket] = bucketValue;
+                bucket++;
+                bucketValue = 0;
+                bucketFill = 0;
+            }
+        }
+
+        return bucketedAvailabilityCurve;
+    }
+
+    // TODO: Cite Arena code
+    private int calculateTotalAvailableEnergy() {
+        int totalAvailableEnergy = 0;
+
+        for (int element : this.availabilityCurve) {
+            totalAvailableEnergy += element;
+        }
+
+        return totalAvailableEnergy;
     }
 }

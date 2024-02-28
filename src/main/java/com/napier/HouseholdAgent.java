@@ -40,7 +40,6 @@ public class HouseholdAgent extends Agent {
 
     @Override
     protected void setup() {
-        RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
         // Import the arguments
         this.agentType = (AgentStrategyType)getArguments()[0];
 
@@ -117,7 +116,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public void action() {
-            AgentHelper.sendMessage(myAgent, new ArrayList<AID>(Arrays.asList(tickerAgent, advertisingAgent)), "Done", ACLMessage.INFORM);
+            AgentHelper.sendMessage(myAgent, new ArrayList<>(Arrays.asList(tickerAgent, advertisingAgent)), "Done", ACLMessage.INFORM); // TODO: rework the communication between the agents
         }
     }
 }

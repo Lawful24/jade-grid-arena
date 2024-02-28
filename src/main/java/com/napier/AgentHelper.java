@@ -14,15 +14,15 @@ import java.util.Arrays;
 
 public class AgentHelper {
     // TODO: Cite JADE workbook or JADE documentation
-    public static void registerAgent(Agent a, String agentType) {
+    public static void registerAgent(Agent a, String agentClass) {
         // Create a Directory Facilitator Description with the AID of the agent
         DFAgentDescription dfAgentDescription = new DFAgentDescription();
         dfAgentDescription.setName(a.getAID());
 
         // Describe the type of the agent
         ServiceDescription serviceDescription = new ServiceDescription();
-        serviceDescription.setType(agentType);
-        serviceDescription.setName(a.getLocalName() + "-" + agentType + "-agent");
+        serviceDescription.setType(agentClass);
+        serviceDescription.setName(a.getLocalName() + "-" + agentClass + "-agent");
         dfAgentDescription.addServices(serviceDescription);
 
         // Register agent in the Directory Facilitator
@@ -137,5 +137,9 @@ public class AgentHelper {
         }
 
         return agentType;
+    }
+
+    public static int getHouseholdAgentNumber(String agentNickname) {
+        return Integer.parseInt(agentNickname.substring(agentNickname.length() - 1));
     }
 }
