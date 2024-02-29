@@ -7,10 +7,7 @@ import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SequentialBehaviour;
 import jade.lang.acl.ACLMessage;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 public class HouseholdAgent extends Agent {
     // Agent arguments
@@ -33,6 +30,8 @@ public class HouseholdAgent extends Agent {
     private int numOfDailyRejectedReceivedExchanges;
     private int numOfDailyRejectedRequestedExchanges;
     private int numOfDailyAcceptedRequestedExchanges;
+    private ArrayList<Integer> unallocatedCurveIndices;
+    private double[] dailyDemandCurve = new double[RunConfigurationSingleton.getInstance().getBucketedDemandCurves().length];
 
     // Agent contact attributes
     private AID tickerAgent;
@@ -54,6 +53,7 @@ public class HouseholdAgent extends Agent {
         this.numOfDailyRejectedReceivedExchanges = 0;
         this.numOfDailyRejectedRequestedExchanges = 0;
         this.numOfDailyAcceptedRequestedExchanges = 0;
+        this.unallocatedCurveIndices = new ArrayList<>();
 
         AgentHelper.registerAgent(this, "Household");
 
@@ -83,8 +83,12 @@ public class HouseholdAgent extends Agent {
 
                 // Set up the daily tasks
                 if (tick.getContent().equals("New day")) {
+                    // Set the daily tracking data to their initial values at the start of the day
+                    reset();
+
                     SequentialBehaviour dailyTasks = new SequentialBehaviour();
                     // TODO: Add sub-behaviours here
+                    dailyTasks.addSubBehaviour(new DetermineDailyDemandBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new CallItADayBehaviour(myAgent));
 
                     myAgent.addBehaviour(new FindAdvertisingBoardBehaviour(myAgent));
@@ -96,6 +100,19 @@ public class HouseholdAgent extends Agent {
                 block();
             }
         }
+
+        @Override
+        public void reset() {
+            super.reset();
+            numOfDailyExchangesWithSocialCapital = 0;
+            numOfDailyExchangesWithoutSocialCapital = 0;
+            numOfDailyRejectedReceivedExchanges = 0;
+            numOfDailyRejectedRequestedExchanges = 0;
+            numOfDailyAcceptedRequestedExchanges = 0;
+            unallocatedCurveIndices.clear();
+            requestedTimeSlots.clear();
+            allocatedTimeSlots.clear();
+        }
     }
 
     public class FindAdvertisingBoardBehaviour extends OneShotBehaviour {
@@ -106,6 +123,32 @@ public class HouseholdAgent extends Agent {
         @Override
         public void action() {
             advertisingAgent = AgentHelper.saveAgentContacts(myAgent, "Advertising-board").getFirst();
+        }
+    }
+
+    public class DetermineDailyDemandBehaviour extends OneShotBehaviour {
+        public DetermineDailyDemandBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+
+            dailyDemandCurve = config.getBucketedDemandCurves()[config.popFirstDemandCurveIndex()];
+        }
+    }
+
+    public class RequestInitialSlotsBehaviour extends OneShotBehaviour {
+        public RequestInitialSlotsBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+
+            // we need: bucketedDemandCurves[selector], totalDemandValues[selector]
         }
     }
 

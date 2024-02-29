@@ -53,8 +53,11 @@ public class TickerAgent extends Agent {
                     advertisingAgent = AgentHelper.saveAgentContacts(myAgent, "Advertising-board").getFirst();
 
                     // Collect all receivers
-                    allAgents.addAll(householdAgents);
-                    allAgents.add(advertisingAgent);
+                    if (allAgents.size() <= RunConfigurationSingleton.getInstance().getPopulationCount()) {
+                        allAgents.clear();
+                        allAgents.addAll(householdAgents);
+                        allAgents.add(advertisingAgent);
+                    }
 
                     // Broadcast the start of the new day to other agents
                     AgentHelper.sendMessage(myAgent, allAgents, "New day", ACLMessage.INFORM);
@@ -86,6 +89,9 @@ public class TickerAgent extends Agent {
         public int onEnd() {
             AgentHelper.logActivity(myAgent.getLocalName(), "End of day " + currentDay);
 
+            // Reshuffle the daily demand curve allocation
+            RunConfigurationSingleton.getInstance().recreateDemandCurveIndices();
+
             if (currentDay == maxNumOfDays) {
                 // Broadcast the Terminate message to all other agents
                 AgentHelper.sendMessage(myAgent, allAgents, "Terminate", ACLMessage.INFORM);
@@ -93,8 +99,6 @@ public class TickerAgent extends Agent {
                 // Terminate the ticker agent itself
                 myAgent.doDelete();
             } else {
-                allAgents.clear();
-
                 // Recreate the sync behaviour and add it to the ticker's behaviour queue
                 myAgent.addBehaviour(new DailySyncBehaviour(myAgent));
             }

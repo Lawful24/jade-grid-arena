@@ -9,6 +9,7 @@ import jade.core.behaviours.SequentialBehaviour;
 import jade.lang.acl.ACLMessage;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class AdvertisingBoardAgent extends Agent {
@@ -105,12 +106,13 @@ public class AdvertisingBoardAgent extends Agent {
             }
 
             AgentHelper.logActivity(myAgent.getLocalName(), "Time Slots generated: " + availableTimeSlots.size());
+            Collections.shuffle(householdAgents, config.getRandom());
         }
     }
 
     public class CallItADayListenerBehaviour extends CyclicBehaviour {
         private int householdsDayOver = 0;
-        private List<Behaviour> behavioursToRemove;
+        private final List<Behaviour> behavioursToRemove;
 
         public CallItADayListenerBehaviour(Agent a, List<Behaviour> behavioursToRemove) {
             super(a);
