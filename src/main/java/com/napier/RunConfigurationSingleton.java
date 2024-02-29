@@ -72,6 +72,7 @@ public class RunConfigurationSingleton {
         this.satisfactionCurve = inputToDoubleArray(properties.getProperty("agent.satisfactionCurve"));
 
         // Calculate values based on the configuration properties
+        random.setSeed(this.seed);
         this.bucketedDemandCurves = this.bucketSortDemandCurves();
         this.totalDemandValues = this.calculateTotalDemandValues();
         this.demandCurveIndices = this.createDemandCurveIndices();
