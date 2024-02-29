@@ -32,6 +32,7 @@ public class HouseholdAgent extends Agent {
     private int numOfDailyAcceptedRequestedExchanges;
     private ArrayList<Integer> unallocatedCurveIndices;
     private double[] dailyDemandCurve = new double[RunConfigurationSingleton.getInstance().getBucketedDemandCurves().length];
+    private double dailyDemandValue;
 
     // Agent contact attributes
     private AID tickerAgent;
@@ -134,8 +135,10 @@ public class HouseholdAgent extends Agent {
         @Override
         public void action() {
             RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+            int randomDemandIndex = config.popFirstDemandCurveIndex();
 
-            dailyDemandCurve = config.getBucketedDemandCurves()[config.popFirstDemandCurveIndex()];
+            dailyDemandCurve = config.getBucketedDemandCurves()[randomDemandIndex];
+            dailyDemandValue = config.getTotalDemandValues()[randomDemandIndex];
         }
     }
 
