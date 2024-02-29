@@ -3,9 +3,7 @@ package com.napier;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Properties;
-import java.util.Random;
+import java.util.*;
 
 public class RunConfigurationSingleton {
     private static RunConfigurationSingleton instance;
@@ -35,6 +33,7 @@ public class RunConfigurationSingleton {
     /* Calculated Values */
     private final double[][] bucketedDemandCurves;
     private final double[] totalDemandValues;
+    private ArrayList<Integer> demandCurveIndices;
     private final int[] bucketedAvailabilityCurve;
     private final int totalAvailableEnergy;
 
@@ -75,6 +74,7 @@ public class RunConfigurationSingleton {
         // Calculate values based on the configuration properties
         this.bucketedDemandCurves = this.bucketSortDemandCurves();
         this.totalDemandValues = this.calculateTotalDemandValues();
+        this.demandCurveIndices = this.createDemandCurveIndices();
         this.bucketedAvailabilityCurve = this.bucketSortAvailabilityCurve();
         this.totalAvailableEnergy = this.calculateTotalAvailableEnergy();
     }
@@ -161,6 +161,10 @@ public class RunConfigurationSingleton {
         return satisfactionCurve;
     }
 
+    public ArrayList<Integer> getDemandCurveIndices() {
+        return demandCurveIndices;
+    }
+
     public double[][] getBucketedDemandCurves() {
         return bucketedDemandCurves;
     }
@@ -175,6 +179,16 @@ public class RunConfigurationSingleton {
 
     public int getTotalAvailableEnergy() {
         return totalAvailableEnergy;
+    }
+
+    /* Mutators */
+
+    public Integer popFirstDemandCurveIndex() {
+        return this.demandCurveIndices.removeFirst();
+    }
+
+    public void recreateDemandCurveIndices() {
+        this.demandCurveIndices = this.createDemandCurveIndices();
     }
 
     /* Helpers */
@@ -289,11 +303,35 @@ public class RunConfigurationSingleton {
                 totalDemandValues[i] = totalDemand;
             }
         } else {
-            System.err.println("The demand curves have not been bucketed.");
+            System.err.println("The demand curves have not been bucketed yet.");
             throw new NullPointerException();
         }
 
         return totalDemandValues;
+    }
+
+    private ArrayList<Integer> createDemandCurveIndices() throws NullPointerException {
+        ArrayList<Integer> unallocatedCurveIndices = new ArrayList<>();
+        int curveIndex = 0;
+
+        if (this.bucketedDemandCurves != null) {
+            // TODO: Cite Arena code
+            for (int i = 0; i < this.populationCount; i++) {
+                unallocatedCurveIndices.add(curveIndex);
+                curveIndex++;
+
+                if (curveIndex >= this.bucketedDemandCurves.length) {
+                    curveIndex = 0;
+                }
+            }
+        } else {
+            System.err.println("The demand curves have not been bucketed yet.");
+            throw new NullPointerException();
+        }
+
+        Collections.shuffle(unallocatedCurveIndices, random);
+
+        return unallocatedCurveIndices;
     }
 
     // TODO: Cite Arena code
