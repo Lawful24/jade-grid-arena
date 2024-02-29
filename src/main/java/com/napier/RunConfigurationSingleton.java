@@ -33,6 +33,8 @@ public class RunConfigurationSingleton {
     private final double[] satisfactionCurve; // agent.satisfactionCurve (satisfactionCurve)
 
     /* Calculated Values */
+    private final double[][] bucketedDemandCurves;
+    private final double[] totalDemandValues;
     private final int[] bucketedAvailabilityCurve;
     private final int totalAvailableEnergy;
 
@@ -71,6 +73,8 @@ public class RunConfigurationSingleton {
         this.satisfactionCurve = inputToDoubleArray(properties.getProperty("agent.satisfactionCurve"));
 
         // Calculate values based on the configuration properties
+        this.bucketedDemandCurves = this.bucketSortDemandCurves();
+        this.totalDemandValues = this.calculateTotalDemandValues();
         this.bucketedAvailabilityCurve = this.bucketSortAvailabilityCurve();
         this.totalAvailableEnergy = this.calculateTotalAvailableEnergy();
     }
@@ -157,6 +161,14 @@ public class RunConfigurationSingleton {
         return satisfactionCurve;
     }
 
+    public double[][] getBucketedDemandCurves() {
+        return bucketedDemandCurves;
+    }
+
+    public double[] getTotalDemandValues() {
+        return totalDemandValues;
+    }
+
     public int[] getBucketedAvailabilityCurve() {
         return bucketedAvailabilityCurve;
     }
@@ -232,6 +244,56 @@ public class RunConfigurationSingleton {
 
         // Multiply the fraction of the population size by the ratio for each agent and round up the results
         return Math.round(fraction * selfishRatio);
+    }
+
+    // TODO: Cite Arena code
+    private double[][] bucketSortDemandCurves() {
+        double[][] bucketedDemandCurves = new double[this.demandCurves.length][this.numOfUniqueTimeSlots];
+
+        for (int i = 0; i < this.demandCurves.length; i++) {
+            double[] bucketedDemandCurve = new double[this.numOfUniqueTimeSlots];
+            int bucket = 0;
+            int bucketFill = 0;
+
+            for (int j = 0; j < this.demandCurves[i].length; j++) {
+                bucketedDemandCurve[bucket] = bucketedDemandCurve[bucket] + this.demandCurves[i][j];
+                bucketFill++;
+
+                if (bucketFill == 6) {
+                    // Rounding to fix precision errors.
+                    bucketedDemandCurve[bucket] = Math.round(bucketedDemandCurve[bucket] * 10.0) / 10.0;
+                    bucketFill = 0;
+                    bucket++;
+                }
+            }
+
+            bucketedDemandCurves[i] = bucketedDemandCurve;
+        }
+
+        return bucketedDemandCurves;
+    }
+
+    // TODO: Cite Arena code
+    private double[] calculateTotalDemandValues() throws NullPointerException {
+        double[] totalDemandValues = new double[this.demandCurves.length];
+
+        if (this.bucketedDemandCurves != null) {
+            for (int i = 0; i < this.demandCurves.length; i++) {
+                double totalDemand = 0;
+
+                for (double demandValue : this.bucketedDemandCurves[i]) {
+                    totalDemand = totalDemand + demandValue;
+                }
+
+                totalDemand = Math.round(totalDemand * 10.0) / 10.0;
+                totalDemandValues[i] = totalDemand;
+            }
+        } else {
+            System.err.println("The demand curves have not been bucketed.");
+            throw new NullPointerException();
+        }
+
+        return totalDemandValues;
     }
 
     // TODO: Cite Arena code
