@@ -15,4 +15,9 @@ public class TimeSlotSatisfactionPair {
         this.timeSlot = timeSlot;
         this.satisfaction = satisfaction;
     }
+
+    @Override
+    public String toString() {
+        return "(" + this.timeSlot + ", " + this.satisfaction + ")";
+    }
 }
