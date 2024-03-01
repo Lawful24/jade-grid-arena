@@ -4,7 +4,6 @@ import jade.core.AID;
 import jade.core.Agent;
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
-import jade.domain.FIPAAgentManagement.NotUnderstoodException;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
@@ -60,7 +59,7 @@ public class AgentHelper {
 
             for (DFAgentDescription foundAgent : agentsOfType) {
                 agentContacts.add(foundAgent.getName());
-                AgentHelper.logActivity(agent.getLocalName(), "Registered: " + foundAgent.getName());
+                AgentHelper.printAgentLog(agent.getLocalName(), "Registered: " + foundAgent.getName());
             }
         } catch (FIPAException e) {
             System.err.println(e.toString());
@@ -113,7 +112,7 @@ public class AgentHelper {
                 try {
                     message.setContentObject(object);
                 } catch (IOException e) {
-                    AgentHelper.logActivity(
+                    AgentHelper.printAgentError(
                             sender.getLocalName(),
                             "Failed to send object to "
                                     + receiver.getLocalName() + ": "
@@ -129,7 +128,7 @@ public class AgentHelper {
                 sender.send(message);
             }
         } else {
-            logActivity(sender.getLocalName(), "Error: cannot send an ACLMessage with null as its content.");
+            printAgentError(sender.getLocalName(), "Cannot send an ACLMessage with null as its content.");
         }
     }
 
@@ -153,8 +152,12 @@ public class AgentHelper {
         }
     }
 
-    public static void logActivity(String agentNickname, String logMessage) {
+    public static void printAgentLog(String agentNickname, String logMessage) {
         System.out.println(agentNickname + " says: " + logMessage);
+    }
+
+    public static void printAgentError(String agentNickname, String errorMessage) {
+        System.err.println(agentNickname + " error: " + errorMessage);
     }
 
     public static AgentStrategyType determineAgentType(int householdAgentNumber) {

@@ -27,7 +27,7 @@ public class AdvertisingBoardAgent extends Agent {
 
     @Override
     protected void takeDown() {
-        AgentHelper.logActivity(getLocalName(), "Terminating...");
+        AgentHelper.printAgentLog(getLocalName(), "Terminating...");
         AgentHelper.deregisterAgent(this);
     }
 
@@ -106,7 +106,7 @@ public class AdvertisingBoardAgent extends Agent {
                 availableTimeSlots.add(new TimeSlot(timeSlotStart));
             }
 
-            AgentHelper.logActivity(myAgent.getLocalName(), "Time Slots generated: " + availableTimeSlots.size());
+            AgentHelper.printAgentLog(myAgent.getLocalName(), "Time Slots generated: " + availableTimeSlots.size());
             Collections.shuffle(householdAgents, config.getRandom());
         }
     }
@@ -134,7 +134,7 @@ public class AdvertisingBoardAgent extends Agent {
                         initialTimeSlots[i] = timeSlot;
                         availableTimeSlots.remove(selector);
                     } else {
-                        AgentHelper.logActivity(myAgent.getLocalName(), "Error: No Time-Slots Available");
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Error: No Time-Slots Available");
                     }
                 }
 

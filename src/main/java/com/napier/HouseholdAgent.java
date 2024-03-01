@@ -62,7 +62,7 @@ public class HouseholdAgent extends Agent {
 
     @Override
     protected void takeDown() {
-        AgentHelper.logActivity(getLocalName(), "Terminating...");
+        AgentHelper.printAgentLog(getLocalName(), "Terminating...");
         AgentHelper.deregisterAgent(this);
     }
 
@@ -237,10 +237,10 @@ public class HouseholdAgent extends Agent {
                     if (incomingObject instanceof InitialTimeSlotAllocation) {
                         allocatedTimeSlots = new ArrayList<>(Arrays.asList(((InitialTimeSlotAllocation) incomingObject).timeSlots()));
                     } else {
-                        AgentHelper.logActivity(myAgent.getLocalName(), "Initial random allocation cannot be set: the received object has an incorrect type.");
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Initial random allocation cannot be set: the received object has an incorrect type.");
                     }
                 } catch (UnreadableException e) {
-                    AgentHelper.logActivity(myAgent.getLocalName(), "Incoming random allocation is unreadable: " + e.getMessage());
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming random allocation is unreadable: " + e.getMessage());
                 }
 
                 myAgent.removeBehaviour(this);

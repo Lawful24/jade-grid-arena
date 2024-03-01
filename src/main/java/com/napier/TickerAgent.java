@@ -28,7 +28,7 @@ public class TickerAgent extends Agent {
 
     @Override
     protected void takeDown() {
-        AgentHelper.logActivity(getLocalName(), "Terminating...");
+        AgentHelper.printAgentLog(getLocalName(), "Terminating...");
         AgentHelper.deregisterAgent(this);
     }
 
@@ -87,7 +87,7 @@ public class TickerAgent extends Agent {
 
         @Override
         public int onEnd() {
-            AgentHelper.logActivity(myAgent.getLocalName(), "End of day " + currentDay);
+            AgentHelper.printAgentLog(myAgent.getLocalName(), "End of day " + currentDay);
 
             // Reshuffle the daily demand curve allocation
             RunConfigurationSingleton.getInstance().recreateDemandCurveIndices();
