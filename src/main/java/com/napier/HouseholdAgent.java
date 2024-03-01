@@ -19,8 +19,7 @@ public class HouseholdAgent extends Agent {
     private ArrayList<TimeSlot> requestedTimeSlots;
     private ArrayList<TimeSlot> allocatedTimeSlots;
     private final double[] satisfactionCurve = RunConfigurationSingleton.getInstance().getSatisfactionCurve();
-    private List<SlotSatisfactionPair> timeslotSatisfactionPairs;
-
+    private ArrayList<SlotSatisfactionPair> timeSlotSatisfactionPairs;
     private HashMap<AID, Integer> favours = new HashMap<>();
     private ArrayList<Integer> exchangeRequestReceived = new ArrayList<>();
     private boolean isExchangeRequestApproved;
@@ -30,7 +29,6 @@ public class HouseholdAgent extends Agent {
     private int numOfDailyRejectedReceivedExchanges;
     private int numOfDailyRejectedRequestedExchanges;
     private int numOfDailyAcceptedRequestedExchanges;
-    private ArrayList<Integer> unallocatedCurveIndices;
     private double[] dailyDemandCurve = new double[RunConfigurationSingleton.getInstance().getBucketedDemandCurves().length];
     private double dailyDemandValue;
 
@@ -47,14 +45,13 @@ public class HouseholdAgent extends Agent {
         this.madeInteraction = false;
         this.requestedTimeSlots = new ArrayList<>();
         this.allocatedTimeSlots = new ArrayList<>();
-        this.timeslotSatisfactionPairs = new ArrayList<>();
+        this.timeSlotSatisfactionPairs = new ArrayList<>();
         this.totalSocialCapital = 0;
         this.numOfDailyExchangesWithSocialCapital = 0;
         this.numOfDailyExchangesWithoutSocialCapital = 0;
         this.numOfDailyRejectedReceivedExchanges = 0;
         this.numOfDailyRejectedRequestedExchanges = 0;
         this.numOfDailyAcceptedRequestedExchanges = 0;
-        this.unallocatedCurveIndices = new ArrayList<>();
 
         AgentHelper.registerAgent(this, "Household");
 
@@ -90,6 +87,8 @@ public class HouseholdAgent extends Agent {
                     SequentialBehaviour dailyTasks = new SequentialBehaviour();
                     // TODO: Add sub-behaviours here
                     dailyTasks.addSubBehaviour(new DetermineDailyDemandBehaviour(myAgent));
+                    dailyTasks.addSubBehaviour(new DetermineInitialRequestedTimeSlotsBehaviour(myAgent));
+                    dailyTasks.addSubBehaviour(new CalculateSlotSatisfactionBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new CallItADayBehaviour(myAgent));
 
                     myAgent.addBehaviour(new FindAdvertisingBoardBehaviour(myAgent));
@@ -110,9 +109,9 @@ public class HouseholdAgent extends Agent {
             numOfDailyRejectedReceivedExchanges = 0;
             numOfDailyRejectedRequestedExchanges = 0;
             numOfDailyAcceptedRequestedExchanges = 0;
-            unallocatedCurveIndices.clear();
             requestedTimeSlots.clear();
             allocatedTimeSlots.clear();
+            timeSlotSatisfactionPairs.clear();
         }
     }
 
@@ -142,8 +141,8 @@ public class HouseholdAgent extends Agent {
         }
     }
 
-    public class RequestInitialSlotsBehaviour extends OneShotBehaviour {
-        public RequestInitialSlotsBehaviour(Agent a) {
+    public class DetermineInitialRequestedTimeSlotsBehaviour extends OneShotBehaviour {
+        public DetermineInitialRequestedTimeSlotsBehaviour(Agent a) {
             super(a);
         }
 
@@ -151,7 +150,70 @@ public class HouseholdAgent extends Agent {
         public void action() {
             RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
 
-            // we need: bucketedDemandCurves[selector], totalDemandValues[selector]
+            // TODO: Cite Arena code
+            if (!requestedTimeSlots.isEmpty()) {
+                requestedTimeSlots.clear();
+            }
+
+            for (int i = 1; i <= numOfTimeSlotsWanted; i++) {
+                // Selects a time-slot based on the demand curve.
+                int wheelSelector = config.getRandom().nextInt((int)(dailyDemandValue * 10)) + 1;
+                int wheelCalculator = 0;
+                int timeSlotStart = 0;
+
+                while (wheelCalculator < wheelSelector) {
+                    wheelCalculator = wheelCalculator + ((int)(dailyDemandCurve[timeSlotStart] * 10));
+                    timeSlotStart++;
+                }
+
+                TimeSlot timeSlotToAdd = new TimeSlot(timeSlotStart);
+
+                if (requestedTimeSlots.contains(timeSlotToAdd)) {
+                    i--;
+                } else {
+                    requestedTimeSlots.add(timeSlotToAdd);
+                }
+            }
+        }
+    }
+
+    public class CalculateSlotSatisfactionBehaviour extends OneShotBehaviour {
+        public CalculateSlotSatisfactionBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            // TODO: Cite Arena code
+            // Calculate the potential satisfaction that each time-slot could give based on their proximity to requested time-slots.
+            Double[] slotSatisfaction = new Double[RunConfigurationSingleton.getInstance().getNumOfUniqueTimeSlots()];
+            Arrays.fill(slotSatisfaction, 0.0);
+
+            for (TimeSlot ts : requestedTimeSlots) {
+                int slotSatisfactionIndex = ts.getStartHour() - 1;
+                slotSatisfaction[slotSatisfactionIndex] = satisfactionCurve[0];
+
+                // Apply the adjustment values to neighboring elements
+                for (int i = 1; i < satisfactionCurve.length; i++) {
+                    int leftIndex = slotSatisfactionIndex - i;
+                    int rightIndex = slotSatisfactionIndex + i;
+
+                    if (leftIndex < 0) {
+                        leftIndex += slotSatisfaction.length;
+                    }
+
+                    if (rightIndex >= slotSatisfaction.length) {
+                        rightIndex -= slotSatisfaction.length;
+                    }
+
+                    slotSatisfaction[leftIndex] = Math.max(slotSatisfaction[leftIndex], satisfactionCurve[i]);
+                    slotSatisfaction[rightIndex] = Math.max(slotSatisfaction[rightIndex], satisfactionCurve[i]);
+                }
+            }
+
+            for (int i = 0; i < slotSatisfaction.length; i++) {
+                timeSlotSatisfactionPairs.add(new SlotSatisfactionPair(new TimeSlot(i + 1), slotSatisfaction[i]));
+            }
         }
     }
 
