@@ -4,11 +4,14 @@ import jade.core.AID;
 import jade.core.Agent;
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.NotUnderstoodException;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -68,7 +71,7 @@ public class AgentHelper {
 
     public static void sendMessage(Agent sender, AID receiver, String content, int performative) {
         // Check if provided int is a registered ACL performative
-        if (Arrays.asList(ACLMessage.getAllPerformativeNames()).contains(ACLMessage.getPerformative(performative))) {
+        if (isValidACLPerformative(performative)) {
             // Build the message
             ACLMessage message = new ACLMessage(performative);
             message.setContent(content);
@@ -78,14 +81,12 @@ public class AgentHelper {
 
             // Send the message
             sender.send(message);
-        } else {
-            System.err.println("Incorrect ACL performative: " + performative);
         }
     }
 
     public static void sendMessage(Agent sender, ArrayList<AID> receivers, String content, int performative) {
         // Check if provided int is a registered ACL performative
-        if (Arrays.asList(ACLMessage.getAllPerformativeNames()).contains(ACLMessage.getPerformative(performative))) {
+        if (isValidACLPerformative(performative)) {
             // Build the message
             ACLMessage message = new ACLMessage(performative);
             message.setContent(content);
@@ -97,8 +98,38 @@ public class AgentHelper {
 
             // Send the message
             sender.send(message);
+        }
+    }
+
+    public static void sendMessage (Agent sender, AID receiver, String content, Serializable object, int performative) {
+        if (object != null) {
+            // Check if provided int is a registered ACL performative
+            if (isValidACLPerformative(performative)) {
+                // Build the message
+                ACLMessage message = new ACLMessage(performative);
+
+                message.setContent(content);
+
+                try {
+                    message.setContentObject(object);
+                } catch (IOException e) {
+                    AgentHelper.logActivity(
+                            sender.getLocalName(),
+                            "Failed to send object to "
+                                    + receiver.getLocalName() + ": "
+                                    + e.getMessage() + "\n"
+                                    + "Sending empty message."
+                    );
+                }
+
+                // Assign the receiver
+                message.addReceiver(receiver);
+
+                // Send the message
+                sender.send(message);
+            }
         } else {
-            System.err.println("Incorrect ACL performative: " + performative);
+            logActivity(sender.getLocalName(), "Error: cannot send an ACLMessage with null as its content.");
         }
     }
 
@@ -111,6 +142,15 @@ public class AgentHelper {
     // TODO: rework this
     public static ACLMessage receiveMessage(Agent agentToReceive, String messageContent, String optionalMessageContent) {
         return agentToReceive.receive(MessageTemplate.or(MessageTemplate.MatchContent(messageContent), MessageTemplate.MatchContent(optionalMessageContent)));
+    }
+
+    public static ACLMessage receiveMessage(Agent agentToReceive, AID sender, int performative) {
+        if (isValidACLPerformative(performative)) {
+            return agentToReceive.receive(MessageTemplate.and(MessageTemplate.MatchSender(sender), MessageTemplate.MatchPerformative(performative)));
+        } else {
+            System.err.println("Incorrect ACL performative: " + performative);
+            return null;
+        }
     }
 
     public static void logActivity(String agentNickname, String logMessage) {
@@ -141,5 +181,9 @@ public class AgentHelper {
 
     public static int getHouseholdAgentNumber(String agentNickname) {
         return Integer.parseInt(agentNickname.substring(agentNickname.length() - 1));
+    }
+
+    private static boolean isValidACLPerformative(int performative) {
+        return Arrays.asList(ACLMessage.getAllPerformativeNames()).contains(ACLMessage.getPerformative(performative));
     }
 }
