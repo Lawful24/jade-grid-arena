@@ -6,7 +6,9 @@ import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SequentialBehaviour;
 import jade.lang.acl.ACLMessage;
+import jade.lang.acl.UnreadableException;
 
+import java.io.Serializable;
 import java.util.*;
 
 public class HouseholdAgent extends Agent {
@@ -87,11 +89,12 @@ public class HouseholdAgent extends Agent {
                     SequentialBehaviour dailyTasks = new SequentialBehaviour();
                     // TODO: Add sub-behaviours here
                     dailyTasks.addSubBehaviour(new DetermineDailyDemandBehaviour(myAgent));
-                    dailyTasks.addSubBehaviour(new DetermineInitialRequestedTimeSlotsBehaviour(myAgent));
+                    dailyTasks.addSubBehaviour(new DetermineTimeSlotPreferenceBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new CalculateSlotSatisfactionBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new CallItADayBehaviour(myAgent));
 
                     myAgent.addBehaviour(new FindAdvertisingBoardBehaviour(myAgent));
+                    myAgent.addBehaviour(new ReceiveRandomInitialTimeSlotAllocationBehaviour(myAgent));
                     myAgent.addBehaviour(dailyTasks);
                 } else {
                     myAgent.doDelete();
@@ -141,8 +144,8 @@ public class HouseholdAgent extends Agent {
         }
     }
 
-    public class DetermineInitialRequestedTimeSlotsBehaviour extends OneShotBehaviour {
-        public DetermineInitialRequestedTimeSlotsBehaviour(Agent a) {
+    public class DetermineTimeSlotPreferenceBehaviour extends OneShotBehaviour {
+        public DetermineTimeSlotPreferenceBehaviour(Agent a) {
             super(a);
         }
 
@@ -189,8 +192,8 @@ public class HouseholdAgent extends Agent {
             Double[] slotSatisfaction = new Double[RunConfigurationSingleton.getInstance().getNumOfUniqueTimeSlots()];
             Arrays.fill(slotSatisfaction, 0.0);
 
-            for (TimeSlot ts : requestedTimeSlots) {
-                int slotSatisfactionIndex = ts.getStartHour() - 1;
+            for (TimeSlot timeSlot : requestedTimeSlots) {
+                int slotSatisfactionIndex = timeSlot.getStartHour() - 1;
                 slotSatisfaction[slotSatisfactionIndex] = satisfactionCurve[0];
 
                 // Apply the adjustment values to neighboring elements
@@ -213,6 +216,36 @@ public class HouseholdAgent extends Agent {
 
             for (int i = 0; i < slotSatisfaction.length; i++) {
                 timeSlotSatisfactionPairs.add(new TimeSlotSatisfactionPair(new TimeSlot(i + 1), slotSatisfaction[i]));
+            }
+        }
+    }
+
+    public class ReceiveRandomInitialTimeSlotAllocationBehaviour extends CyclicBehaviour {
+        public ReceiveRandomInitialTimeSlotAllocationBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            ACLMessage incomingAllocationMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, ACLMessage.INFORM);
+
+            if (incomingAllocationMessage != null) {
+                try {
+                    Serializable incomingObject = incomingAllocationMessage.getContentObject();
+
+                    // Make sure the incoming object is of the expected type
+                    if (incomingObject instanceof InitialTimeSlotAllocation) {
+                        allocatedTimeSlots = new ArrayList<>(Arrays.asList(((InitialTimeSlotAllocation) incomingObject).timeSlots()));
+                    } else {
+                        AgentHelper.logActivity(myAgent.getLocalName(), "Initial random allocation cannot be set: the received object has an incorrect type.");
+                    }
+                } catch (UnreadableException e) {
+                    AgentHelper.logActivity(myAgent.getLocalName(), "Incoming random allocation is unreadable: " + e.getMessage());
+                }
+
+                myAgent.removeBehaviour(this);
+            } else {
+                block();
             }
         }
     }

@@ -53,6 +53,7 @@ public class AdvertisingBoardAgent extends Agent {
 
                     // TODO: Add sub-behaviours here
                     dailyTasks.addSubBehaviour(new GenerateTimeSlotsBehaviour(myAgent));
+                    dailyTasks.addSubBehaviour(new DistributeInitialRandomTimeSlotAllocations(myAgent));
 
                     myAgent.addBehaviour(dailyTasks);
                     myAgent.addBehaviour(new CallItADayListenerBehaviour(myAgent, cyclicBehaviours));
@@ -107,6 +108,45 @@ public class AdvertisingBoardAgent extends Agent {
 
             AgentHelper.logActivity(myAgent.getLocalName(), "Time Slots generated: " + availableTimeSlots.size());
             Collections.shuffle(householdAgents, config.getRandom());
+        }
+    }
+
+    public class DistributeInitialRandomTimeSlotAllocations extends OneShotBehaviour {
+        public DistributeInitialRandomTimeSlotAllocations(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+
+            for (AID householdAgent : householdAgents) {
+                // TODO: Cite Arena code
+                TimeSlot[] initialTimeSlots = new TimeSlot[config.getNumOfSlotsPerAgent()];
+
+                // TODO: find out: is the number of requested time slots == the number of slots per agent?
+                for (int i = 0; i < config.getNumOfSlotsPerAgent(); i++) {
+                    // Only allocate time-slots if there are slots available to allocate.
+                    if (!availableTimeSlots.isEmpty()) {
+                        int selector = config.getRandom().nextInt(availableTimeSlots.size());
+                        TimeSlot timeSlot = availableTimeSlots.get(selector);
+
+                        initialTimeSlots[i] = timeSlot;
+                        availableTimeSlots.remove(selector);
+                    } else {
+                        AgentHelper.logActivity(myAgent.getLocalName(), "Error: No Time-Slots Available");
+                    }
+                }
+
+                // Send the initial allocation to the given household
+                AgentHelper.sendMessage(
+                        myAgent,
+                        householdAgent,
+                        "Initial Allocation Enclosed.",
+                        new InitialTimeSlotAllocation(initialTimeSlots),
+                        ACLMessage.INFORM
+                );
+            }
         }
     }
 
