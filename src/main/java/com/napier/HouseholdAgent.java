@@ -19,7 +19,7 @@ public class HouseholdAgent extends Agent {
     private ArrayList<TimeSlot> requestedTimeSlots;
     private ArrayList<TimeSlot> allocatedTimeSlots;
     private final double[] satisfactionCurve = RunConfigurationSingleton.getInstance().getSatisfactionCurve();
-    private ArrayList<SlotSatisfactionPair> timeSlotSatisfactionPairs;
+    private ArrayList<TimeSlotSatisfactionPair> timeSlotSatisfactionPairs;
     private HashMap<AID, Integer> favours = new HashMap<>();
     private ArrayList<Integer> exchangeRequestReceived = new ArrayList<>();
     private boolean isExchangeRequestApproved;
@@ -212,7 +212,7 @@ public class HouseholdAgent extends Agent {
             }
 
             for (int i = 0; i < slotSatisfaction.length; i++) {
-                timeSlotSatisfactionPairs.add(new SlotSatisfactionPair(new TimeSlot(i + 1), slotSatisfaction[i]));
+                timeSlotSatisfactionPairs.add(new TimeSlotSatisfactionPair(new TimeSlot(i + 1), slotSatisfaction[i]));
             }
         }
     }

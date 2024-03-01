@@ -1,7 +1,7 @@
 package com.napier;
 
 // TODO: Cite Arena code
-public class SlotSatisfactionPair {
+public class TimeSlotSatisfactionPair {
     TimeSlot timeSlot;
     double satisfaction;
 
@@ -11,7 +11,7 @@ public class SlotSatisfactionPair {
      * @param timeSlot Custom object representing the specific time-slot.
      * @param satisfaction Double value representing the level of satisfaction.
      */
-    public SlotSatisfactionPair(TimeSlot timeSlot, double satisfaction) {
+    public TimeSlotSatisfactionPair(TimeSlot timeSlot, double satisfaction) {
         this.timeSlot = timeSlot;
         this.satisfaction = satisfaction;
     }
