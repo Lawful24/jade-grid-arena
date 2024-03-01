@@ -1,6 +1,8 @@
 package com.napier;
 
-public class TimeSlot {
+import java.io.Serializable;
+
+public class TimeSlot implements Serializable {
     private int startHour;
     private final double energyAvailableKwh = 1.0;
 
