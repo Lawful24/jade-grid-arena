@@ -11,7 +11,6 @@ import jade.lang.acl.UnreadableException;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -64,7 +63,7 @@ public class AdvertisingBoardAgent extends Agent {
                     dailyTasks.addSubBehaviour(new DistributeInitialRandomTimeSlotAllocations(myAgent));
 
                     myAgent.addBehaviour(dailyTasks);
-                    myAgent.addBehaviour(new UnwantedTimeSlotsAdvertListenerBehaviour(myAgent));
+                    myAgent.addBehaviour(new NewAdvertListenerBehaviour(myAgent));
                     myAgent.addBehaviour(new CallItADayListenerBehaviour(myAgent, cyclicBehaviours));
                 } else {
                     myAgent.doDelete();
@@ -159,10 +158,10 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
-    public class UnwantedTimeSlotsAdvertListenerBehaviour extends CyclicBehaviour {
+    public class NewAdvertListenerBehaviour extends CyclicBehaviour {
         private int numOfAdvertsReceived = 0;
 
-        public UnwantedTimeSlotsAdvertListenerBehaviour(Agent a) {
+        public NewAdvertListenerBehaviour(Agent a) {
             super(a);
         }
 
@@ -200,9 +199,6 @@ public class AdvertisingBoardAgent extends Agent {
             }
         }
     }
-
-    // if not made interaction yet, make a request for an exchange by selecting a slot from the available ones
-    //
 
     public class CallItADayListenerBehaviour extends CyclicBehaviour {
         private int householdsDayOver = 0;
