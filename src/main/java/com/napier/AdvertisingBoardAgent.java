@@ -175,12 +175,14 @@ public class AdvertisingBoardAgent extends Agent {
                     Serializable incomingObject = advertisingMessage.getContentObject();
 
                     // Make sure the incoming object is of the expected type and the advert is not empty
-                    if (incomingObject instanceof SerializableTimeSlotArray && ((SerializableTimeSlotArray) incomingObject).timeSlots().length > 0) {
-                        // Register the advert
-                        adverts.add(new Advert(
-                                advertisingMessage.getSender(),
-                                ((SerializableTimeSlotArray) incomingObject).timeSlots())
-                        );
+                    if (incomingObject instanceof SerializableTimeSlotArray) {
+                        if (((SerializableTimeSlotArray) incomingObject).timeSlots().length > 0) {
+                            // Register the advert
+                            adverts.add(new Advert(
+                                    advertisingMessage.getSender(),
+                                    ((SerializableTimeSlotArray) incomingObject).timeSlots())
+                            );
+                        }
 
                         numOfAdvertsReceived++;
                     } else {
@@ -191,7 +193,6 @@ public class AdvertisingBoardAgent extends Agent {
                 }
 
                 if (numOfAdvertsReceived == householdAgents.size()) {
-                    System.out.println(Arrays.toString(adverts.getLast().timeSlotsForTrade()));
                     myAgent.removeBehaviour(this);
                 }
             } else {
@@ -199,6 +200,9 @@ public class AdvertisingBoardAgent extends Agent {
             }
         }
     }
+
+    // if not made interaction yet, make a request for an exchange by selecting a slot from the available ones
+    //
 
     public class CallItADayListenerBehaviour extends CyclicBehaviour {
         private int householdsDayOver = 0;
