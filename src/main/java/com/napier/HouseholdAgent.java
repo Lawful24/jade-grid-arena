@@ -2,6 +2,7 @@ package com.napier;
 
 import jade.core.AID;
 import jade.core.Agent;
+import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SequentialBehaviour;
@@ -91,6 +92,17 @@ public class HouseholdAgent extends Agent {
                     dailyTasks.addSubBehaviour(new DetermineDailyDemandBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new DetermineTimeSlotPreferenceBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new CalculateSlotSatisfactionBehaviour(myAgent));
+                    // The Exchange:
+                        // determine and advertise unwanted timeslots
+                    dailyTasks.addSubBehaviour(new AdvertiseUnwantedTimeSlotsBehaviour(myAgent));
+                        // request an exchange with the advertising board and set interactionMade=true
+                        // select an unwanted timeslot to offer in the exchange
+                        // Board: find the owner of the requested timeslot and propose a trade
+                        // consider any incoming requests and send a response to the Board
+                        // Board: based on the response to the request, create a proposal for both parties, increment the number of successful exchanges
+                        // if the offer went through, adjust the social capita accordingly
+                        // clear the agent's accepted offers list before the next round of exchanges
+                        // Board: if the number of exchanges is 0, set noExchanges=true and increment the timeout
                     dailyTasks.addSubBehaviour(new CallItADayBehaviour(myAgent));
 
                     myAgent.addBehaviour(new FindAdvertisingBoardBehaviour(myAgent));
@@ -107,6 +119,7 @@ public class HouseholdAgent extends Agent {
         @Override
         public void reset() {
             super.reset();
+            madeInteraction = false;
             numOfDailyExchangesWithSocialCapital = 0;
             numOfDailyExchangesWithoutSocialCapital = 0;
             numOfDailyRejectedReceivedExchanges = 0;
@@ -234,19 +247,52 @@ public class HouseholdAgent extends Agent {
                     Serializable incomingObject = incomingAllocationMessage.getContentObject();
 
                     // Make sure the incoming object is of the expected type
-                    if (incomingObject instanceof InitialTimeSlotAllocation) {
-                        allocatedTimeSlots = new ArrayList<>(Arrays.asList(((InitialTimeSlotAllocation) incomingObject).timeSlots()));
+                    if (incomingObject instanceof SerializableTimeSlotArray) {
+                        allocatedTimeSlots = new ArrayList<>(Arrays.asList(((SerializableTimeSlotArray)incomingObject).timeSlots()));
                     } else {
                         AgentHelper.printAgentError(myAgent.getLocalName(), "Initial random allocation cannot be set: the received object has an incorrect type.");
                     }
                 } catch (UnreadableException e) {
-                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming random allocation is unreadable: " + e.getMessage());
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming random allocation message is unreadable: " + e.getMessage());
                 }
 
                 myAgent.removeBehaviour(this);
             } else {
                 block();
             }
+        }
+    }
+
+    public class AdvertiseUnwantedTimeSlotsBehaviour extends Behaviour {
+        private boolean isAdPosted = false;
+
+        public AdvertiseUnwantedTimeSlotsBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            if (!allocatedTimeSlots.isEmpty()) {
+                // Get the difference of the allocated timeslots and the requested timeslots
+                ArrayList<TimeSlot> unwantedTimeSlots = new ArrayList<>(allocatedTimeSlots);
+                unwantedTimeSlots.removeAll(requestedTimeSlots);
+
+                // Convert the list to an array
+                AgentHelper.sendMessage(
+                        myAgent,
+                        advertisingAgent,
+                        "Unwanted ad",
+                        new SerializableTimeSlotArray(unwantedTimeSlots.toArray(new TimeSlot[]{})),
+                        ACLMessage.REQUEST
+                );
+
+                isAdPosted = true;
+            }
+        }
+
+        @Override
+        public boolean done() {
+            return isAdPosted;
         }
     }
 

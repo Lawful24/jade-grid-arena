@@ -7,19 +7,27 @@ import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SequentialBehaviour;
 import jade.lang.acl.ACLMessage;
+import jade.lang.acl.UnreadableException;
 
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 public class AdvertisingBoardAgent extends Agent {
     private ArrayList<TimeSlot> availableTimeSlots;
+    private ArrayList<Advert> adverts;
+
+    // Agent contact attributes
     private AID tickerAgent;
     private ArrayList<AID> householdAgents;
 
     @Override
     protected void setup() {
         availableTimeSlots = new ArrayList<>();
+        adverts = new ArrayList<>();
+
         AgentHelper.registerAgent(this, "Advertising-board");
 
         addBehaviour(new TickerDailyBehaviour(this));
@@ -56,6 +64,7 @@ public class AdvertisingBoardAgent extends Agent {
                     dailyTasks.addSubBehaviour(new DistributeInitialRandomTimeSlotAllocations(myAgent));
 
                     myAgent.addBehaviour(dailyTasks);
+                    myAgent.addBehaviour(new UnwantedTimeSlotsAdvertListenerBehaviour(myAgent));
                     myAgent.addBehaviour(new CallItADayListenerBehaviour(myAgent, cyclicBehaviours));
                 } else {
                     myAgent.doDelete();
@@ -143,9 +152,50 @@ public class AdvertisingBoardAgent extends Agent {
                         myAgent,
                         householdAgent,
                         "Initial Allocation Enclosed.",
-                        new InitialTimeSlotAllocation(initialTimeSlots),
+                        new SerializableTimeSlotArray(initialTimeSlots),
                         ACLMessage.INFORM
                 );
+            }
+        }
+    }
+
+    public class UnwantedTimeSlotsAdvertListenerBehaviour extends CyclicBehaviour {
+        private int numOfAdvertsReceived = 0;
+
+        public UnwantedTimeSlotsAdvertListenerBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            ACLMessage advertisingMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.REQUEST);
+
+            if (advertisingMessage != null) {
+                try {
+                    Serializable incomingObject = advertisingMessage.getContentObject();
+
+                    // Make sure the incoming object is of the expected type and the advert is not empty
+                    if (incomingObject instanceof SerializableTimeSlotArray && ((SerializableTimeSlotArray) incomingObject).timeSlots().length > 0) {
+                        // Register the advert
+                        adverts.add(new Advert(
+                                advertisingMessage.getSender(),
+                                ((SerializableTimeSlotArray) incomingObject).timeSlots())
+                        );
+
+                        numOfAdvertsReceived++;
+                    } else {
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Advert cannot be registered: the received object has an incorrect type.");
+                    }
+                } catch (UnreadableException e) {
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming advert message is unreadable: " + e.getMessage());
+                }
+
+                if (numOfAdvertsReceived == householdAgents.size()) {
+                    System.out.println(Arrays.toString(adverts.getLast().timeSlotsForTrade()));
+                    myAgent.removeBehaviour(this);
+                }
+            } else {
+                block();
             }
         }
     }
