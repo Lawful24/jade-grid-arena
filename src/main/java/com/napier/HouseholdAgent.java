@@ -97,6 +97,7 @@ public class HouseholdAgent extends Agent {
                     dailyTasks.addSubBehaviour(new AdvertiseUnwantedTimeSlotsBehaviour(myAgent));
                         // request an exchange with the advertising board and set interactionMade=true
                         // select an unwanted timeslot to offer in the exchange
+                    dailyTasks.addSubBehaviour(new ExpressInterestForTimeSlotsBehaviour(myAgent));
                         // Board: find the owner of the requested timeslot and propose a trade
                         // consider any incoming requests and send a response to the Board
                         // Board: based on the response to the request, create a proposal for both parties, increment the number of successful exchanges
@@ -293,6 +294,33 @@ public class HouseholdAgent extends Agent {
         @Override
         public boolean done() {
             return isAdPosted;
+        }
+    }
+
+    public class ExpressInterestForTimeSlotsBehaviour extends OneShotBehaviour {
+        public ExpressInterestForTimeSlotsBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            if (!madeInteraction) {
+                // Get the difference of the requested timeslots and the allocated timeslots
+                ArrayList<TimeSlot> desiredTimeSlots = new ArrayList<>(requestedTimeSlots);
+                desiredTimeSlots.removeAll(allocatedTimeSlots);
+
+                if (!desiredTimeSlots.isEmpty()) {
+                    AgentHelper.sendMessage(
+                            myAgent,
+                            advertisingAgent,
+                            "Timeslots Wanted",
+                            new SerializableTimeSlotArray(desiredTimeSlots.toArray(new TimeSlot[]{})),
+                            ACLMessage.CFP
+                    );
+
+                    madeInteraction = true; // TODO: here or outside the if?
+                }
+            }
         }
     }
 
