@@ -161,6 +161,15 @@ public class AgentHelper {
         }
     }
 
+    public static ACLMessage receiveMessage(Agent agentToReceive, AID sender, int performative, int optionalPerformative) {
+        if (isValidACLPerformative(performative)) {
+            return agentToReceive.receive(MessageTemplate.and(MessageTemplate.MatchSender(sender), MessageTemplate.or(MessageTemplate.MatchPerformative(performative), MessageTemplate.MatchPerformative(optionalPerformative))));
+        } else {
+            System.err.println("Incorrect ACL performative: " + performative);
+            return null;
+        }
+    }
+
     public static void printAgentLog(String agentNickname, String logMessage) {
         System.out.println(agentNickname + " says: " + logMessage);
     }
