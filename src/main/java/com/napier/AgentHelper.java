@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class AgentHelper {
     // TODO: Cite JADE workbook or JADE documentation
@@ -59,7 +60,7 @@ public class AgentHelper {
 
             for (DFAgentDescription foundAgent : agentsOfType) {
                 agentContacts.add(foundAgent.getName());
-                AgentHelper.printAgentLog(agent.getLocalName(), "Registered: " + foundAgent.getName());
+                //AgentHelper.printAgentLog(agent.getLocalName(), "Registered: " + foundAgent.getName());
             }
         } catch (FIPAException e) {
             System.err.println(e.toString());
@@ -206,5 +207,89 @@ public class AgentHelper {
 
     private static boolean isValidACLPerformative(int performative) {
         return Arrays.asList(ACLMessage.getAllPerformativeNames()).contains(ACLMessage.getPerformative(performative));
+    }
+
+    // TODO: Cite Arena code
+    /**
+     * Calculates the Agents satisfaction with a given list of time-slots by comparing the list with the time-slots
+     * requested by this Agent.
+     *
+     * @param timeSlotsToConsider The set of time-slots to consider.
+     * @return Double The Agents satisfaction with the time-slots given.
+     */
+    public static double calculateSatisfaction(ArrayList<TimeSlot> timeSlotsToConsider, ArrayList<TimeSlot> requestedTimeSlots, double[] satisfactionCurve) {
+        ArrayList<TimeSlot> tempRequestedTimeSlots = new ArrayList<>(requestedTimeSlots);
+        ArrayList<TimeSlot> nonRequestedTimeSlots = new ArrayList<>();
+
+        // Count the number of the given time-slots that match the Agents requested time-slots.
+        double satisfaction = 0;
+
+        for (TimeSlot timeSlot : timeSlotsToConsider) {
+            if (tempRequestedTimeSlots.contains(timeSlot)) {
+                tempRequestedTimeSlots.remove(timeSlot);
+                satisfaction++;
+            } else {
+                nonRequestedTimeSlots.add(timeSlot);
+            }
+        }
+
+        List<TimeSlotSatisfactionPair> tempTimeSlotSatisfactions = calculateSatisfactionPerSlot(tempRequestedTimeSlots, satisfactionCurve);
+
+        for (int i = 1; i < satisfactionCurve.length; i++) {
+            for (TimeSlot timeSlot: nonRequestedTimeSlots) {
+                for (TimeSlotSatisfactionPair pair: tempTimeSlotSatisfactions) {
+                    if (pair.timeSlot == timeSlot) {
+                        if (pair.satisfaction == satisfactionCurve[i]) {
+                            satisfaction += pair.satisfaction;
+                            TimeSlot timeSlotOver = new TimeSlot(timeSlot.getStartHour() + i);
+                            TimeSlot timeSlotUnder = new TimeSlot(timeSlot.getStartHour() - i);
+
+                            if (tempRequestedTimeSlots.contains(timeSlotOver)) {
+                                tempRequestedTimeSlots.remove(timeSlotOver);
+                                tempTimeSlotSatisfactions = calculateSatisfactionPerSlot(tempRequestedTimeSlots, satisfactionCurve);
+                            } else if (tempRequestedTimeSlots.contains(timeSlotUnder)) {
+                                tempRequestedTimeSlots.remove(timeSlotUnder);
+                                tempTimeSlotSatisfactions = calculateSatisfactionPerSlot(tempRequestedTimeSlots, satisfactionCurve);
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Return the Agents satisfaction with the given time-slots, between 1 and 0.
+        return satisfaction / RunConfigurationSingleton.getInstance().getNumOfSlotsPerAgent();
+    }
+
+    // TODO: Cite Arena code
+    public static ArrayList<TimeSlotSatisfactionPair> calculateSatisfactionPerSlot(ArrayList<TimeSlot> requestedTimeSlots, double[] satisfactionCurve) {
+        ArrayList<TimeSlotSatisfactionPair> timeSlotSatisfactionPairs = new ArrayList<>();
+        // Calculate the potential satisfaction that each time-slot could give based on their proximity to requested time-slots.
+        Double[] slotSatisfaction = new Double[RunConfigurationSingleton.getInstance().getNumOfUniqueTimeSlots()];
+        Arrays.fill(slotSatisfaction, 0.0);
+
+        for (TimeSlot requestedTimeSlot : requestedTimeSlots) {
+            int slotSatisfactionIndex = requestedTimeSlot.getStartHour() - 1;
+            slotSatisfaction[slotSatisfactionIndex] = satisfactionCurve[0];
+
+            // Apply the adjustment values to neighboring elements
+            for (int i = 1; i < satisfactionCurve.length; i++) {
+                int leftIndex = slotSatisfactionIndex - i;
+                int rightIndex = slotSatisfactionIndex + i;
+
+                if (leftIndex < 0) {leftIndex += slotSatisfaction.length;}
+                if (rightIndex >= slotSatisfaction.length) {rightIndex -= slotSatisfaction.length;}
+
+                slotSatisfaction[leftIndex] = Math.max(slotSatisfaction[leftIndex], satisfactionCurve[i]);
+                slotSatisfaction[rightIndex] = Math.max(slotSatisfaction[rightIndex], satisfactionCurve[i]);
+            }
+        }
+
+        for (int i = 0; i < slotSatisfaction.length; i++) {
+            timeSlotSatisfactionPairs.add(new TimeSlotSatisfactionPair(new TimeSlot(i + 1), slotSatisfaction[i]));
+        }
+
+        return timeSlotSatisfactionPairs;
     }
 }
