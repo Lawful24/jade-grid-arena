@@ -4,6 +4,6 @@ import jade.core.AID;
 
 import java.io.Serializable;
 
-public record TradeOffer(AID senderAgent, TimeSlot timeSlotToGive, TimeSlot timeSlotToReceive) implements Serializable {
+public record TradeOffer(AID senderAgent, TimeSlot timeSlotOffered, TimeSlot timeSlotRequested) implements Serializable {
     // no-op
 }

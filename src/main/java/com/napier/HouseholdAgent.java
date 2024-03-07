@@ -24,7 +24,7 @@ public class HouseholdAgent extends Agent {
     private final double[] satisfactionCurve = RunConfigurationSingleton.getInstance().getSatisfactionCurve();
     private ArrayList<TimeSlotSatisfactionPair> timeSlotSatisfactionPairs;
     private HashMap<AID, Integer> favours = new HashMap<>();
-    private ArrayList<Integer> exchangeRequestReceived = new ArrayList<>();
+    private ArrayList<TimeSlot> exchangeRequestReceived = new ArrayList<>();
     private boolean isExchangeRequestApproved;
     private int totalSocialCapital;
     private int numOfDailyExchangesWithSocialCapital;
@@ -108,6 +108,7 @@ public class HouseholdAgent extends Agent {
 
                     myAgent.addBehaviour(new FindAdvertisingBoardBehaviour(myAgent));
                     myAgent.addBehaviour(new ReceiveRandomInitialTimeSlotAllocationBehaviour(myAgent));
+                    myAgent.addBehaviour(new TradeOfferListenerBehaviour(myAgent));
                     myAgent.addBehaviour(dailyTasks);
                 } else {
                     myAgent.doDelete();
@@ -201,36 +202,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public void action() {
-            // TODO: Cite Arena code
-            // Calculate the potential satisfaction that each time-slot could give based on their proximity to requested time-slots.
-            Double[] slotSatisfaction = new Double[RunConfigurationSingleton.getInstance().getNumOfUniqueTimeSlots()];
-            Arrays.fill(slotSatisfaction, 0.0);
-
-            for (TimeSlot timeSlot : requestedTimeSlots) {
-                int slotSatisfactionIndex = timeSlot.getStartHour() - 1;
-                slotSatisfaction[slotSatisfactionIndex] = satisfactionCurve[0];
-
-                // Apply the adjustment values to neighboring elements
-                for (int i = 1; i < satisfactionCurve.length; i++) {
-                    int leftIndex = slotSatisfactionIndex - i;
-                    int rightIndex = slotSatisfactionIndex + i;
-
-                    if (leftIndex < 0) {
-                        leftIndex += slotSatisfaction.length;
-                    }
-
-                    if (rightIndex >= slotSatisfaction.length) {
-                        rightIndex -= slotSatisfaction.length;
-                    }
-
-                    slotSatisfaction[leftIndex] = Math.max(slotSatisfaction[leftIndex], satisfactionCurve[i]);
-                    slotSatisfaction[rightIndex] = Math.max(slotSatisfaction[rightIndex], satisfactionCurve[i]);
-                }
-            }
-
-            for (int i = 0; i < slotSatisfaction.length; i++) {
-                timeSlotSatisfactionPairs.add(new TimeSlotSatisfactionPair(new TimeSlot(i + 1), slotSatisfaction[i]));
-            }
+            timeSlotSatisfactionPairs = AgentHelper.calculateSatisfactionPerSlot(requestedTimeSlots, satisfactionCurve);
         }
     }
 
@@ -244,6 +216,7 @@ public class HouseholdAgent extends Agent {
             ACLMessage incomingAllocationMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, ACLMessage.INFORM);
 
             if (incomingAllocationMessage != null) {
+                // TODO: unwrap this try block
                 try {
                     Serializable incomingObject = incomingAllocationMessage.getContentObject();
 
@@ -324,6 +297,60 @@ public class HouseholdAgent extends Agent {
         }
     }
 
+    public class TradeOfferListenerBehaviour extends CyclicBehaviour {
+        public TradeOfferListenerBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            ACLMessage tradeOfferMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, ACLMessage.PROPOSE);
+
+            if (tradeOfferMessage != null) {
+                System.out.println("all good"); // TODO: not really, this one is difficult to test. if the adverts don't contain timeslots that any other agent would need, no trade offer will be made
+                // Make sure the incoming object is readable
+                Serializable incomingObject = null;
+
+                try {
+                    incomingObject = tradeOfferMessage.getContentObject();
+                } catch (UnreadableException e) {
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming trade offer message is unreadable: " + e.getMessage());
+                }
+
+                boolean isOfferAccepted = false;
+
+                if (incomingObject != null) {
+                    // Make sure the incoming object is of the expected type
+                    if (incomingObject instanceof TradeOffer) {
+                        // Consider the trade offer
+                        isOfferAccepted = considerRequest((TradeOffer)incomingObject);
+                    } else {
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be answered: the received object has an incorrect type.");
+                    }
+                }
+
+                int responsePerformative;
+
+                if (isOfferAccepted) {
+                    responsePerformative = ACLMessage.AGREE;
+                } else {
+                    responsePerformative = ACLMessage.REFUSE;
+                }
+
+                AgentHelper.sendMessage(
+                        myAgent,
+                        advertisingAgent,
+                        "Response to Offer",
+                        responsePerformative
+                );
+
+                myAgent.removeBehaviour(this);
+            } else {
+                block();
+            }
+        }
+    }
+
     public class CallItADayBehaviour extends OneShotBehaviour {
         public CallItADayBehaviour(Agent a) {
             super(a);
@@ -333,5 +360,61 @@ public class HouseholdAgent extends Agent {
         public void action() {
             AgentHelper.sendMessage(myAgent, new ArrayList<>(Arrays.asList(tickerAgent, advertisingAgent)), "Done", ACLMessage.INFORM); // TODO: rework the communication between the agents
         }
+    }
+
+    // TODO: Cite Arena code
+    /**
+     * Determine whether the Agent will be willing to accept a received exchange request.
+     *
+     * @return Boolean Whether or not the request was accepted.
+     */
+    private boolean considerRequest(TradeOffer offer) {
+        boolean exchangeRequestApproved = false;
+        double currentSatisfaction = AgentHelper.calculateSatisfaction(this.allocatedTimeSlots, this.requestedTimeSlots, this.satisfactionCurve);
+        // Create a new local list of time-slots in order to test how the Agents satisfaction would change after the
+        // potential exchange.
+        ArrayList<TimeSlot> potentialAllocatedTimeSlots = new ArrayList<>(allocatedTimeSlots);
+
+        // Check this Agent still has the time-slot requested.
+        if (potentialAllocatedTimeSlots.contains(offer.timeSlotRequested())) {
+            potentialAllocatedTimeSlots.remove(offer.timeSlotRequested());
+
+            // Replace the requested slot with the requesting agents unwanted time-slot.
+            potentialAllocatedTimeSlots.add(offer.timeSlotOffered());
+
+            double potentialSatisfaction = AgentHelper.calculateSatisfaction(potentialAllocatedTimeSlots, this.requestedTimeSlots, this.satisfactionCurve);
+
+            if (this.agentType == AgentStrategyType.SOCIAL) {
+                // Social Agents accept offers that improve their satisfaction or if they have negative social capital
+                // with the Agent who made the request.
+                if (Double.compare(potentialSatisfaction, currentSatisfaction) > 0) {
+                    exchangeRequestApproved = true;
+                    //dailyNoSocialCapitalExchanges++;
+                } else if (Double.compare(potentialSatisfaction, currentSatisfaction) == 0) {
+                    if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapital()) {
+                        if (favours.get(offer.senderAgent()) < 0) {
+                            exchangeRequestApproved = true;
+                            //dailySocialCapitalExchanges++;
+                        }
+                    } else {
+                        // When social capital isn't used, social agents always accept neutral exchanges.
+                        exchangeRequestApproved = true;
+                        //dailyNoSocialCapitalExchanges++;
+                    }
+                }
+            } else {
+                // Selfish Agents and Agents with no known type use the default selfish approach.
+                // Selfish Agents only accept offers that improve their individual satisfaction.
+                if (Double.compare(potentialSatisfaction, currentSatisfaction) > 0) {
+                    exchangeRequestApproved = true;
+                    //dailyNoSocialCapitalExchanges++;
+                }
+            }
+            if (!exchangeRequestApproved) {
+                //dailyRejectedReceivedExchanges++;
+            }
+        }
+
+        return exchangeRequestApproved;
     }
 }

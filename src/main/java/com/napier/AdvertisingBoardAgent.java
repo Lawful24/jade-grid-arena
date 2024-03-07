@@ -259,10 +259,8 @@ public class AdvertisingBoardAgent extends Agent {
                     break;
                 }
             }
-            System.out.println(adverts.size());
 
             if (sendersAdvert != null) {
-                System.out.println("yay");
                 // Make sure the incoming object is readable
                 Serializable incomingObject = null;
 
@@ -330,7 +328,7 @@ public class AdvertisingBoardAgent extends Agent {
                     myAgent,
                     interestMessage.getSender(),
                     "Desired Timeslots Not Available",
-                    ACLMessage.REJECT_PROPOSAL
+                    ACLMessage.DISCONFIRM
             );
         } else {
             behaviour.block();
