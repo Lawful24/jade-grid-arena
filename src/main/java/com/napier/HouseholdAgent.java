@@ -23,7 +23,7 @@ public class HouseholdAgent extends Agent {
     private ArrayList<TimeSlot> allocatedTimeSlots;
     private final double[] satisfactionCurve = RunConfigurationSingleton.getInstance().getSatisfactionCurve();
     private ArrayList<TimeSlotSatisfactionPair> timeSlotSatisfactionPairs;
-    private HashMap<AID, Integer> favours = new HashMap<>();
+    private HashMap<Integer, Integer> favours = new HashMap<>();
     private ArrayList<TimeSlot> exchangeRequestReceived = new ArrayList<>();
     private boolean isExchangeRequestApproved;
     private int totalSocialCapital;
@@ -55,6 +55,7 @@ public class HouseholdAgent extends Agent {
         this.numOfDailyRejectedReceivedExchanges = 0;
         this.numOfDailyRejectedRequestedExchanges = 0;
         this.numOfDailyAcceptedRequestedExchanges = 0;
+        initializeFavoursStore();
 
         AgentHelper.registerAgent(this, "Household");
 
@@ -364,9 +365,30 @@ public class HouseholdAgent extends Agent {
 
     // TODO: Cite Arena code
     /**
+     * Identifies all other Agents in the ExchangeArena and initialises counts of favours given to and received from
+     * each other Agent.
+     */
+    private void initializeFavoursStore() {
+        if (this.utilisesSocialCapital) {
+            if (!this.favours.isEmpty()) {
+                this.favours.clear();
+            }
+
+            for (int i = 1; i <= RunConfigurationSingleton.getInstance().getPopulationCount(); i++) {
+                if (AgentHelper.getHouseholdAgentNumber(this.getLocalName()) != i) {
+                    // Initially, no favours are owed or have been given to any other Agent.
+                    // The key is the
+                    this.favours.put(i, 0);
+                }
+            }
+        }
+    }
+
+    // TODO: Cite Arena code
+    /**
      * Determine whether the Agent will be willing to accept a received exchange request.
      *
-     * @return Boolean Whether or not the request was accepted.
+     * @return Boolean Whether the request was accepted.
      */
     private boolean considerRequest(TradeOffer offer) {
         boolean exchangeRequestApproved = false;
@@ -392,7 +414,7 @@ public class HouseholdAgent extends Agent {
                     //dailyNoSocialCapitalExchanges++;
                 } else if (Double.compare(potentialSatisfaction, currentSatisfaction) == 0) {
                     if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapital()) {
-                        if (favours.get(offer.senderAgent()) < 0) {
+                        if (favours.get(AgentHelper.getHouseholdAgentNumber(offer.senderAgent().getLocalName())) < 0) {
                             exchangeRequestApproved = true;
                             //dailySocialCapitalExchanges++;
                         }
