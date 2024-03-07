@@ -10,13 +10,11 @@ import jade.lang.acl.ACLMessage;
 import jade.lang.acl.UnreadableException;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 public class AdvertisingBoardAgent extends Agent {
     private ArrayList<TimeSlot> availableTimeSlots;
-    private ArrayList<Advert> adverts;
+    private HashMap<AID, ArrayList<TimeSlot>> adverts;
 
     // Agent contact attributes
     private AID tickerAgent;
@@ -25,7 +23,7 @@ public class AdvertisingBoardAgent extends Agent {
     @Override
     protected void setup() {
         availableTimeSlots = new ArrayList<>();
-        adverts = new ArrayList<>();
+        adverts = new HashMap<>();
 
         AgentHelper.registerAgent(this, "Advertising-board");
 
@@ -185,9 +183,9 @@ public class AdvertisingBoardAgent extends Agent {
                     if (incomingObject instanceof SerializableTimeSlotArray) {
                         if (((SerializableTimeSlotArray) incomingObject).timeSlots().length > 0) {
                             // Register the advert
-                            adverts.add(new Advert(
+                            adverts.put(
                                     advertisingMessage.getSender(),
-                                    ((SerializableTimeSlotArray) incomingObject).timeSlots())
+                                    new ArrayList<>(Arrays.asList(((SerializableTimeSlotArray)incomingObject).timeSlots()))
                             );
                         }
 
@@ -249,18 +247,18 @@ public class AdvertisingBoardAgent extends Agent {
 
         if (interestMessage != null && adverts.size() == householdAgents.size()) { //TODO: here
             // Prepare a trade offer to the owner of the desired timeslot if that timeslot is available for trade
-            Advert sendersAdvert = null;
+            ArrayList<TimeSlot> sendersAdvertisedTimeSlots = null;
 
             // Find out if the sender has any timeslots available to trade
-            for (Advert advert : adverts) {
-                if (advert.owner() == interestMessage.getSender()) {
-                    sendersAdvert = advert;
+            for (AID advertPoster : adverts.keySet()) {
+                if (advertPoster == interestMessage.getSender()) {
+                    sendersAdvertisedTimeSlots = adverts.get(advertPoster);
 
                     break;
                 }
             }
 
-            if (sendersAdvert != null) {
+            if (sendersAdvertisedTimeSlots != null) {
                 // Make sure the incoming object is readable
                 Serializable incomingObject = null;
 
@@ -278,18 +276,19 @@ public class AdvertisingBoardAgent extends Agent {
                         AID targetOwner = null;
 
                         // TODO: Cite Arena code
-                        Collections.shuffle(adverts, RunConfigurationSingleton.getInstance().getRandom());
+                        ArrayList<AID> shuffledAdvertPosters = new ArrayList<>(adverts.keySet());
+                        Collections.shuffle(shuffledAdvertPosters, RunConfigurationSingleton.getInstance().getRandom());
 
                         // Find the desired timeslot in the published adverts
                         browsingTimeSlots:
                         for (TimeSlot desiredTimeSlot : desiredTimeSlots) {
-                            for (Advert advert : adverts) {
-                                TimeSlot[] timeSlotsForTrade = advert.timeSlotsForTrade();
+                            for (AID advertPoster : shuffledAdvertPosters) {
+                                ArrayList<TimeSlot> timeSlotsForTrade = adverts.get(advertPoster);
 
                                 for (TimeSlot timeSlotForTrade : timeSlotsForTrade) {
                                     if (desiredTimeSlot == timeSlotForTrade) {
                                         targetTimeSlot = timeSlotForTrade;
-                                        targetOwner = advert.owner();
+                                        targetOwner = advertPoster;
 
                                         break browsingTimeSlots;
                                     }
@@ -308,7 +307,7 @@ public class AdvertisingBoardAgent extends Agent {
                                     interestMessage.getSender().getLocalName(),
                                     new TradeOffer(
                                             interestMessage.getSender(),
-                                            sendersAdvert.timeSlotsForTrade()[0],
+                                            sendersAdvertisedTimeSlots.getFirst(),
                                             targetTimeSlot
                                     ),
                                     ACLMessage.PROPOSE
