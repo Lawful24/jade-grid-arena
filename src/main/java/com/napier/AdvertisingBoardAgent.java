@@ -210,6 +210,99 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
+    public class TradeOfferResponseListenerBehaviour extends CyclicBehaviour {
+        public TradeOfferResponseListenerBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            ACLMessage tradeOfferResponseMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.ACCEPT_PROPOSAL, ACLMessage.REJECT_PROPOSAL);
+
+            if (tradeOfferResponseMessage != null) {
+                // Make sure the incoming object is readable
+                Serializable incomingObject = null;
+
+                try {
+                    incomingObject = tradeOfferResponseMessage.getContentObject();
+                } catch (UnreadableException e) {
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer response message is unreadable: " + e.getMessage());
+                }
+
+                if (incomingObject != null) {
+                    // Make sure the incoming object is of the expected type
+                    if (incomingObject instanceof TradeOffer) {
+                        if (tradeOfferResponseMessage.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
+                            // Handle the accepted trade offer
+                            // Remove the traded timeslots from the adverts
+                            adverts.get(tradeOfferResponseMessage.getSender()).remove(((TradeOffer) incomingObject).timeSlotRequested());
+                            adverts.get(((TradeOffer) incomingObject).senderAgent()).remove(((TradeOffer) incomingObject).timeSlotOffered());
+
+                            // Notify the agent who initiated the interest
+                            AgentHelper.sendMessage(
+                                    myAgent,
+                                    ((TradeOffer) incomingObject).senderAgent(),
+                                    tradeOfferResponseMessage.getContent(),
+                                    incomingObject,
+                                    ACLMessage.AGREE
+                            );
+                        } else {
+                            // TODO: is this needed? currently the requester is ignoring this
+                            AgentHelper.sendMessage(
+                                    myAgent,
+                                    ((TradeOffer) incomingObject).senderAgent(),
+                                    "Trade Refused",
+                                    ACLMessage.CANCEL
+                            );
+                        }
+                    } else {
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer response cannot be acted upon: the received object has an incorrect type.");
+                    }
+                }
+
+                myAgent.removeBehaviour(this);
+            } else {
+                block();
+            }
+        }
+    }
+
+    public class SocialCapitaSyncPropagateBehaviour extends CyclicBehaviour {
+        public SocialCapitaSyncPropagateBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            ACLMessage incomingSyncMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.PROPAGATE);
+
+            if (incomingSyncMessage != null) {
+                // Make sure the incoming object is readable
+                Serializable incomingObject = null;
+
+                try {
+                    incomingObject = incomingSyncMessage.getContentObject();
+                } catch (UnreadableException e) {
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer receiver AID is unreadable: " + e.getMessage());
+                }
+
+                if (incomingObject != null) {
+                    // Make sure the incoming object is of the expected type
+                    if (incomingObject instanceof AID) {
+                        AgentHelper.sendMessage(
+                                myAgent,
+                                (AID) incomingObject,
+                                incomingSyncMessage.getContent(),
+                                ACLMessage.INFORM_IF
+                        );
+                    }
+                }
+            } else {
+                block();
+            }
+        }
+    }
+
     public class CallItADayListenerBehaviour extends CyclicBehaviour {
         private int householdsDayOver = 0;
         private final List<Behaviour> behavioursToRemove;
@@ -245,7 +338,7 @@ public class AdvertisingBoardAgent extends Agent {
     private void interestListener(Agent myAgent, Behaviour behaviour) {
         ACLMessage interestMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.CFP);
 
-        if (interestMessage != null && adverts.size() == householdAgents.size()) { //TODO: here
+        if (interestMessage != null && adverts.size() == householdAgents.size()) {
             // Prepare a trade offer to the owner of the desired timeslot if that timeslot is available for trade
             ArrayList<TimeSlot> sendersAdvertisedTimeSlots = null;
 
@@ -307,6 +400,7 @@ public class AdvertisingBoardAgent extends Agent {
                                     interestMessage.getSender().getLocalName(),
                                     new TradeOffer(
                                             interestMessage.getSender(),
+                                            targetOwner,
                                             sendersAdvertisedTimeSlots.getFirst(),
                                             targetTimeSlot
                                     ),
@@ -319,6 +413,7 @@ public class AdvertisingBoardAgent extends Agent {
                 }
             }
 
+            // TODO: let the requester receive this
             // Reach this part if any of these events happened:
             // - the sender had no timeslots advertised to offer in return
             // - the incoming object had an incorrect type
@@ -327,7 +422,7 @@ public class AdvertisingBoardAgent extends Agent {
                     myAgent,
                     interestMessage.getSender(),
                     "Desired Timeslots Not Available",
-                    ACLMessage.DISCONFIRM
+                    ACLMessage.REFUSE
             );
         } else {
             behaviour.block();

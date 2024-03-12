@@ -308,44 +308,121 @@ public class HouseholdAgent extends Agent {
             ACLMessage tradeOfferMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, ACLMessage.PROPOSE);
 
             if (tradeOfferMessage != null) {
-                System.out.println("all good"); // TODO: not really, this one is difficult to test. if the adverts don't contain timeslots that any other agent would need, no trade offer will be made
                 // Make sure the incoming object is readable
                 Serializable incomingObject = null;
+                int responsePerformative = ACLMessage.REJECT_PROPOSAL;
 
                 try {
                     incomingObject = tradeOfferMessage.getContentObject();
                 } catch (UnreadableException e) {
-                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming trade offer message is unreadable: " + e.getMessage());
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming trade offer is unreadable: " + e.getMessage());
                 }
 
-                boolean isOfferAccepted = false;
+                boolean doesRequesterLoseSocialCapita = false;
 
                 if (incomingObject != null) {
                     // Make sure the incoming object is of the expected type
                     if (incomingObject instanceof TradeOffer) {
-                        // Consider the trade offer
-                        isOfferAccepted = considerRequest((TradeOffer)incomingObject);
+                        // Consider the trade offer AND
+                        // Check whether the requested time slot is actually owned by the agent
+                        if (considerRequest((TradeOffer)incomingObject) && allocatedTimeSlots.contains(((TradeOffer)incomingObject).timeSlotRequested())) {
+                            // Adjust the agent's properties based on the trade offer
+                            doesRequesterLoseSocialCapita = completeReceivedExchange((TradeOffer)incomingObject);
+                            responsePerformative = ACLMessage.ACCEPT_PROPOSAL;
+                        }
+
+                        AgentHelper.sendMessage(
+                                myAgent,
+                                advertisingAgent,
+                                Boolean.toString(doesRequesterLoseSocialCapita),
+                                incomingObject,
+                                responsePerformative
+                        );
+
                     } else {
                         AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be answered: the received object has an incorrect type.");
                     }
                 }
 
-                int responsePerformative;
-
-                if (isOfferAccepted) {
-                    responsePerformative = ACLMessage.AGREE;
-                } else {
-                    responsePerformative = ACLMessage.REFUSE;
-                }
-
-                AgentHelper.sendMessage(
-                        myAgent,
-                        advertisingAgent,
-                        "Response to Offer",
-                        responsePerformative
-                );
-
                 myAgent.removeBehaviour(this);
+            } else {
+                block();
+            }
+        }
+    }
+
+    public class InterestResultListenerBehaviour extends CyclicBehaviour { // TODO: here. decide when to call and remove these cyclic behaviours
+        public InterestResultListenerBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            ACLMessage interestResultMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.AGREE, ACLMessage.REFUSE);
+
+            if (interestResultMessage != null && interestResultMessage.getSender() == advertisingAgent) {
+                if (interestResultMessage.getPerformative() == ACLMessage.AGREE) {
+                    // Make sure the incoming object is readable
+                    Serializable incomingObject = null;
+
+                    try {
+                        incomingObject = interestResultMessage.getContentObject();
+                    } catch (UnreadableException e) {
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming interest result trade offer is unreadable: " + e.getMessage());
+                    }
+
+                    if (incomingObject != null) {
+                        // Make sure the incoming object is of the expected type
+                        if (incomingObject instanceof TradeOffer) {
+                            // The content of the incoming message is built on the following scheme: "Household-1,true", where
+                            // The first element of the message is the local name of the other party of the exchange
+                            // The second element of the message carries the information whether the requesting party should lose social capita following the trade
+                            String[] splitMessageContent = interestResultMessage.getContent().split(",");
+
+                            boolean doesReceiverGainSocialCapita = completeRequestedExchange((TradeOffer)incomingObject);
+
+                            // Adjust the agent's properties based on the trade offer
+                            if (Boolean.parseBoolean(splitMessageContent[1])) {
+                                totalSocialCapital--;
+                            }
+
+                            AgentHelper.sendMessage(
+                                    myAgent,
+                                    advertisingAgent,
+                                    Boolean.toString(doesReceiverGainSocialCapita),
+                                    ((TradeOffer) incomingObject).receiverAgent(),
+                                    ACLMessage.PROPAGATE
+                            );
+                        } else {
+                            AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be handled: the received object has an incorrect type.");
+                        }
+                    }
+                } else {
+                    // TODO: let the agent's interest be refused
+                }
+            } else {
+                block();
+            }
+        }
+    }
+
+    public class SocialCapitaSyncReceiverBehaviour extends CyclicBehaviour {
+        public SocialCapitaSyncReceiverBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            ACLMessage incomingSyncMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, ACLMessage.INFORM_IF);
+
+            if (incomingSyncMessage != null) {
+                if (incomingSyncMessage.getContent() != null) {
+                    boolean doesReceiverAgentGainSocialCapita = Boolean.parseBoolean(incomingSyncMessage.getContent());
+
+                    if (doesReceiverAgentGainSocialCapita) {
+                        totalSocialCapital++;
+                    }
+                }
             } else {
                 block();
             }
@@ -397,10 +474,8 @@ public class HouseholdAgent extends Agent {
         // potential exchange.
         ArrayList<TimeSlot> potentialAllocatedTimeSlots = new ArrayList<>(allocatedTimeSlots);
 
-        // Check this Agent still has the time-slot requested.
-        if (potentialAllocatedTimeSlots.contains(offer.timeSlotRequested())) {
-            potentialAllocatedTimeSlots.remove(offer.timeSlotRequested());
-
+        // Check this Agent still has the time-slot requested by attempting to remove it.
+        if (potentialAllocatedTimeSlots.remove(offer.timeSlotRequested())) {
             // Replace the requested slot with the requesting agents unwanted time-slot.
             potentialAllocatedTimeSlots.add(offer.timeSlotOffered());
 
@@ -438,5 +513,68 @@ public class HouseholdAgent extends Agent {
         }
 
         return exchangeRequestApproved;
+    }
+
+    // TODO: Cite Arena code
+    /**
+     * Completes an exchange that was originally requested by another Agent, making the exchange and updating this
+     * Agents relationship with the other Agent involved.
+     *
+     * @param offer The exchange that is to be completed.
+     * @return Boolean Whether the other agent gained social capital.
+     */
+    private boolean completeReceivedExchange(TradeOffer offer) {
+        boolean otherAgentSCLoss = false;
+
+        double previousSatisfaction = AgentHelper.calculateSatisfaction(this.allocatedTimeSlots, this.requestedTimeSlots, this.satisfactionCurve);
+        // Update the Agents allocated time-slots.
+        this.allocatedTimeSlots.remove(offer.timeSlotRequested());
+        this.allocatedTimeSlots.add(offer.timeSlotOffered());
+
+        double newSatisfaction = AgentHelper.calculateSatisfaction(this.allocatedTimeSlots, this.requestedTimeSlots, this.satisfactionCurve);
+
+        // Update the Agents relationship with the other Agent involved in the exchange.
+        if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapital()) {
+            if (Double.compare(newSatisfaction, previousSatisfaction) <= 0 && this.agentType == AgentStrategyType.SOCIAL) {
+                int otherHouseholdAgentNumber = AgentHelper.getHouseholdAgentNumber(offer.senderAgent().getLocalName());
+                this.favours.replace(otherHouseholdAgentNumber, this.favours.get(otherHouseholdAgentNumber) + 1);
+
+                otherAgentSCLoss = true;
+            }
+        }
+
+        return otherAgentSCLoss;
+    }
+
+    // TODO: Cite Arena code
+    /**
+     * Completes an exchange that was originally requested by this Agent, making the exchange and updating this Agents
+     * relationship with the other Agent involved.
+     *
+     * @param offer The exchange that is to be completed.
+     * @return Boolean Whether the other agent gained social capital.
+     */
+    boolean completeRequestedExchange(TradeOffer offer) {
+        boolean otherAgentSCGain = false;
+
+        double previousSatisfaction = AgentHelper.calculateSatisfaction(this.allocatedTimeSlots, this.requestedTimeSlots, this.satisfactionCurve);
+        // Update the Agents allocated time-slots.
+        this.allocatedTimeSlots.remove(offer.timeSlotOffered());
+        this.allocatedTimeSlots.add(offer.timeSlotRequested());
+
+        double newSatisfaction = AgentHelper.calculateSatisfaction(this.allocatedTimeSlots, this.requestedTimeSlots, this.satisfactionCurve);
+
+        // Update the Agents relationship with the other Agent involved in the exchange.
+        if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapital()) {
+            if (Double.compare(newSatisfaction, previousSatisfaction) > 0 && this.agentType == AgentStrategyType.SOCIAL) {
+                int otherHouseholdAgentNumber = AgentHelper.getHouseholdAgentNumber(offer.receiverAgent().getLocalName());
+                this.favours.replace(otherHouseholdAgentNumber, this.favours.get(otherHouseholdAgentNumber) - 1);
+
+                otherAgentSCGain = true;
+            }
+        }
+
+        //dailyAcceptedRequestedExchanges++;
+        return otherAgentSCGain;
     }
 }
