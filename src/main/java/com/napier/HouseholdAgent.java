@@ -312,7 +312,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public void action() {
-            ACLMessage interestResultMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.AGREE, ACLMessage.REFUSE);
+            ACLMessage interestResultMessage = AgentHelper.receiveCFPReply(myAgent);
 
             if (interestResultMessage != null && interestResultMessage.getSender().equals(advertisingAgent)) {
                 if (interestResultMessage.getPerformative() == ACLMessage.AGREE) {

@@ -171,6 +171,19 @@ public class AgentHelper {
         }
     }
 
+    public static ACLMessage receiveCFPReply(Agent agentToReceive) {
+        // Let the agent receive either AGREE, CANCEL, or REFUSE messages
+        return agentToReceive.receive(
+                MessageTemplate.or(
+                        MessageTemplate.MatchPerformative(ACLMessage.REFUSE),
+                        MessageTemplate.or(
+                                MessageTemplate.MatchPerformative(ACLMessage.AGREE),
+                                MessageTemplate.MatchPerformative(ACLMessage.CANCEL)
+                        )
+                )
+        );
+    }
+
     public static void printAgentLog(String agentNickname, String logMessage) {
         System.out.println(agentNickname + " says: " + logMessage);
     }
