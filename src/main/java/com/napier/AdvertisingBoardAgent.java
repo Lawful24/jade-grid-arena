@@ -203,9 +203,107 @@ public class AdvertisingBoardAgent extends Agent {
             // This has to be integrated in this behaviour to make sure that the adverts have been collected
             // TODO: make sure this stays true even when some agents have no more unwanted slots
             if (numOfAdvertsReceived == householdAgents.size()) {
-                interestListener(myAgent, this);
-
                 removeBehaviour(this);
+            }
+        }
+    }
+
+    public class InterestListenerBehaviour extends CyclicBehaviour {
+        public InterestListenerBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            ACLMessage interestMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.CFP);
+
+            if (interestMessage != null && adverts.size() == householdAgents.size()) {
+                // Prepare a trade offer to the owner of the desired timeslot if that timeslot is available for trade
+                ArrayList<TimeSlot> sendersAdvertisedTimeSlots = null;
+
+                // Find out if the sender has any timeslots available to trade
+                for (AID advertPoster : adverts.keySet()) {
+                    if (advertPoster == interestMessage.getSender()) {
+                        sendersAdvertisedTimeSlots = adverts.get(advertPoster);
+
+                        break;
+                    }
+                }
+
+                if (sendersAdvertisedTimeSlots != null) {
+                    // Make sure the incoming object is readable
+                    Serializable incomingObject = null;
+
+                    try {
+                        incomingObject = interestMessage.getContentObject();
+                    } catch (UnreadableException e) {
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming message about an interest in timeslots is unreadable: " + e.getMessage());
+                    }
+
+                    if (incomingObject != null) {
+                        // Make sure the incoming object is of the expected type and the advert is not empty
+                        if (incomingObject instanceof SerializableTimeSlotArray) {
+                            TimeSlot[] desiredTimeSlots = ((SerializableTimeSlotArray) incomingObject).timeSlots();
+                            TimeSlot targetTimeSlot = null;
+                            AID targetOwner = null;
+
+                            // TODO: Cite Arena code
+                            ArrayList<AID> shuffledAdvertPosters = new ArrayList<>(adverts.keySet());
+                            Collections.shuffle(shuffledAdvertPosters, RunConfigurationSingleton.getInstance().getRandom());
+
+                            // Find the desired timeslot in the published adverts
+                            browsingTimeSlots:
+                            for (TimeSlot desiredTimeSlot : desiredTimeSlots) {
+                                for (AID advertPoster : shuffledAdvertPosters) {
+                                    ArrayList<TimeSlot> timeSlotsForTrade = adverts.get(advertPoster);
+
+                                    for (TimeSlot timeSlotForTrade : timeSlotsForTrade) {
+                                        if (desiredTimeSlot == timeSlotForTrade) {
+                                            targetTimeSlot = timeSlotForTrade;
+                                            targetOwner = advertPoster;
+
+                                            break browsingTimeSlots;
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Check if the sender has any timeslots to offer in return and if a desired timeslot was found
+                            if (targetTimeSlot != null) {
+                                // Offer the sender's least wanted timeslot - the first element of the advert
+                                // Send the trade offer to the agent that has the desired timeslot, with the
+                                // sender's nickname as the text content
+                                AgentHelper.sendMessage(
+                                        myAgent,
+                                        targetOwner,
+                                        interestMessage.getSender().getLocalName(),
+                                        new TradeOffer(
+                                                interestMessage.getSender(),
+                                                targetOwner,
+                                                sendersAdvertisedTimeSlots.getFirst(),
+                                                targetTimeSlot
+                                        ),
+                                        ACLMessage.PROPOSE
+                                );
+                            } else {
+                                // TODO: let the requester receive this
+                                // Reach this part if any of these events happened:
+                                // - the sender had no timeslots advertised to offer in return
+                                // - none of the desired timeslots were found in the adverts
+                                AgentHelper.sendMessage(
+                                        myAgent,
+                                        interestMessage.getSender(),
+                                        "Desired Timeslots Not Available",
+                                        ACLMessage.REFUSE
+                                );
+                            }
+                        } else {
+                            AgentHelper.printAgentError(myAgent.getLocalName(), "Interest for timeslots cannot be processed: the received object has an incorrect type.");
+                        }
+                    }
+                }
+            } else {
+                block();
             }
         }
     }
@@ -332,100 +430,6 @@ public class AdvertisingBoardAgent extends Agent {
 
                 myAgent.removeBehaviour(this);
             }
-        }
-    }
-
-    private void interestListener(Agent myAgent, Behaviour behaviour) {
-        ACLMessage interestMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.CFP);
-
-        if (interestMessage != null && adverts.size() == householdAgents.size()) {
-            // Prepare a trade offer to the owner of the desired timeslot if that timeslot is available for trade
-            ArrayList<TimeSlot> sendersAdvertisedTimeSlots = null;
-
-            // Find out if the sender has any timeslots available to trade
-            for (AID advertPoster : adverts.keySet()) {
-                if (advertPoster == interestMessage.getSender()) {
-                    sendersAdvertisedTimeSlots = adverts.get(advertPoster);
-
-                    break;
-                }
-            }
-
-            if (sendersAdvertisedTimeSlots != null) {
-                // Make sure the incoming object is readable
-                Serializable incomingObject = null;
-
-                try {
-                    incomingObject = interestMessage.getContentObject();
-                } catch (UnreadableException e) {
-                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming message about an interest in timeslots is unreadable: " + e.getMessage());
-                }
-
-                if (incomingObject != null) {
-                    // Make sure the incoming object is of the expected type and the advert is not empty
-                    if (incomingObject instanceof SerializableTimeSlotArray) {
-                        TimeSlot[] desiredTimeSlots = ((SerializableTimeSlotArray) incomingObject).timeSlots();
-                        TimeSlot targetTimeSlot = null;
-                        AID targetOwner = null;
-
-                        // TODO: Cite Arena code
-                        ArrayList<AID> shuffledAdvertPosters = new ArrayList<>(adverts.keySet());
-                        Collections.shuffle(shuffledAdvertPosters, RunConfigurationSingleton.getInstance().getRandom());
-
-                        // Find the desired timeslot in the published adverts
-                        browsingTimeSlots:
-                        for (TimeSlot desiredTimeSlot : desiredTimeSlots) {
-                            for (AID advertPoster : shuffledAdvertPosters) {
-                                ArrayList<TimeSlot> timeSlotsForTrade = adverts.get(advertPoster);
-
-                                for (TimeSlot timeSlotForTrade : timeSlotsForTrade) {
-                                    if (desiredTimeSlot == timeSlotForTrade) {
-                                        targetTimeSlot = timeSlotForTrade;
-                                        targetOwner = advertPoster;
-
-                                        break browsingTimeSlots;
-                                    }
-                                }
-                            }
-                        }
-
-                        // Check if the sender has any timeslots to offer in return and if a desired timeslot was found
-                        if (targetTimeSlot != null) {
-                            // Offer the sender's least wanted timeslot - the first element of the advert
-                            // Send the trade offer to the agent that has the desired timeslot, with the
-                            // sender's nickname as the text content
-                            AgentHelper.sendMessage(
-                                    myAgent,
-                                    targetOwner,
-                                    interestMessage.getSender().getLocalName(),
-                                    new TradeOffer(
-                                            interestMessage.getSender(),
-                                            targetOwner,
-                                            sendersAdvertisedTimeSlots.getFirst(),
-                                            targetTimeSlot
-                                    ),
-                                    ACLMessage.PROPOSE
-                            );
-                        }
-                    } else {
-                        AgentHelper.printAgentError(myAgent.getLocalName(), "Interest for timeslots cannot be processed: the received object has an incorrect type.");
-                    }
-                }
-            }
-
-            // TODO: let the requester receive this
-            // Reach this part if any of these events happened:
-            // - the sender had no timeslots advertised to offer in return
-            // - the incoming object had an incorrect type
-            // - none of the desired timeslots were found in the adverts
-            AgentHelper.sendMessage(
-                    myAgent,
-                    interestMessage.getSender(),
-                    "Desired Timeslots Not Available",
-                    ACLMessage.REFUSE
-            );
-        } else {
-            behaviour.block();
         }
     }
 }
