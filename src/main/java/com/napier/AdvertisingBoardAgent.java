@@ -208,6 +208,7 @@ public class AdvertisingBoardAgent extends Agent {
 
                 // This has to be integrated in this behaviour to make sure that the adverts have been collected
                 // TODO: make sure this stays true even when some agents have no more unwanted slots
+                // TODO: make sure the list of household agents is already populated
                 if (numOfAdvertsReceived == RunConfigurationSingleton.getInstance().getPopulationCount()) {
                     // Broadcast to all agents that the exchange is open
                     AgentHelper.sendMessage(
@@ -418,9 +419,9 @@ public class AdvertisingBoardAgent extends Agent {
 
     public class CallItADayListenerBehaviour extends CyclicBehaviour {
         private int householdsDayOver = 0;
-        private final List<Behaviour> behavioursToRemove;
+        private final ArrayList<Behaviour> behavioursToRemove;
 
-        public CallItADayListenerBehaviour(Agent a, List<Behaviour> behavioursToRemove) {
+        public CallItADayListenerBehaviour(Agent a, ArrayList<Behaviour> behavioursToRemove) {
             super(a);
             this.behavioursToRemove = behavioursToRemove;
         }
@@ -436,7 +437,7 @@ public class AdvertisingBoardAgent extends Agent {
                 block();
             }
 
-            if (householdsDayOver == householdAgents.size()) {
+            if (householdsDayOver == RunConfigurationSingleton.getInstance().getPopulationCount()) {
                 AgentHelper.sendMessage(myAgent, tickerAgent, "Done", ACLMessage.INFORM);
 
                 for (Behaviour behaviour : behavioursToRemove) {

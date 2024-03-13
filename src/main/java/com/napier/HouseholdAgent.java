@@ -333,7 +333,7 @@ public class HouseholdAgent extends Agent {
                             // The second element of the message carries the information whether the requesting party should lose social capita following the trade
                             String[] splitMessageContent = interestResultMessage.getContent().split(",");
 
-                            boolean doesReceiverGainSocialCapita = completeRequestedExchange((TradeOffer)incomingObject);
+                            boolean doesReceiverGainSocialCapita = completeRequestedExchange((TradeOffer) incomingObject);
 
                             // Adjust the agent's properties based on the trade offer
                             if (Boolean.parseBoolean(splitMessageContent[1])) {
@@ -351,6 +351,8 @@ public class HouseholdAgent extends Agent {
                             AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be handled: the received object has an incorrect type.");
                         }
                     }
+                } else if (interestResultMessage.getPerformative() == ACLMessage.CANCEL) {
+                    numOfDailyRejectedRequestedExchanges++;
                 } else {
                     // TODO: let the agent's interest be refused
                 }
@@ -439,7 +441,7 @@ public class HouseholdAgent extends Agent {
     }
 
     public class CallItADayBehaviour extends OneShotBehaviour {
-        private ArrayList<Behaviour> behavioursToRemove;
+        private final ArrayList<Behaviour> behavioursToRemove;
 
         public CallItADayBehaviour(Agent a, ArrayList<Behaviour> behavioursToRemove) {
             super(a);
@@ -507,17 +509,17 @@ public class HouseholdAgent extends Agent {
                 // with the Agent who made the request.
                 if (Double.compare(potentialSatisfaction, currentSatisfaction) > 0) {
                     exchangeRequestApproved = true;
-                    //dailyNoSocialCapitalExchanges++;
+                    this.numOfDailyExchangesWithoutSocialCapital++;
                 } else if (Double.compare(potentialSatisfaction, currentSatisfaction) == 0) {
                     if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapital()) {
                         if (favours.get(AgentHelper.getHouseholdAgentNumber(offer.senderAgent().getLocalName())) < 0) {
                             exchangeRequestApproved = true;
-                            //dailySocialCapitalExchanges++;
+                            this.numOfDailyExchangesWithSocialCapital++;
                         }
                     } else {
                         // When social capital isn't used, social agents always accept neutral exchanges.
                         exchangeRequestApproved = true;
-                        //dailyNoSocialCapitalExchanges++;
+                        this.numOfDailyExchangesWithoutSocialCapital++;
                     }
                 }
             } else {
@@ -525,11 +527,12 @@ public class HouseholdAgent extends Agent {
                 // Selfish Agents only accept offers that improve their individual satisfaction.
                 if (Double.compare(potentialSatisfaction, currentSatisfaction) > 0) {
                     exchangeRequestApproved = true;
-                    //dailyNoSocialCapitalExchanges++;
+                    this.numOfDailyExchangesWithoutSocialCapital++;
                 }
             }
+
             if (!exchangeRequestApproved) {
-                //dailyRejectedReceivedExchanges++;
+                this.numOfDailyRejectedReceivedExchanges++;
             }
         }
 
@@ -595,7 +598,8 @@ public class HouseholdAgent extends Agent {
             }
         }
 
-        //dailyAcceptedRequestedExchanges++;
+        this.numOfDailyAcceptedRequestedExchanges++;
+
         return otherAgentSCGain;
     }
 }
