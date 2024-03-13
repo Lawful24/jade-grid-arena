@@ -90,23 +90,29 @@ public class HouseholdAgent extends Agent {
                     dailyTasks.addSubBehaviour(new DetermineDailyDemandBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new DetermineTimeSlotPreferenceBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new CalculateSlotSatisfactionBehaviour(myAgent));
+                    dailyTasks.addSubBehaviour(new ReceiveRandomInitialTimeSlotAllocationBehaviour(myAgent));
 
                     // Define the behaviours of the exchange
                     ArrayList<Behaviour> exchangeBehaviours = new ArrayList<>();
                     //exchangeBehaviours.add(new ReceiveRandomInitialTimeSlotAllocationBehaviour(myAgent));
-                    exchangeBehaviours.add(new TradeOfferListenerBehaviour(myAgent));
+                    //exchangeBehaviours.add(new TradeOfferListenerBehaviour(myAgent));
                     //exchangeBehaviours.add(new InterestResultListenerBehaviour(myAgent));
                     //exchangeBehaviours.add(new SocialCapitaSyncReceiverBehaviour(myAgent));
-
-                    dailyTasks.addSubBehaviour(new CallItADayBehaviour(myAgent, exchangeBehaviours));
 
                     // Add behaviours to the agent's behaviour queue
                     for (Behaviour exchangeBehaviour : exchangeBehaviours) {
                         myAgent.addBehaviour(exchangeBehaviour);
                     }
 
-                    myAgent.addBehaviour(new ReceiveRandomInitialTimeSlotAllocationBehaviour(myAgent));
                     myAgent.addBehaviour(dailyTasks);
+
+                    // Define the behaviours of the exchange
+                    // TODO: this will require 2 sequences, one for the requester and one for the receiver
+                    myAgent.addBehaviour(new AdvertiseUnwantedTimeSlotsBehaviour(myAgent));
+                    myAgent.addBehaviour(new ExchangeOpenListenerBehaviour(myAgent));
+                    myAgent.addBehaviour(new InterestResultListenerBehaviour(myAgent));
+                    myAgent.addBehaviour(new TradeOfferListenerBehaviour(myAgent));
+                    myAgent.addBehaviour(new SocialCapitaSyncReceiverBehaviour(myAgent));
                 } else {
                     myAgent.doDelete();
                 }
@@ -141,7 +147,9 @@ public class HouseholdAgent extends Agent {
         }
     }
 
-    public class DetermineDailyDemandBehaviour extends OneShotBehaviour {
+    public class DetermineDailyDemandBehaviour extends Behaviour {
+        private boolean wasDailyDemandDetermined = false;
+
         public DetermineDailyDemandBehaviour(Agent a) {
             super(a);
         }
@@ -149,10 +157,21 @@ public class HouseholdAgent extends Agent {
         @Override
         public void action() {
             RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
-            int randomDemandIndex = config.popFirstDemandCurveIndex();
 
-            dailyDemandCurve = config.getBucketedDemandCurves()[randomDemandIndex];
-            dailyDemandValue = config.getTotalDemandValues()[randomDemandIndex];
+            // Wait until the demand indices are generated
+            if (!config.getDemandCurveIndices().isEmpty()) {
+                int randomDemandIndex = config.popFirstDemandCurveIndex();
+
+                dailyDemandCurve = config.getBucketedDemandCurves()[randomDemandIndex];
+                dailyDemandValue = config.getTotalDemandValues()[randomDemandIndex];
+
+                wasDailyDemandDetermined = true;
+            }
+        }
+
+        @Override
+        public boolean done() {
+            return wasDailyDemandDetermined;
         }
     }
 
@@ -203,7 +222,9 @@ public class HouseholdAgent extends Agent {
         }
     }
 
-    public class ReceiveRandomInitialTimeSlotAllocationBehaviour extends CyclicBehaviour {
+    public class ReceiveRandomInitialTimeSlotAllocationBehaviour extends Behaviour {
+        private boolean wasInitialAllocationReceived = false;
+
         public ReceiveRandomInitialTimeSlotAllocationBehaviour(Agent a) {
             super(a);
         }
@@ -231,10 +252,13 @@ public class HouseholdAgent extends Agent {
                     }
                 }
 
-                myAgent.removeBehaviour(this);
-            } else {
-                block();
+                wasInitialAllocationReceived = true;
             }
+        }
+
+        @Override
+        public boolean done() {
+            return wasInitialAllocationReceived;
         }
     }
 
@@ -273,7 +297,7 @@ public class HouseholdAgent extends Agent {
 
     /* Exchange Requester Behaviours */
 
-    public class ExchangeOpenListenerBehaviour extends CyclicBehaviour {
+    public class ExchangeOpenListenerBehaviour extends Behaviour {
         public ExchangeOpenListenerBehaviour(Agent a) {
             super(a);
         }
@@ -299,13 +323,18 @@ public class HouseholdAgent extends Agent {
 
                     madeInteraction = true;
                 }
-            } else {
-                block();
             }
+        }
+
+        @Override
+        public boolean done() {
+            return madeInteraction; // TODO: probably incorrect
         }
     }
 
-    public class InterestResultListenerBehaviour extends CyclicBehaviour { // TODO: decide when to call and remove these cyclic behaviours
+    public class InterestResultListenerBehaviour extends Behaviour { // TODO: decide when to call and remove these cyclic behaviours
+        private boolean resultReceived = false;
+
         public InterestResultListenerBehaviour(Agent a) {
             super(a);
         }
@@ -356,9 +385,16 @@ public class HouseholdAgent extends Agent {
                 } else {
                     // TODO: let the agent's interest be refused
                 }
-            } else {
-                block();
+
+                resultReceived = true;
+
+                // TODO: exchange over message here
             }
+        }
+
+        @Override
+        public boolean done() {
+            return resultReceived;
         }
     }
 
@@ -437,29 +473,31 @@ public class HouseholdAgent extends Agent {
             } else {
                 block();
             }
+
+            // TODO: exchange over message here
         }
     }
 
-    public class CallItADayBehaviour extends OneShotBehaviour {
-        private final ArrayList<Behaviour> behavioursToRemove;
-
-        public CallItADayBehaviour(Agent a, ArrayList<Behaviour> behavioursToRemove) {
+    public class ExchangeListenerBehaviour extends CyclicBehaviour {
+        public ExchangeListenerBehaviour(Agent a) {
             super(a);
-            this.behavioursToRemove = behavioursToRemove;
         }
 
         @Override
         public void action() {
-            AgentHelper.sendMessage(
-                    myAgent,
-                    new ArrayList<>(Arrays.asList(tickerAgent, advertisingAgent)),
-                    "Done", ACLMessage.INFORM
-            );
+            ACLMessage newExchangeMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, ACLMessage.REQUEST);
 
-            // Remove the cyclic behaviours used in the timeslot exchanges from the agent's behaviour queue
-            for (Behaviour behaviour : behavioursToRemove) {
-                myAgent.removeBehaviour(behaviour);
+            if (newExchangeMessage != null) {
+                myAgent.removeBehaviour(this);
+            } else {
+                block();
             }
+        }
+
+        @Override
+        public void reset() {
+            super.reset();
+            // TODO: overwrite this with the exchange values
         }
     }
 

@@ -16,13 +16,15 @@ public class TickerAgent extends Agent {
     private int currentDay = 0;
 
     // Agent contact attributes
-    private ArrayList<AID> allAgents = new ArrayList<>();
+    private ArrayList<AID> allAgents;
 
     @Override
     protected void setup() {
         AgentHelper.registerAgent(this, "Ticker");
 
-        doWait(2500);
+        allAgents = new ArrayList<>();
+
+        doWait(1500);
         addBehaviour(new DailySyncBehaviour(this));
     }
 
@@ -34,8 +36,6 @@ public class TickerAgent extends Agent {
 
     public class DailySyncBehaviour extends Behaviour {
         private int step = 0;
-        private int numFinReceived = 0;
-        //private int day = 0;
         private ArrayList<AID> householdAgents;
         private AID advertisingAgent;
 
@@ -69,11 +69,7 @@ public class TickerAgent extends Agent {
                     break;
                 case 1:
                     if (AgentHelper.receiveMessage(myAgent, "Done") != null) {
-                        numFinReceived++;
-
-                        if (numFinReceived > householdAgents.size()) {
-                            step++;
-                        }
+                        step++;
                     } else {
                         block();
                     }

@@ -15,6 +15,8 @@ import java.util.*;
 public class AdvertisingBoardAgent extends Agent {
     private ArrayList<TimeSlot> availableTimeSlots;
     private HashMap<AID, ArrayList<TimeSlot>> adverts;
+    private int numOfSuccessfulExchanges;
+    private int exchangeTimeout;
 
     // Agent contact attributes
     private AID tickerAgent;
@@ -24,6 +26,8 @@ public class AdvertisingBoardAgent extends Agent {
     protected void setup() {
         availableTimeSlots = new ArrayList<>();
         adverts = new HashMap<>();
+        numOfSuccessfulExchanges = 0;
+        exchangeTimeout = 0;
 
         householdAgents = new ArrayList<>();
 
@@ -61,18 +65,9 @@ public class AdvertisingBoardAgent extends Agent {
                     dailyTasks.addSubBehaviour(new FindHouseholdsBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new GenerateTimeSlotsBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new DistributeInitialRandomTimeSlotAllocations(myAgent));
-
-                    // Define the behaviours of the exchange
-                    ArrayList<Behaviour> exchangeBehaviours = new ArrayList<>();
-                    exchangeBehaviours.add(new NewAdvertListenerBehaviour(myAgent));
-
-                    // Add behaviours to the agent's behaviour queue
-                    for (Behaviour exchangeBehaviour : exchangeBehaviours) {
-                        myAgent.addBehaviour(exchangeBehaviour);
-                    }
+                    dailyTasks.addSubBehaviour(new InitiateExchangeBehaviour(myAgent));
 
                     myAgent.addBehaviour(dailyTasks);
-                    myAgent.addBehaviour(new CallItADayListenerBehaviour(myAgent, exchangeBehaviours));
                 } else {
                     myAgent.doDelete();
                 }
@@ -86,6 +81,50 @@ public class AdvertisingBoardAgent extends Agent {
             super.reset();
             availableTimeSlots.clear();
             adverts.clear();
+            exchangeTimeout = 0;
+        }
+    }
+
+    public class InitiateExchangeBehaviour extends OneShotBehaviour {
+        public InitiateExchangeBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            reset();
+
+            SequentialBehaviour exchange = new SequentialBehaviour();
+            exchange.addSubBehaviour(new NewAdvertListenerBehaviour(myAgent));
+            exchange.addSubBehaviour(new InterestListenerBehaviour(myAgent));
+            exchange.addSubBehaviour(new TradeOfferResponseListenerBehaviour(myAgent));
+            exchange.addSubBehaviour(new SocialCapitaSyncPropagateBehaviour(myAgent));
+
+            myAgent.addBehaviour(exchange);
+        }
+
+        @Override
+        public int onEnd() {
+            System.out.println("oneshot ended"); // TODO: we need another value to tell if the exchange is still going on
+            if (numOfSuccessfulExchanges == 0) {
+                exchangeTimeout++;
+            } else {
+                exchangeTimeout = 0;
+                myAgent.addBehaviour(new InitiateExchangeBehaviour(myAgent));
+            }
+
+            if (exchangeTimeout == 10) {
+                myAgent.addBehaviour(new CallItADayBehaviour(myAgent));
+            }
+
+            return super.onEnd();
+        }
+
+        @Override
+        public void reset() {
+            super.reset();
+            adverts.clear();
+            numOfSuccessfulExchanges = 0;
         }
     }
 
@@ -171,7 +210,7 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
-    public class NewAdvertListenerBehaviour extends CyclicBehaviour {
+    public class NewAdvertListenerBehaviour extends Behaviour {
         private int numOfAdvertsReceived = 0;
 
         public NewAdvertListenerBehaviour(Agent a) {
@@ -218,24 +257,30 @@ public class AdvertisingBoardAgent extends Agent {
                             ACLMessage.CONFIRM
                     );
                 }
-            } else {
-                block();
             }
+        }
+
+        @Override
+        public boolean done() {
+            return numOfAdvertsReceived == RunConfigurationSingleton.getInstance().getPopulationCount();
         }
     }
 
-    public class InterestListenerBehaviour extends CyclicBehaviour {
+    public class InterestListenerBehaviour extends Behaviour {
+        private int numOfRequestsProcessed = 0;
+
         public InterestListenerBehaviour(Agent a) {
             super(a);
         }
 
         @Override
         public void action() {
+            boolean refuseRequest = true;
             ACLMessage interestMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.CFP);
 
             if (interestMessage != null && adverts.size() == RunConfigurationSingleton.getInstance().getPopulationCount()) {
                 // Prepare a trade offer to the owner of the desired timeslot if that timeslot is available for trade
-                ArrayList<TimeSlot> sendersAdvertisedTimeSlots = null;
+                ArrayList<TimeSlot> sendersAdvertisedTimeSlots = new ArrayList<>();
 
                 // Find out if the sender has any timeslots available to trade
                 for (AID advertPoster : adverts.keySet()) {
@@ -246,7 +291,7 @@ public class AdvertisingBoardAgent extends Agent {
                     }
                 }
 
-                if (sendersAdvertisedTimeSlots != null) {
+                if (!sendersAdvertisedTimeSlots.isEmpty()) {
                     // Make sure the incoming object is readable
                     Serializable incomingObject = null;
 
@@ -301,87 +346,107 @@ public class AdvertisingBoardAgent extends Agent {
                                         ),
                                         ACLMessage.PROPOSE
                                 );
-                            } else {
-                                // TODO: let the requester receive this
-                                // Reach this part if any of these events happened:
-                                // - the sender had no timeslots advertised to offer in return
-                                // - none of the desired timeslots were found in the adverts
-                                AgentHelper.sendMessage(
-                                        myAgent,
-                                        interestMessage.getSender(),
-                                        "Desired Timeslots Not Available",
-                                        ACLMessage.REFUSE
-                                );
+
+                                numOfSuccessfulExchanges++;
+                                refuseRequest = false;
                             }
                         } else {
                             AgentHelper.printAgentError(myAgent.getLocalName(), "Interest for timeslots cannot be processed: the received object has an incorrect type.");
                         }
                     }
                 }
-            } else {
-                block();
+
+                if (refuseRequest) {
+                    // TODO: let the requester receive this
+                    // Reach this part if any of these events happened:
+                    // - the object sent by the requester can't be processed
+                    // - the sender had no timeslots advertised to offer in return
+                    // - none of the desired timeslots were found in the adverts
+                    AgentHelper.sendMessage(
+                            myAgent,
+                            interestMessage.getSender(),
+                            "Desired Timeslots Not Available",
+                            ACLMessage.REFUSE
+                    );
+                }
+
+                numOfRequestsProcessed++;
             }
+        }
+
+        @Override
+        public boolean done() {
+            return numOfRequestsProcessed == RunConfigurationSingleton.getInstance().getPopulationCount();
         }
     }
 
-    public class TradeOfferResponseListenerBehaviour extends CyclicBehaviour {
+    public class TradeOfferResponseListenerBehaviour extends Behaviour {
+        private int numOfTradeOfferReplies = 0;
+
         public TradeOfferResponseListenerBehaviour(Agent a) {
             super(a);
         }
 
         @Override
         public void action() {
-            ACLMessage tradeOfferResponseMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.ACCEPT_PROPOSAL, ACLMessage.REJECT_PROPOSAL);
+            if (numOfSuccessfulExchanges > 0) {
+                ACLMessage tradeOfferResponseMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.ACCEPT_PROPOSAL, ACLMessage.REJECT_PROPOSAL);
 
-            if (tradeOfferResponseMessage != null) {
-                // Make sure the incoming object is readable
-                Serializable incomingObject = null;
+                if (tradeOfferResponseMessage != null) {
+                    // Make sure the incoming object is readable
+                    Serializable incomingObject = null;
 
-                try {
-                    incomingObject = tradeOfferResponseMessage.getContentObject();
-                } catch (UnreadableException e) {
-                    AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer response message is unreadable: " + e.getMessage());
-                }
-
-                if (incomingObject != null) {
-                    // Make sure the incoming object is of the expected type
-                    if (incomingObject instanceof TradeOffer) {
-                        if (tradeOfferResponseMessage.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
-                            // Handle the accepted trade offer
-                            // Remove the traded timeslots from the adverts
-                            adverts.get(tradeOfferResponseMessage.getSender()).remove(((TradeOffer) incomingObject).timeSlotRequested());
-                            adverts.get(((TradeOffer) incomingObject).senderAgent()).remove(((TradeOffer) incomingObject).timeSlotOffered());
-
-                            // Notify the agent who initiated the interest
-                            AgentHelper.sendMessage(
-                                    myAgent,
-                                    ((TradeOffer) incomingObject).senderAgent(),
-                                    tradeOfferResponseMessage.getContent(),
-                                    incomingObject,
-                                    ACLMessage.AGREE
-                            );
-                        } else {
-                            // TODO: is this needed? currently the requester is ignoring this
-                            AgentHelper.sendMessage(
-                                    myAgent,
-                                    ((TradeOffer) incomingObject).senderAgent(),
-                                    "Trade Refused",
-                                    ACLMessage.CANCEL
-                            );
-                        }
-                    } else {
-                        AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer response cannot be acted upon: the received object has an incorrect type.");
+                    try {
+                        incomingObject = tradeOfferResponseMessage.getContentObject();
+                    } catch (UnreadableException e) {
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer response message is unreadable: " + e.getMessage());
                     }
-                }
 
-                myAgent.removeBehaviour(this);
-            } else {
-                block();
+                    if (incomingObject != null) {
+                        // Make sure the incoming object is of the expected type
+                        if (incomingObject instanceof TradeOffer) {
+                            if (tradeOfferResponseMessage.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
+                                // Handle the accepted trade offer
+                                // Remove the traded timeslots from the adverts
+                                adverts.get(tradeOfferResponseMessage.getSender()).remove(((TradeOffer) incomingObject).timeSlotRequested());
+                                adverts.get(((TradeOffer) incomingObject).senderAgent()).remove(((TradeOffer) incomingObject).timeSlotOffered());
+
+                                // Notify the agent who initiated the interest
+                                AgentHelper.sendMessage(
+                                        myAgent,
+                                        ((TradeOffer) incomingObject).senderAgent(),
+                                        tradeOfferResponseMessage.getContent(),
+                                        incomingObject,
+                                        ACLMessage.AGREE
+                                );
+                            } else {
+                                // TODO: is this needed? currently the requester is ignoring this
+                                AgentHelper.sendMessage(
+                                        myAgent,
+                                        ((TradeOffer) incomingObject).senderAgent(),
+                                        "Trade Refused",
+                                        ACLMessage.CANCEL
+                                );
+                            }
+                        } else {
+                            AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer response cannot be acted upon: the received object has an incorrect type.");
+                        }
+                    }
+
+                    numOfTradeOfferReplies++;
+                }
             }
+        }
+
+        @Override
+        public boolean done() {
+            return numOfSuccessfulExchanges == numOfTradeOfferReplies;
         }
     }
 
-    public class SocialCapitaSyncPropagateBehaviour extends CyclicBehaviour {
+    public class SocialCapitaSyncPropagateBehaviour extends Behaviour {
+        private int numOfMessagesPropagated = 0;
+
         public SocialCapitaSyncPropagateBehaviour(Agent a) {
             super(a);
         }
@@ -411,41 +476,28 @@ public class AdvertisingBoardAgent extends Agent {
                         );
                     }
                 }
-            } else {
-                block();
+
+                numOfMessagesPropagated++;
             }
+        }
+
+        @Override
+        public boolean done() {
+            return numOfSuccessfulExchanges == numOfMessagesPropagated;
         }
     }
 
-    public class CallItADayListenerBehaviour extends CyclicBehaviour {
-        private int householdsDayOver = 0;
-        private final ArrayList<Behaviour> behavioursToRemove;
+    public class CallItADayBehaviour extends OneShotBehaviour {
 
-        public CallItADayListenerBehaviour(Agent a, ArrayList<Behaviour> behavioursToRemove) {
+        public CallItADayBehaviour(Agent a) {
             super(a);
-            this.behavioursToRemove = behavioursToRemove;
         }
 
         @Override
         public void action() {
-            // TODO: Cite JADE workbook
-            ACLMessage doneMessage = AgentHelper.receiveMessage(myAgent, "Done");
+            AgentHelper.sendMessage(myAgent, tickerAgent, "Done", ACLMessage.INFORM);
 
-            if (doneMessage != null) {
-                householdsDayOver++;
-            } else {
-                block();
-            }
-
-            if (householdsDayOver == RunConfigurationSingleton.getInstance().getPopulationCount()) {
-                AgentHelper.sendMessage(myAgent, tickerAgent, "Done", ACLMessage.INFORM);
-
-                for (Behaviour behaviour : behavioursToRemove) {
-                    myAgent.removeBehaviour(behaviour);
-                }
-
-                myAgent.removeBehaviour(this);
-            }
+            myAgent.removeBehaviour(this);
         }
     }
 }
