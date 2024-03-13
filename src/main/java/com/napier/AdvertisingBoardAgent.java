@@ -25,6 +25,8 @@ public class AdvertisingBoardAgent extends Agent {
         availableTimeSlots = new ArrayList<>();
         adverts = new HashMap<>();
 
+        householdAgents = new ArrayList<>();
+
         AgentHelper.registerAgent(this, "Advertising-board");
 
         addBehaviour(new TickerDailyBehaviour(this));
@@ -54,18 +56,23 @@ public class AdvertisingBoardAgent extends Agent {
                     // Set the daily resources and adverts to their initial values
                     reset();
 
-                    myAgent.addBehaviour(new FindHouseholdsBehaviour(myAgent));
-
-                    ArrayList<Behaviour> cyclicBehaviours = new ArrayList<>();
+                    // Define the daily sub-behaviours
                     SequentialBehaviour dailyTasks = new SequentialBehaviour();
-
-                    // TODO: Add sub-behaviours here
+                    dailyTasks.addSubBehaviour(new FindHouseholdsBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new GenerateTimeSlotsBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new DistributeInitialRandomTimeSlotAllocations(myAgent));
 
+                    // Define the behaviours of the exchange
+                    ArrayList<Behaviour> exchangeBehaviours = new ArrayList<>();
+                    exchangeBehaviours.add(new NewAdvertListenerBehaviour(myAgent));
+
+                    // Add behaviours to the agent's behaviour queue
+                    for (Behaviour exchangeBehaviour : exchangeBehaviours) {
+                        myAgent.addBehaviour(exchangeBehaviour);
+                    }
+
                     myAgent.addBehaviour(dailyTasks);
-                    myAgent.addBehaviour(new NewAdvertListenerBehaviour(myAgent));
-                    myAgent.addBehaviour(new CallItADayListenerBehaviour(myAgent, cyclicBehaviours));
+                    myAgent.addBehaviour(new CallItADayListenerBehaviour(myAgent, exchangeBehaviours));
                 } else {
                     myAgent.doDelete();
                 }

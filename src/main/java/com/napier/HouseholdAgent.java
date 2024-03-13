@@ -84,28 +84,28 @@ public class HouseholdAgent extends Agent {
                     // Set the daily tracking data to their initial values at the start of the day
                     reset();
 
+                    // Define the daily sub-behaviours
                     SequentialBehaviour dailyTasks = new SequentialBehaviour();
-                    // TODO: Add sub-behaviours here
+                    dailyTasks.addSubBehaviour(new FindAdvertisingBoardBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new DetermineDailyDemandBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new DetermineTimeSlotPreferenceBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new CalculateSlotSatisfactionBehaviour(myAgent));
-                    // The Exchange:
-                        // determine and advertise unwanted timeslots
-                    dailyTasks.addSubBehaviour(new AdvertiseUnwantedTimeSlotsBehaviour(myAgent));
-                        // request an exchange with the advertising board and set interactionMade=true
-                        // select an unwanted timeslot to offer in the exchange
-                    dailyTasks.addSubBehaviour(new ExpressInterestForTimeSlotsBehaviour(myAgent));
-                        // Board: find the owner of the requested timeslot and propose a trade
-                        // consider any incoming requests and send a response to the Board
-                        // Board: based on the response to the request, create a proposal for both parties, increment the number of successful exchanges
-                        // if the offer went through, adjust the social capita accordingly
-                        // clear the agent's accepted offers list before the next round of exchanges
-                        // Board: if the number of exchanges is 0, set noExchanges=true and increment the timeout
-                    dailyTasks.addSubBehaviour(new CallItADayBehaviour(myAgent));
 
-                    myAgent.addBehaviour(new FindAdvertisingBoardBehaviour(myAgent));
+                    // Define the behaviours of the exchange
+                    ArrayList<Behaviour> exchangeBehaviours = new ArrayList<>();
+                    //exchangeBehaviours.add(new ReceiveRandomInitialTimeSlotAllocationBehaviour(myAgent));
+                    exchangeBehaviours.add(new TradeOfferListenerBehaviour(myAgent));
+                    //exchangeBehaviours.add(new InterestResultListenerBehaviour(myAgent));
+                    //exchangeBehaviours.add(new SocialCapitaSyncReceiverBehaviour(myAgent));
+
+                    dailyTasks.addSubBehaviour(new CallItADayBehaviour(myAgent, exchangeBehaviours));
+
+                    // Add behaviours to the agent's behaviour queue
+                    for (Behaviour exchangeBehaviour : exchangeBehaviours) {
+                        myAgent.addBehaviour(exchangeBehaviour);
+                    }
+
                     myAgent.addBehaviour(new ReceiveRandomInitialTimeSlotAllocationBehaviour(myAgent));
-                    myAgent.addBehaviour(new TradeOfferListenerBehaviour(myAgent));
                     myAgent.addBehaviour(dailyTasks);
                 } else {
                     myAgent.doDelete();
@@ -430,13 +430,25 @@ public class HouseholdAgent extends Agent {
     }
 
     public class CallItADayBehaviour extends OneShotBehaviour {
-        public CallItADayBehaviour(Agent a) {
+        private ArrayList<Behaviour> behavioursToRemove;
+
+        public CallItADayBehaviour(Agent a, ArrayList<Behaviour> behavioursToRemove) {
             super(a);
+            this.behavioursToRemove = behavioursToRemove;
         }
 
         @Override
         public void action() {
-            AgentHelper.sendMessage(myAgent, new ArrayList<>(Arrays.asList(tickerAgent, advertisingAgent)), "Done", ACLMessage.INFORM); // TODO: rework the communication between the agents
+            AgentHelper.sendMessage(
+                    myAgent,
+                    new ArrayList<>(Arrays.asList(tickerAgent, advertisingAgent)),
+                    "Done", ACLMessage.INFORM
+            );
+
+            // Remove the cyclic behaviours used in the timeslot exchanges from the agent's behaviour queue
+            for (Behaviour behaviour : behavioursToRemove) {
+                myAgent.removeBehaviour(behaviour);
+            }
         }
     }
 
