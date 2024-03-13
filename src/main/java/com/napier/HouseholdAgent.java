@@ -15,13 +15,9 @@ import java.util.*;
 public class HouseholdAgent extends Agent {
     // Agent arguments
     private AgentStrategyType agentType;
-    private final boolean utilisesSocialCapital = RunConfigurationSingleton.getInstance().doesUtiliseSocialCapital();
     private boolean madeInteraction;
-    private final int numOfTimeSlotsWanted = RunConfigurationSingleton.getInstance().getNumOfSlotsPerAgent();
-    private final int numOfUniqueTimeSlots = RunConfigurationSingleton.getInstance().getNumOfUniqueTimeSlots();
     private ArrayList<TimeSlot> requestedTimeSlots;
     private ArrayList<TimeSlot> allocatedTimeSlots;
-    private final double[] satisfactionCurve = RunConfigurationSingleton.getInstance().getSatisfactionCurve();
     private ArrayList<TimeSlotSatisfactionPair> timeSlotSatisfactionPairs;
     private HashMap<Integer, Integer> favours = new HashMap<>();
     private ArrayList<TimeSlot> exchangeRequestReceived = new ArrayList<>();
@@ -174,7 +170,7 @@ public class HouseholdAgent extends Agent {
                 requestedTimeSlots.clear();
             }
 
-            for (int i = 1; i <= numOfTimeSlotsWanted; i++) {
+            for (int i = 1; i <= config.getNumOfSlotsPerAgent(); i++) {
                 // Selects a time-slot based on the demand curve.
                 int wheelSelector = config.getRandom().nextInt((int)(dailyDemandValue * 10)) + 1;
                 int wheelCalculator = 0;
@@ -203,7 +199,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public void action() {
-            timeSlotSatisfactionPairs = AgentHelper.calculateSatisfactionPerSlot(requestedTimeSlots, satisfactionCurve);
+            timeSlotSatisfactionPairs = AgentHelper.calculateSatisfactionPerSlot(requestedTimeSlots);
         }
     }
 
@@ -450,15 +446,15 @@ public class HouseholdAgent extends Agent {
      * each other Agent.
      */
     private void initializeFavoursStore() {
-        if (this.utilisesSocialCapital) {
+        if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapital()) {
             if (!this.favours.isEmpty()) {
                 this.favours.clear();
             }
 
             for (int i = 1; i <= RunConfigurationSingleton.getInstance().getPopulationCount(); i++) {
                 if (AgentHelper.getHouseholdAgentNumber(this.getLocalName()) != i) {
-                    // Initially, no favours are owed or have been given to any other Agent.
-                    // The key is the
+                    // Initially, no favours are owed or have been given to any other agent.
+                    // The key is the other agent's household number.
                     this.favours.put(i, 0);
                 }
             }
@@ -473,7 +469,7 @@ public class HouseholdAgent extends Agent {
      */
     private boolean considerRequest(TradeOffer offer) {
         boolean exchangeRequestApproved = false;
-        double currentSatisfaction = AgentHelper.calculateSatisfaction(this.allocatedTimeSlots, this.requestedTimeSlots, this.satisfactionCurve);
+        double currentSatisfaction = AgentHelper.calculateSatisfaction(this.allocatedTimeSlots, this.requestedTimeSlots);
         // Create a new local list of time-slots in order to test how the Agents satisfaction would change after the
         // potential exchange.
         ArrayList<TimeSlot> potentialAllocatedTimeSlots = new ArrayList<>(allocatedTimeSlots);
@@ -483,7 +479,7 @@ public class HouseholdAgent extends Agent {
             // Replace the requested slot with the requesting agents unwanted time-slot.
             potentialAllocatedTimeSlots.add(offer.timeSlotOffered());
 
-            double potentialSatisfaction = AgentHelper.calculateSatisfaction(potentialAllocatedTimeSlots, this.requestedTimeSlots, this.satisfactionCurve);
+            double potentialSatisfaction = AgentHelper.calculateSatisfaction(potentialAllocatedTimeSlots, this.requestedTimeSlots);
 
             if (this.agentType == AgentStrategyType.SOCIAL) {
                 // Social Agents accept offers that improve their satisfaction or if they have negative social capital
@@ -530,12 +526,12 @@ public class HouseholdAgent extends Agent {
     private boolean completeReceivedExchange(TradeOffer offer) {
         boolean otherAgentSCLoss = false;
 
-        double previousSatisfaction = AgentHelper.calculateSatisfaction(this.allocatedTimeSlots, this.requestedTimeSlots, this.satisfactionCurve);
+        double previousSatisfaction = AgentHelper.calculateSatisfaction(this.allocatedTimeSlots, this.requestedTimeSlots);
         // Update the Agents allocated time-slots.
         this.allocatedTimeSlots.remove(offer.timeSlotRequested());
         this.allocatedTimeSlots.add(offer.timeSlotOffered());
 
-        double newSatisfaction = AgentHelper.calculateSatisfaction(this.allocatedTimeSlots, this.requestedTimeSlots, this.satisfactionCurve);
+        double newSatisfaction = AgentHelper.calculateSatisfaction(this.allocatedTimeSlots, this.requestedTimeSlots);
 
         // Update the Agents relationship with the other Agent involved in the exchange.
         if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapital()) {
@@ -561,12 +557,12 @@ public class HouseholdAgent extends Agent {
     boolean completeRequestedExchange(TradeOffer offer) {
         boolean otherAgentSCGain = false;
 
-        double previousSatisfaction = AgentHelper.calculateSatisfaction(this.allocatedTimeSlots, this.requestedTimeSlots, this.satisfactionCurve);
+        double previousSatisfaction = AgentHelper.calculateSatisfaction(this.allocatedTimeSlots, this.requestedTimeSlots);
         // Update the Agents allocated time-slots.
         this.allocatedTimeSlots.remove(offer.timeSlotOffered());
         this.allocatedTimeSlots.add(offer.timeSlotRequested());
 
-        double newSatisfaction = AgentHelper.calculateSatisfaction(this.allocatedTimeSlots, this.requestedTimeSlots, this.satisfactionCurve);
+        double newSatisfaction = AgentHelper.calculateSatisfaction(this.allocatedTimeSlots, this.requestedTimeSlots);
 
         // Update the Agents relationship with the other Agent involved in the exchange.
         if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapital()) {

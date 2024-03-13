@@ -217,7 +217,8 @@ public class AgentHelper {
      * @param timeSlotsToConsider The set of time-slots to consider.
      * @return Double The Agents satisfaction with the time-slots given.
      */
-    public static double calculateSatisfaction(ArrayList<TimeSlot> timeSlotsToConsider, ArrayList<TimeSlot> requestedTimeSlots, double[] satisfactionCurve) {
+    public static double calculateSatisfaction(ArrayList<TimeSlot> timeSlotsToConsider, ArrayList<TimeSlot> requestedTimeSlots) {
+        double[] satisfactionCurve = RunConfigurationSingleton.getInstance().getSatisfactionCurve();
         ArrayList<TimeSlot> tempRequestedTimeSlots = new ArrayList<>(requestedTimeSlots);
         ArrayList<TimeSlot> nonRequestedTimeSlots = new ArrayList<>();
 
@@ -233,7 +234,7 @@ public class AgentHelper {
             }
         }
 
-        List<TimeSlotSatisfactionPair> tempTimeSlotSatisfactions = calculateSatisfactionPerSlot(tempRequestedTimeSlots, satisfactionCurve);
+        List<TimeSlotSatisfactionPair> tempTimeSlotSatisfactions = calculateSatisfactionPerSlot(tempRequestedTimeSlots);
 
         for (int i = 1; i < satisfactionCurve.length; i++) {
             for (TimeSlot timeSlot: nonRequestedTimeSlots) {
@@ -246,10 +247,10 @@ public class AgentHelper {
 
                             if (tempRequestedTimeSlots.contains(timeSlotOver)) {
                                 tempRequestedTimeSlots.remove(timeSlotOver);
-                                tempTimeSlotSatisfactions = calculateSatisfactionPerSlot(tempRequestedTimeSlots, satisfactionCurve);
+                                tempTimeSlotSatisfactions = calculateSatisfactionPerSlot(tempRequestedTimeSlots);
                             } else if (tempRequestedTimeSlots.contains(timeSlotUnder)) {
                                 tempRequestedTimeSlots.remove(timeSlotUnder);
-                                tempTimeSlotSatisfactions = calculateSatisfactionPerSlot(tempRequestedTimeSlots, satisfactionCurve);
+                                tempTimeSlotSatisfactions = calculateSatisfactionPerSlot(tempRequestedTimeSlots);
                             }
                         }
                         break;
@@ -263,8 +264,10 @@ public class AgentHelper {
     }
 
     // TODO: Cite Arena code
-    public static ArrayList<TimeSlotSatisfactionPair> calculateSatisfactionPerSlot(ArrayList<TimeSlot> requestedTimeSlots, double[] satisfactionCurve) {
+    public static ArrayList<TimeSlotSatisfactionPair> calculateSatisfactionPerSlot(ArrayList<TimeSlot> requestedTimeSlots) {
         ArrayList<TimeSlotSatisfactionPair> timeSlotSatisfactionPairs = new ArrayList<>();
+        double[] satisfactionCurve = RunConfigurationSingleton.getInstance().getSatisfactionCurve();
+
         // Calculate the potential satisfaction that each time-slot could give based on their proximity to requested time-slots.
         Double[] slotSatisfaction = new Double[RunConfigurationSingleton.getInstance().getNumOfUniqueTimeSlots()];
         Arrays.fill(slotSatisfaction, 0.0);
