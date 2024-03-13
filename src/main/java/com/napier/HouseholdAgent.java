@@ -213,18 +213,22 @@ public class HouseholdAgent extends Agent {
             ACLMessage incomingAllocationMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, ACLMessage.INFORM);
 
             if (incomingAllocationMessage != null) {
-                // TODO: unwrap this try block
-                try {
-                    Serializable incomingObject = incomingAllocationMessage.getContentObject();
+                // Make sure the incoming object is readable
+                Serializable incomingObject = null;
 
+                try {
+                    incomingObject = incomingAllocationMessage.getContentObject();
+                } catch (UnreadableException e) {
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming random allocation is unreadable: " + e.getMessage());
+                }
+
+                if (incomingObject != null) {
                     // Make sure the incoming object is of the expected type
                     if (incomingObject instanceof SerializableTimeSlotArray) {
                         allocatedTimeSlots = new ArrayList<>(Arrays.asList(((SerializableTimeSlotArray)incomingObject).timeSlots()));
                     } else {
                         AgentHelper.printAgentError(myAgent.getLocalName(), "Initial random allocation cannot be set: the received object has an incorrect type.");
                     }
-                } catch (UnreadableException e) {
-                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming random allocation message is unreadable: " + e.getMessage());
                 }
 
                 myAgent.removeBehaviour(this);
@@ -296,7 +300,7 @@ public class HouseholdAgent extends Agent {
         }
     }
 
-    public class InterestResultListenerBehaviour extends CyclicBehaviour { // TODO: here. decide when to call and remove these cyclic behaviours
+    public class InterestResultListenerBehaviour extends CyclicBehaviour { // TODO: decide when to call and remove these cyclic behaviours
         public InterestResultListenerBehaviour(Agent a) {
             super(a);
         }

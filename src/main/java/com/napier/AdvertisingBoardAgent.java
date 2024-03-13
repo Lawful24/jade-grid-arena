@@ -183,34 +183,42 @@ public class AdvertisingBoardAgent extends Agent {
             ACLMessage advertisingMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.REQUEST);
 
             if (advertisingMessage != null) {
-                try {
-                    Serializable incomingObject = advertisingMessage.getContentObject();
+                Serializable incomingObject = null;
 
+                try {
+                    incomingObject = advertisingMessage.getContentObject();
+                } catch (UnreadableException e) {
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming new advert is unreadable: " + e.getMessage());
+                }
+
+                if (incomingObject != null) {
                     // Make sure the incoming object is of the expected type and the advert is not empty
                     if (incomingObject instanceof SerializableTimeSlotArray) {
-                        if (((SerializableTimeSlotArray) incomingObject).timeSlots().length > 0) {
-                            // Register the advert
-                            adverts.put(
-                                    advertisingMessage.getSender(),
-                                    new ArrayList<>(Arrays.asList(((SerializableTimeSlotArray)incomingObject).timeSlots()))
-                            );
-                        }
+                        // Register (or update) the advert
+                        adverts.put(
+                                advertisingMessage.getSender(),
+                                new ArrayList<>(Arrays.asList(((SerializableTimeSlotArray)incomingObject).timeSlots()))
+                        );
 
                         numOfAdvertsReceived++;
                     } else {
                         AgentHelper.printAgentError(myAgent.getLocalName(), "Advert cannot be registered: the received object has an incorrect type.");
                     }
-                } catch (UnreadableException e) {
-                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming advert message is unreadable: " + e.getMessage());
+                }
+
+                // This has to be integrated in this behaviour to make sure that the adverts have been collected
+                // TODO: make sure this stays true even when some agents have no more unwanted slots
+                if (numOfAdvertsReceived == RunConfigurationSingleton.getInstance().getPopulationCount()) {
+                    // Broadcast to all agents that the exchange is open
+                    AgentHelper.sendMessage(
+                            myAgent,
+                            householdAgents,
+                            "Exchange is Open",
+                            ACLMessage.CONFIRM
+                    );
                 }
             } else {
                 block();
-            }
-
-            // This has to be integrated in this behaviour to make sure that the adverts have been collected
-            // TODO: make sure this stays true even when some agents have no more unwanted slots
-            if (numOfAdvertsReceived == householdAgents.size()) {
-                removeBehaviour(this);
             }
         }
     }
