@@ -273,19 +273,22 @@ public class HouseholdAgent extends Agent {
 
     /* Exchange Requester Behaviours */
 
-    public class ExpressInterestForTimeSlotsBehaviour extends OneShotBehaviour {
-        public ExpressInterestForTimeSlotsBehaviour(Agent a) {
+    public class ExchangeOpenListenerBehaviour extends CyclicBehaviour {
+        public ExchangeOpenListenerBehaviour(Agent a) {
             super(a);
         }
 
         @Override
         public void action() {
-            if (!madeInteraction) {
-                // Get the difference of the requested timeslots and the allocated timeslots
-                ArrayList<TimeSlot> desiredTimeSlots = new ArrayList<>(requestedTimeSlots);
-                desiredTimeSlots.removeAll(allocatedTimeSlots);
+            ACLMessage exchangeOpenMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, ACLMessage.CONFIRM);
 
-                if (!desiredTimeSlots.isEmpty()) {
+            if (exchangeOpenMessage != null) {
+                if (!madeInteraction) {
+                    // Get the difference of the requested timeslots and the allocated timeslots
+                    ArrayList<TimeSlot> desiredTimeSlots = new ArrayList<>(requestedTimeSlots);
+                    desiredTimeSlots.removeAll(allocatedTimeSlots);
+
+                    // Send a message of interest to the advertising agent
                     AgentHelper.sendMessage(
                             myAgent,
                             advertisingAgent,
@@ -294,8 +297,10 @@ public class HouseholdAgent extends Agent {
                             ACLMessage.CFP
                     );
 
-                    madeInteraction = true; // TODO: here or outside the if?
+                    madeInteraction = true;
                 }
+            } else {
+                block();
             }
         }
     }
