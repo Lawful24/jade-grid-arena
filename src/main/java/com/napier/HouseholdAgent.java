@@ -314,7 +314,7 @@ public class HouseholdAgent extends Agent {
         public void action() {
             ACLMessage interestResultMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.AGREE, ACLMessage.REFUSE);
 
-            if (interestResultMessage != null && interestResultMessage.getSender() == advertisingAgent) {
+            if (interestResultMessage != null && interestResultMessage.getSender().equals(advertisingAgent)) {
                 if (interestResultMessage.getPerformative() == ACLMessage.AGREE) {
                     // Make sure the incoming object is readable
                     Serializable incomingObject = null;

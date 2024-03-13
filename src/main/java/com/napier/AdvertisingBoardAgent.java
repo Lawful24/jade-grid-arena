@@ -232,13 +232,13 @@ public class AdvertisingBoardAgent extends Agent {
         public void action() {
             ACLMessage interestMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.CFP);
 
-            if (interestMessage != null && adverts.size() == householdAgents.size()) {
+            if (interestMessage != null && adverts.size() == RunConfigurationSingleton.getInstance().getPopulationCount()) {
                 // Prepare a trade offer to the owner of the desired timeslot if that timeslot is available for trade
                 ArrayList<TimeSlot> sendersAdvertisedTimeSlots = null;
 
                 // Find out if the sender has any timeslots available to trade
                 for (AID advertPoster : adverts.keySet()) {
-                    if (advertPoster == interestMessage.getSender()) {
+                    if (advertPoster.equals(interestMessage.getSender())) {
                         sendersAdvertisedTimeSlots = adverts.get(advertPoster);
 
                         break;
@@ -273,7 +273,7 @@ public class AdvertisingBoardAgent extends Agent {
                                     ArrayList<TimeSlot> timeSlotsForTrade = adverts.get(advertPoster);
 
                                     for (TimeSlot timeSlotForTrade : timeSlotsForTrade) {
-                                        if (desiredTimeSlot == timeSlotForTrade) {
+                                        if (desiredTimeSlot.equals(timeSlotForTrade)) {
                                             targetTimeSlot = timeSlotForTrade;
                                             targetOwner = advertPoster;
 
