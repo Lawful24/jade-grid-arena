@@ -15,9 +15,10 @@ import java.util.*;
 public class AdvertisingBoardAgent extends Agent {
     private ArrayList<TimeSlot> availableTimeSlots;
     private HashMap<AID, ArrayList<TimeSlot>> adverts;
+    private int numOfTradesStarted;
     private int numOfSuccessfulExchanges;
+    private ArrayList<AID> agentsToNotify;
     private int exchangeTimeout;
-    private boolean isExchangeActive;
 
     // Agent contact attributes
     private AID tickerAgent;
@@ -27,9 +28,10 @@ public class AdvertisingBoardAgent extends Agent {
     protected void setup() {
         availableTimeSlots = new ArrayList<>();
         adverts = new HashMap<>();
+        numOfTradesStarted = 0;
         numOfSuccessfulExchanges = 0;
+        agentsToNotify = new ArrayList<>();
         exchangeTimeout = 0;
-        isExchangeActive = false;
 
         householdAgents = new ArrayList<>();
 
@@ -88,7 +90,9 @@ public class AdvertisingBoardAgent extends Agent {
     }
 
     public class InitiateExchangeBehaviour extends Behaviour {
+        private boolean isExchangeActive = false;
         private final SequentialBehaviour exchange = new SequentialBehaviour();
+
         public InitiateExchangeBehaviour(Agent a) {
             super(a);
         }
@@ -123,7 +127,13 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public int onEnd() {
-            System.out.println("oneshot ended");
+            AgentHelper.printAgentLog(
+                    myAgent.getLocalName(),
+                    "Exchange round over." +
+                    " | Trades started: " + numOfTradesStarted +
+                    " | Successful exchanges: " + numOfSuccessfulExchanges
+            );
+
             if (numOfSuccessfulExchanges == 0) {
                 exchangeTimeout++;
             } else {
@@ -133,18 +143,19 @@ public class AdvertisingBoardAgent extends Agent {
             if (exchangeTimeout == 10) {
                 myAgent.addBehaviour(new CallItADayBehaviour(myAgent));
             } else {
-                System.out.println("added again but we need to tell the household agents that a new round has started");
                 myAgent.addBehaviour(new InitiateExchangeBehaviour(myAgent));
             }
 
-            return super.onEnd();
+            return 0;
         }
 
         @Override
         public void reset() {
             super.reset();
             adverts.clear();
+            numOfTradesStarted = 0;
             numOfSuccessfulExchanges = 0;
+            agentsToNotify.clear();
         }
     }
 
@@ -285,7 +296,7 @@ public class AdvertisingBoardAgent extends Agent {
         @Override
         public boolean done() {
             if (numOfAdvertsReceived == RunConfigurationSingleton.getInstance().getPopulationCount()) {
-                System.out.println("done listening to new adverts");
+                AgentHelper.printAgentLog(myAgent.getLocalName(), "done listening for new adverts");
             }
 
             return numOfAdvertsReceived == RunConfigurationSingleton.getInstance().getPopulationCount();
@@ -294,6 +305,7 @@ public class AdvertisingBoardAgent extends Agent {
 
     public class InterestListenerBehaviour extends Behaviour {
         private int numOfRequestsProcessed = 0;
+        private final ArrayList<AID> agentsToReceive = new ArrayList<>();
 
         public InterestListenerBehaviour(Agent a) {
             super(a);
@@ -348,6 +360,7 @@ public class AdvertisingBoardAgent extends Agent {
                                         if (desiredTimeSlot.equals(timeSlotForTrade)) {
                                             targetTimeSlot = timeSlotForTrade;
                                             targetOwner = advertPoster;
+                                            agentsToReceive.add(targetOwner);
 
                                             break browsingTimeSlots;
                                         }
@@ -363,7 +376,7 @@ public class AdvertisingBoardAgent extends Agent {
                                 AgentHelper.sendMessage(
                                         myAgent,
                                         targetOwner,
-                                        interestMessage.getSender().getLocalName(),
+                                        "New Offer",
                                         new TradeOffer(
                                                 interestMessage.getSender(),
                                                 targetOwner,
@@ -373,7 +386,7 @@ public class AdvertisingBoardAgent extends Agent {
                                         ACLMessage.PROPOSE
                                 );
 
-                                numOfSuccessfulExchanges++;
+                                numOfTradesStarted++;
                                 refuseRequest = false;
                             }
                         } else {
@@ -397,6 +410,19 @@ public class AdvertisingBoardAgent extends Agent {
                 }
 
                 numOfRequestsProcessed++;
+                final int populationCount = RunConfigurationSingleton.getInstance().getPopulationCount();
+
+                if (numOfRequestsProcessed == populationCount && agentsToReceive.size() < populationCount) {
+                    agentsToNotify = new ArrayList<>(householdAgents);
+                    agentsToNotify.removeAll(agentsToReceive);
+
+                    AgentHelper.sendMessage(
+                            myAgent,
+                            agentsToNotify,
+                            "No Offers",
+                            ACLMessage.PROPOSE
+                    );
+                }
             } else {
                 block();
             }
@@ -406,12 +432,8 @@ public class AdvertisingBoardAgent extends Agent {
         public boolean done() {
             boolean areAllRequestsProcessed = numOfRequestsProcessed == RunConfigurationSingleton.getInstance().getPopulationCount();
 
-            if (areAllRequestsProcessed && numOfSuccessfulExchanges == 0) {
-                //isExchangeActive = false;
-            }
-
             if (areAllRequestsProcessed) {
-                System.out.println("done processing cfps");
+                AgentHelper.printAgentLog(myAgent.getLocalName(), "done processing cfps");
             }
 
             return areAllRequestsProcessed;
@@ -427,10 +449,10 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public void action() {
-            if (isExchangeActive && numOfSuccessfulExchanges > 0) {
-                ACLMessage tradeOfferResponseMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.ACCEPT_PROPOSAL, ACLMessage.REJECT_PROPOSAL);
+            ACLMessage tradeOfferResponseMessage = AgentHelper.receiveProposalReply(myAgent);
 
-                if (tradeOfferResponseMessage != null) {
+            if (tradeOfferResponseMessage != null) {
+                if (tradeOfferResponseMessage.getPerformative() != ACLMessage.REFUSE) {
                     // Make sure the incoming object is readable
                     Serializable incomingObject = null;
 
@@ -457,8 +479,9 @@ public class AdvertisingBoardAgent extends Agent {
                                         incomingObject,
                                         ACLMessage.AGREE
                                 );
+
+                                numOfSuccessfulExchanges++;
                             } else {
-                                // TODO: is this needed? currently the requester is ignoring this
                                 AgentHelper.sendMessage(
                                         myAgent,
                                         ((TradeOffer) incomingObject).senderAgent(),
@@ -473,21 +496,24 @@ public class AdvertisingBoardAgent extends Agent {
 
                     numOfTradeOfferReplies++;
                 }
+            } else {
+                block();
             }
         }
 
         @Override
         public boolean done() {
-            if (numOfSuccessfulExchanges == numOfTradeOfferReplies) {
-                System.out.println("done listening to trades");
+            if (numOfTradesStarted == numOfTradeOfferReplies) {
+                AgentHelper.printAgentLog(myAgent.getLocalName(), "done listening for trades");
             }
 
-            return numOfSuccessfulExchanges == numOfTradeOfferReplies;
+            return numOfTradesStarted == numOfTradeOfferReplies;
         }
     }
 
     public class SocialCapitaSyncPropagateBehaviour extends Behaviour {
         private int numOfMessagesPropagated = 0;
+        private boolean allSyncActionsHandled = false;
 
         public SocialCapitaSyncPropagateBehaviour(Agent a) {
             super(a);
@@ -495,47 +521,67 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public void action() {
-            ACLMessage incomingSyncMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.PROPAGATE);
+            if (numOfSuccessfulExchanges > 0) {
+                ACLMessage incomingSyncMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.PROPAGATE);
 
-            if (incomingSyncMessage != null) {
-                // Make sure the incoming object is readable
-                Serializable incomingObject = null;
+                if (incomingSyncMessage != null) {
+                    if (!incomingSyncMessage.getContent().equals("No Syncing Necessary")) {
+                        // Make sure the incoming object is readable
+                        Serializable incomingObject = null;
 
-                try {
-                    incomingObject = incomingSyncMessage.getContentObject();
-                } catch (UnreadableException e) {
-                    AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer receiver AID is unreadable: " + e.getMessage());
-                }
+                        try {
+                            incomingObject = incomingSyncMessage.getContentObject();
+                        } catch (UnreadableException e) {
+                            AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer receiver AID is unreadable: " + e.getMessage());
+                        }
 
-                if (incomingObject != null) {
-                    // Make sure the incoming object is of the expected type
-                    if (incomingObject instanceof AID) {
+                        if (incomingObject != null) {
+                            // Make sure the incoming object is of the expected type
+                            if (incomingObject instanceof AID) {
+                                AgentHelper.sendMessage(
+                                        myAgent,
+                                        (AID) incomingObject,
+                                        incomingSyncMessage.getContent(),
+                                        ACLMessage.INFORM_IF
+                                );
+                            }
+                        }
+                    }
+
+                    numOfMessagesPropagated++;
+
+                    if (numOfMessagesPropagated == numOfSuccessfulExchanges) {
                         AgentHelper.sendMessage(
                                 myAgent,
-                                (AID) incomingObject,
-                                incomingSyncMessage.getContent(),
+                                agentsToNotify,
+                                "No Syncing Necessary",
                                 ACLMessage.INFORM_IF
                         );
-                    }
-                }
 
-                numOfMessagesPropagated++;
+                        allSyncActionsHandled = true;
+                    }
+                } else {
+                    block();
+                }
+            } else {
+                AgentHelper.sendMessage(
+                        myAgent,
+                        householdAgents,
+                        "No Syncing Necessary",
+                        ACLMessage.INFORM_IF
+                );
+
+                allSyncActionsHandled = true;
             }
         }
 
         @Override
         public boolean done() {
-            boolean areAllSyncMessagesPropagated = numOfSuccessfulExchanges == numOfMessagesPropagated;
-
-            if (areAllSyncMessagesPropagated) {
-                //isExchangeActive = false;
+            if (allSyncActionsHandled) {
+                AgentHelper.printAgentLog(myAgent.getLocalName(), "done propagating");
             }
 
-            if (areAllSyncMessagesPropagated || !isExchangeActive) {
-                System.out.println("done propagating");
-            }
-
-            return areAllSyncMessagesPropagated || !isExchangeActive;
+            return allSyncActionsHandled;
         }
     }
 

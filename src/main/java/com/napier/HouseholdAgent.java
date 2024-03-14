@@ -117,48 +117,6 @@ public class HouseholdAgent extends Agent {
         }
     }
 
-    public class InitiateExchangeListenerBehaviour extends Behaviour {
-        private final SequentialBehaviour exchange = new SequentialBehaviour();
-        public InitiateExchangeListenerBehaviour(Agent a) {
-            super(a);
-        }
-
-        @Override
-        public void action() {
-            ACLMessage newExchangeMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, ACLMessage.REQUEST);
-
-            if (newExchangeMessage != null) {
-                // Define the behaviours of the exchange
-                // TODO: this will require 2 sequences, one for the requester and one for the receiver
-                exchange.addSubBehaviour(new AdvertiseUnwantedTimeSlotsBehaviour(myAgent));
-                exchange.addSubBehaviour(new ExchangeOpenListenerBehaviour(myAgent));
-                exchange.addSubBehaviour(new TradeOfferListenerBehaviour(myAgent));
-                exchange.addSubBehaviour(new InterestResultListenerBehaviour(myAgent));
-                exchange.addSubBehaviour(new SocialCapitaSyncReceiverBehaviour(myAgent));
-
-                myAgent.addBehaviour(exchange);
-            } else {
-                block();
-            }
-        }
-
-        @Override
-        public boolean done() {
-            return exchange.done();
-        }
-
-        @Override
-        public int onEnd() {
-            return super.onEnd();
-        }
-
-        @Override
-        public void reset() {
-            super.reset();
-            // TODO: overwrite this with the exchange values
-        }
-    }
-
     public class FindAdvertisingBoardBehaviour extends OneShotBehaviour {
         public FindAdvertisingBoardBehaviour(Agent a) {
             super(a);
@@ -285,6 +243,60 @@ public class HouseholdAgent extends Agent {
         }
     }
 
+    public class InitiateExchangeListenerBehaviour extends Behaviour {
+        private boolean isExchangeActive = false;
+        private final SequentialBehaviour exchange = new SequentialBehaviour();
+        public InitiateExchangeListenerBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            if (!isExchangeActive) {
+                ACLMessage newExchangeMessage = AgentHelper.receiveMessage(myAgent, "Exchange Initiated");
+
+                if (newExchangeMessage != null) {
+                    AgentHelper.printAgentLog(myAgent.getLocalName(), "joining the exchange");
+                    reset();
+
+                    // Define the behaviours of the exchange
+                    exchange.addSubBehaviour(new AdvertiseUnwantedTimeSlotsBehaviour(myAgent));
+                    exchange.addSubBehaviour(new ExchangeOpenListenerBehaviour(myAgent));
+                    exchange.addSubBehaviour(new TradeOfferListenerBehaviour(myAgent));
+                    exchange.addSubBehaviour(new InterestResultListenerBehaviour(myAgent));
+                    exchange.addSubBehaviour(new SocialCapitaSyncReceiverBehaviour(myAgent));
+
+                    myAgent.addBehaviour(exchange);
+
+                    isExchangeActive = true;
+                } else {
+                    block();
+                }
+            }
+        }
+
+        @Override
+        public boolean done() {
+            if (exchange.done()) {
+                AgentHelper.printAgentLog(myAgent.getLocalName(), "household finished");
+            }
+            return exchange.done();
+        }
+
+        @Override
+        public int onEnd() {
+            myAgent.addBehaviour(new InitiateExchangeListenerBehaviour(myAgent));
+
+            return 0;
+        }
+
+        @Override
+        public void reset() {
+            super.reset();
+            madeInteraction = false;
+        }
+    }
+
     public class AdvertiseUnwantedTimeSlotsBehaviour extends Behaviour {
         private boolean isAdPosted = false;
 
@@ -315,7 +327,7 @@ public class HouseholdAgent extends Agent {
         @Override
         public boolean done() {
             if (isAdPosted) {
-                System.out.println("finished advertising");
+                AgentHelper.printAgentLog(myAgent.getLocalName(), "finished advertising");
             }
 
             return isAdPosted;
@@ -350,20 +362,22 @@ public class HouseholdAgent extends Agent {
 
                     madeInteraction = true;
                 }
+            } else {
+                block();
             }
         }
 
         @Override
         public boolean done() {
             if (madeInteraction) {
-                System.out.println("finished inquiring");
+                AgentHelper.printAgentLog(myAgent.getLocalName(), "finished inquiring");
             }
 
             return madeInteraction; // TODO: probably incorrect
         }
     }
 
-    public class InterestResultListenerBehaviour extends Behaviour { // TODO: decide when to call and remove these cyclic behaviours
+    public class InterestResultListenerBehaviour extends Behaviour {
         private boolean resultReceived = false;
 
         public InterestResultListenerBehaviour(Agent a) {
@@ -388,15 +402,12 @@ public class HouseholdAgent extends Agent {
                     if (incomingObject != null) {
                         // Make sure the incoming object is of the expected type
                         if (incomingObject instanceof TradeOffer) {
-                            // The content of the incoming message is built on the following scheme: "Household-1,true", where
-                            // The first element of the message is the local name of the other party of the exchange
-                            // The second element of the message carries the information whether the requesting party should lose social capita following the trade
-                            String[] splitMessageContent = interestResultMessage.getContent().split(",");
-
+                            // The content of the incoming message is a boolean that carries the information whether
+                            // the requesting party should lose social capita following the trade.
                             boolean doesReceiverGainSocialCapita = completeRequestedExchange((TradeOffer) incomingObject);
 
                             // Adjust the agent's properties based on the trade offer
-                            if (Boolean.parseBoolean(splitMessageContent[1])) {
+                            if (Boolean.parseBoolean(interestResultMessage.getContent())) {
                                 totalSocialCapital--;
                             }
 
@@ -413,20 +424,20 @@ public class HouseholdAgent extends Agent {
                     }
                 } else if (interestResultMessage.getPerformative() == ACLMessage.CANCEL) {
                     numOfDailyRejectedRequestedExchanges++;
-                    // TODO: exchange over message here
                 } else {
                     // TODO: let the agent's interest be refused
-                    // TODO: exchange over message here
                 }
 
                 resultReceived = true;
+            } else {
+                block();
             }
         }
 
         @Override
         public boolean done() {
             if (resultReceived) {
-                System.out.println("finished listening to the result of the interest");
+                AgentHelper.printAgentLog(myAgent.getLocalName(), "finished listening to the result of the interest");
             }
 
             return resultReceived;
@@ -436,7 +447,7 @@ public class HouseholdAgent extends Agent {
     /* Exchange Receiver Behaviours */
 
     public class TradeOfferListenerBehaviour extends Behaviour {
-        private boolean offerConsidered = false;
+        private boolean proposalProcessed = false;
         public TradeOfferListenerBehaviour(Agent a) {
             super(a);
         }
@@ -446,60 +457,69 @@ public class HouseholdAgent extends Agent {
             ACLMessage tradeOfferMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, ACLMessage.PROPOSE);
 
             if (tradeOfferMessage != null) {
-                // Make sure the incoming object is readable
-                Serializable incomingObject = null;
-                int responsePerformative = ACLMessage.REJECT_PROPOSAL;
+                if (!tradeOfferMessage.getContent().equals("No Offers")) {
+                    // Make sure the incoming object is readable
+                    Serializable incomingObject = null;
+                    int responsePerformative = ACLMessage.REJECT_PROPOSAL;
 
-                try {
-                    incomingObject = tradeOfferMessage.getContentObject();
-                } catch (UnreadableException e) {
-                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming trade offer is unreadable: " + e.getMessage());
-                }
-
-                boolean doesRequesterLoseSocialCapita = false;
-
-                if (incomingObject != null) {
-                    // Make sure the incoming object is of the expected type
-                    if (incomingObject instanceof TradeOffer) {
-                        // Consider the trade offer AND
-                        // Check whether the requested time slot is actually owned by the agent
-                        if (considerRequest((TradeOffer)incomingObject) && allocatedTimeSlots.contains(((TradeOffer)incomingObject).timeSlotRequested())) {
-                            // Adjust the agent's properties based on the trade offer
-                            doesRequesterLoseSocialCapita = completeReceivedExchange((TradeOffer)incomingObject);
-                            responsePerformative = ACLMessage.ACCEPT_PROPOSAL;
-                        }
-
-                        AgentHelper.sendMessage(
-                                myAgent,
-                                advertisingAgent,
-                                Boolean.toString(doesRequesterLoseSocialCapita),
-                                incomingObject,
-                                responsePerformative
-                        );
-
-                    } else {
-                        AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be answered: the received object has an incorrect type.");
+                    try {
+                        incomingObject = tradeOfferMessage.getContentObject();
+                    } catch (UnreadableException e) {
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming trade offer is unreadable: " + e.getMessage());
                     }
+
+                    boolean doesRequesterLoseSocialCapita = false;
+
+                    if (incomingObject != null) {
+                        // Make sure the incoming object is of the expected type
+                        if (incomingObject instanceof TradeOffer) {
+                            // Consider the trade offer AND
+                            // Check whether the requested time slot is actually owned by the agent
+                            if (considerRequest((TradeOffer)incomingObject) && allocatedTimeSlots.contains(((TradeOffer)incomingObject).timeSlotRequested())) {
+                                // Adjust the agent's properties based on the trade offer
+                                doesRequesterLoseSocialCapita = completeReceivedExchange((TradeOffer)incomingObject);
+                                responsePerformative = ACLMessage.ACCEPT_PROPOSAL;
+                            }
+
+                            AgentHelper.sendMessage(
+                                    myAgent,
+                                    advertisingAgent,
+                                    Boolean.toString(doesRequesterLoseSocialCapita),
+                                    incomingObject,
+                                    responsePerformative
+                            );
+
+                        } else {
+                            AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be answered: the received object has an incorrect type.");
+                        }
+                    }
+                } else {
+                    AgentHelper.sendMessage(
+                            myAgent,
+                            advertisingAgent,
+                            "No Offers Reply",
+                            ACLMessage.REFUSE
+                    );
                 }
 
-                offerConsidered = true;
+                proposalProcessed = true;
+            } else {
+                block();
             }
         }
 
         @Override
         public boolean done() {
-            offerConsidered = true;
-
-            if (offerConsidered) {
-                System.out.println("finished considering the offer");
+            if (proposalProcessed) {
+                AgentHelper.printAgentLog(myAgent.getLocalName(), "finished processing the proposal");
             }
 
-            return offerConsidered;
+            return proposalProcessed;
         }
     }
 
     public class SocialCapitaSyncReceiverBehaviour extends Behaviour {
-        private boolean socialCapitaSynced = false;
+        private boolean socialCapitaSyncHandled = false;
         public SocialCapitaSyncReceiverBehaviour(Agent a) {
             super(a);
         }
@@ -509,7 +529,7 @@ public class HouseholdAgent extends Agent {
             ACLMessage incomingSyncMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, ACLMessage.INFORM_IF);
 
             if (incomingSyncMessage != null) {
-                if (incomingSyncMessage.getContent() != null) {
+                if (!incomingSyncMessage.getContent().equals("No Syncing Necessary")) {
                     boolean doesReceiverAgentGainSocialCapita = Boolean.parseBoolean(incomingSyncMessage.getContent());
 
                     if (doesReceiverAgentGainSocialCapita) {
@@ -517,21 +537,19 @@ public class HouseholdAgent extends Agent {
                     }
                 }
 
-                socialCapitaSynced = true;
-
-                // TODO: exchange over message here
+                socialCapitaSyncHandled = true;
+            } else {
+                block();
             }
         }
 
         @Override
         public boolean done() {
-            socialCapitaSynced = true;
-
-            if (socialCapitaSynced) {
-                System.out.println("finished syncing");
+            if (socialCapitaSyncHandled) {
+                AgentHelper.printAgentLog(myAgent.getLocalName(), "finished syncing");
             }
 
-            return socialCapitaSynced;
+            return socialCapitaSyncHandled;
         }
     }
 
