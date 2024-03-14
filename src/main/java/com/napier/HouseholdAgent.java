@@ -91,28 +91,9 @@ public class HouseholdAgent extends Agent {
                     dailyTasks.addSubBehaviour(new DetermineTimeSlotPreferenceBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new CalculateSlotSatisfactionBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new ReceiveRandomInitialTimeSlotAllocationBehaviour(myAgent));
-
-                    // Define the behaviours of the exchange
-                    ArrayList<Behaviour> exchangeBehaviours = new ArrayList<>();
-                    //exchangeBehaviours.add(new ReceiveRandomInitialTimeSlotAllocationBehaviour(myAgent));
-                    //exchangeBehaviours.add(new TradeOfferListenerBehaviour(myAgent));
-                    //exchangeBehaviours.add(new InterestResultListenerBehaviour(myAgent));
-                    //exchangeBehaviours.add(new SocialCapitaSyncReceiverBehaviour(myAgent));
-
-                    // Add behaviours to the agent's behaviour queue
-                    for (Behaviour exchangeBehaviour : exchangeBehaviours) {
-                        myAgent.addBehaviour(exchangeBehaviour);
-                    }
+                    dailyTasks.addSubBehaviour(new InitiateExchangeListenerBehaviour(myAgent));
 
                     myAgent.addBehaviour(dailyTasks);
-
-                    // Define the behaviours of the exchange
-                    // TODO: this will require 2 sequences, one for the requester and one for the receiver
-                    myAgent.addBehaviour(new AdvertiseUnwantedTimeSlotsBehaviour(myAgent));
-                    myAgent.addBehaviour(new ExchangeOpenListenerBehaviour(myAgent));
-                    myAgent.addBehaviour(new InterestResultListenerBehaviour(myAgent));
-                    myAgent.addBehaviour(new TradeOfferListenerBehaviour(myAgent));
-                    myAgent.addBehaviour(new SocialCapitaSyncReceiverBehaviour(myAgent));
                 } else {
                     myAgent.doDelete();
                 }
@@ -133,6 +114,48 @@ public class HouseholdAgent extends Agent {
             requestedTimeSlots.clear();
             allocatedTimeSlots.clear();
             timeSlotSatisfactionPairs.clear();
+        }
+    }
+
+    public class InitiateExchangeListenerBehaviour extends Behaviour {
+        private final SequentialBehaviour exchange = new SequentialBehaviour();
+        public InitiateExchangeListenerBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            ACLMessage newExchangeMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, ACLMessage.REQUEST);
+
+            if (newExchangeMessage != null) {
+                // Define the behaviours of the exchange
+                // TODO: this will require 2 sequences, one for the requester and one for the receiver
+                exchange.addSubBehaviour(new AdvertiseUnwantedTimeSlotsBehaviour(myAgent));
+                exchange.addSubBehaviour(new ExchangeOpenListenerBehaviour(myAgent));
+                exchange.addSubBehaviour(new TradeOfferListenerBehaviour(myAgent));
+                exchange.addSubBehaviour(new InterestResultListenerBehaviour(myAgent));
+                exchange.addSubBehaviour(new SocialCapitaSyncReceiverBehaviour(myAgent));
+
+                myAgent.addBehaviour(exchange);
+            } else {
+                block();
+            }
+        }
+
+        @Override
+        public boolean done() {
+            return exchange.done();
+        }
+
+        @Override
+        public int onEnd() {
+            return super.onEnd();
+        }
+
+        @Override
+        public void reset() {
+            super.reset();
+            // TODO: overwrite this with the exchange values
         }
     }
 
@@ -291,6 +314,10 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public boolean done() {
+            if (isAdPosted) {
+                System.out.println("finished advertising");
+            }
+
             return isAdPosted;
         }
     }
@@ -328,6 +355,10 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public boolean done() {
+            if (madeInteraction) {
+                System.out.println("finished inquiring");
+            }
+
             return madeInteraction; // TODO: probably incorrect
         }
     }
@@ -382,25 +413,30 @@ public class HouseholdAgent extends Agent {
                     }
                 } else if (interestResultMessage.getPerformative() == ACLMessage.CANCEL) {
                     numOfDailyRejectedRequestedExchanges++;
+                    // TODO: exchange over message here
                 } else {
                     // TODO: let the agent's interest be refused
+                    // TODO: exchange over message here
                 }
 
                 resultReceived = true;
-
-                // TODO: exchange over message here
             }
         }
 
         @Override
         public boolean done() {
+            if (resultReceived) {
+                System.out.println("finished listening to the result of the interest");
+            }
+
             return resultReceived;
         }
     }
 
     /* Exchange Receiver Behaviours */
 
-    public class TradeOfferListenerBehaviour extends CyclicBehaviour {
+    public class TradeOfferListenerBehaviour extends Behaviour {
+        private boolean offerConsidered = false;
         public TradeOfferListenerBehaviour(Agent a) {
             super(a);
         }
@@ -446,14 +482,24 @@ public class HouseholdAgent extends Agent {
                     }
                 }
 
-                myAgent.removeBehaviour(this);
-            } else {
-                block();
+                offerConsidered = true;
             }
+        }
+
+        @Override
+        public boolean done() {
+            offerConsidered = true;
+
+            if (offerConsidered) {
+                System.out.println("finished considering the offer");
+            }
+
+            return offerConsidered;
         }
     }
 
-    public class SocialCapitaSyncReceiverBehaviour extends CyclicBehaviour {
+    public class SocialCapitaSyncReceiverBehaviour extends Behaviour {
+        private boolean socialCapitaSynced = false;
         public SocialCapitaSyncReceiverBehaviour(Agent a) {
             super(a);
         }
@@ -470,34 +516,22 @@ public class HouseholdAgent extends Agent {
                         totalSocialCapital++;
                     }
                 }
-            } else {
-                block();
-            }
 
-            // TODO: exchange over message here
-        }
-    }
+                socialCapitaSynced = true;
 
-    public class ExchangeListenerBehaviour extends CyclicBehaviour {
-        public ExchangeListenerBehaviour(Agent a) {
-            super(a);
-        }
-
-        @Override
-        public void action() {
-            ACLMessage newExchangeMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, ACLMessage.REQUEST);
-
-            if (newExchangeMessage != null) {
-                myAgent.removeBehaviour(this);
-            } else {
-                block();
+                // TODO: exchange over message here
             }
         }
 
         @Override
-        public void reset() {
-            super.reset();
-            // TODO: overwrite this with the exchange values
+        public boolean done() {
+            socialCapitaSynced = true;
+
+            if (socialCapitaSynced) {
+                System.out.println("finished syncing");
+            }
+
+            return socialCapitaSynced;
         }
     }
 

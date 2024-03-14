@@ -17,6 +17,7 @@ public class AdvertisingBoardAgent extends Agent {
     private HashMap<AID, ArrayList<TimeSlot>> adverts;
     private int numOfSuccessfulExchanges;
     private int exchangeTimeout;
+    private boolean isExchangeActive;
 
     // Agent contact attributes
     private AID tickerAgent;
@@ -28,6 +29,7 @@ public class AdvertisingBoardAgent extends Agent {
         adverts = new HashMap<>();
         numOfSuccessfulExchanges = 0;
         exchangeTimeout = 0;
+        isExchangeActive = false;
 
         householdAgents = new ArrayList<>();
 
@@ -85,36 +87,54 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
-    public class InitiateExchangeBehaviour extends OneShotBehaviour {
+    public class InitiateExchangeBehaviour extends Behaviour {
+        private final SequentialBehaviour exchange = new SequentialBehaviour();
         public InitiateExchangeBehaviour(Agent a) {
             super(a);
         }
 
         @Override
         public void action() {
-            reset();
+            if (!isExchangeActive) {
+                reset();
 
-            SequentialBehaviour exchange = new SequentialBehaviour();
-            exchange.addSubBehaviour(new NewAdvertListenerBehaviour(myAgent));
-            exchange.addSubBehaviour(new InterestListenerBehaviour(myAgent));
-            exchange.addSubBehaviour(new TradeOfferResponseListenerBehaviour(myAgent));
-            exchange.addSubBehaviour(new SocialCapitaSyncPropagateBehaviour(myAgent));
+                exchange.addSubBehaviour(new NewAdvertListenerBehaviour(myAgent));
+                exchange.addSubBehaviour(new InterestListenerBehaviour(myAgent));
+                exchange.addSubBehaviour(new TradeOfferResponseListenerBehaviour(myAgent));
+                exchange.addSubBehaviour(new SocialCapitaSyncPropagateBehaviour(myAgent));
 
-            myAgent.addBehaviour(exchange);
+                myAgent.addBehaviour(exchange);
+
+                isExchangeActive = true;
+
+                AgentHelper.sendMessage(
+                        myAgent,
+                        householdAgents,
+                        "Exchange Initiated",
+                        ACLMessage.REQUEST
+                );
+            }
+        }
+
+        @Override
+        public boolean done() {
+            return exchange.done();
         }
 
         @Override
         public int onEnd() {
-            System.out.println("oneshot ended"); // TODO: we need another value to tell if the exchange is still going on
+            System.out.println("oneshot ended");
             if (numOfSuccessfulExchanges == 0) {
                 exchangeTimeout++;
             } else {
                 exchangeTimeout = 0;
-                myAgent.addBehaviour(new InitiateExchangeBehaviour(myAgent));
             }
 
             if (exchangeTimeout == 10) {
                 myAgent.addBehaviour(new CallItADayBehaviour(myAgent));
+            } else {
+                System.out.println("added again but we need to tell the household agents that a new round has started");
+                myAgent.addBehaviour(new InitiateExchangeBehaviour(myAgent));
             }
 
             return super.onEnd();
@@ -257,11 +277,17 @@ public class AdvertisingBoardAgent extends Agent {
                             ACLMessage.CONFIRM
                     );
                 }
+            } else {
+                block();
             }
         }
 
         @Override
         public boolean done() {
+            if (numOfAdvertsReceived == RunConfigurationSingleton.getInstance().getPopulationCount()) {
+                System.out.println("done listening to new adverts");
+            }
+
             return numOfAdvertsReceived == RunConfigurationSingleton.getInstance().getPopulationCount();
         }
     }
@@ -371,12 +397,24 @@ public class AdvertisingBoardAgent extends Agent {
                 }
 
                 numOfRequestsProcessed++;
+            } else {
+                block();
             }
         }
 
         @Override
         public boolean done() {
-            return numOfRequestsProcessed == RunConfigurationSingleton.getInstance().getPopulationCount();
+            boolean areAllRequestsProcessed = numOfRequestsProcessed == RunConfigurationSingleton.getInstance().getPopulationCount();
+
+            if (areAllRequestsProcessed && numOfSuccessfulExchanges == 0) {
+                //isExchangeActive = false;
+            }
+
+            if (areAllRequestsProcessed) {
+                System.out.println("done processing cfps");
+            }
+
+            return areAllRequestsProcessed;
         }
     }
 
@@ -389,7 +427,7 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public void action() {
-            if (numOfSuccessfulExchanges > 0) {
+            if (isExchangeActive && numOfSuccessfulExchanges > 0) {
                 ACLMessage tradeOfferResponseMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.ACCEPT_PROPOSAL, ACLMessage.REJECT_PROPOSAL);
 
                 if (tradeOfferResponseMessage != null) {
@@ -440,6 +478,10 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public boolean done() {
+            if (numOfSuccessfulExchanges == numOfTradeOfferReplies) {
+                System.out.println("done listening to trades");
+            }
+
             return numOfSuccessfulExchanges == numOfTradeOfferReplies;
         }
     }
@@ -483,7 +525,17 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public boolean done() {
-            return numOfSuccessfulExchanges == numOfMessagesPropagated;
+            boolean areAllSyncMessagesPropagated = numOfSuccessfulExchanges == numOfMessagesPropagated;
+
+            if (areAllSyncMessagesPropagated) {
+                //isExchangeActive = false;
+            }
+
+            if (areAllSyncMessagesPropagated || !isExchangeActive) {
+                System.out.println("done propagating");
+            }
+
+            return areAllSyncMessagesPropagated || !isExchangeActive;
         }
     }
 
