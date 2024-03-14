@@ -89,76 +89,6 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
-    public class InitiateExchangeBehaviour extends Behaviour {
-        private boolean isExchangeActive = false;
-        private final SequentialBehaviour exchange = new SequentialBehaviour();
-
-        public InitiateExchangeBehaviour(Agent a) {
-            super(a);
-        }
-
-        @Override
-        public void action() {
-            if (!isExchangeActive) {
-                reset();
-
-                exchange.addSubBehaviour(new NewAdvertListenerBehaviour(myAgent));
-                exchange.addSubBehaviour(new InterestListenerBehaviour(myAgent));
-                exchange.addSubBehaviour(new TradeOfferResponseListenerBehaviour(myAgent));
-                exchange.addSubBehaviour(new SocialCapitaSyncPropagateBehaviour(myAgent));
-
-                myAgent.addBehaviour(exchange);
-
-                isExchangeActive = true;
-
-                AgentHelper.sendMessage(
-                        myAgent,
-                        householdAgents,
-                        "Exchange Initiated",
-                        ACLMessage.REQUEST
-                );
-            }
-        }
-
-        @Override
-        public boolean done() {
-            return exchange.done();
-        }
-
-        @Override
-        public int onEnd() {
-            AgentHelper.printAgentLog(
-                    myAgent.getLocalName(),
-                    "Exchange round over." +
-                    " | Trades started: " + numOfTradesStarted +
-                    " | Successful exchanges: " + numOfSuccessfulExchanges
-            );
-
-            if (numOfSuccessfulExchanges == 0) {
-                exchangeTimeout++;
-            } else {
-                exchangeTimeout = 0;
-            }
-
-            if (exchangeTimeout == 10) {
-                myAgent.addBehaviour(new CallItADayBehaviour(myAgent));
-            } else {
-                myAgent.addBehaviour(new InitiateExchangeBehaviour(myAgent));
-            }
-
-            return 0;
-        }
-
-        @Override
-        public void reset() {
-            super.reset();
-            adverts.clear();
-            numOfTradesStarted = 0;
-            numOfSuccessfulExchanges = 0;
-            agentsToNotify.clear();
-        }
-    }
-
     public class FindHouseholdsBehaviour extends OneShotBehaviour {
         public FindHouseholdsBehaviour(Agent a) {
             super(a);
@@ -215,7 +145,6 @@ public class AdvertisingBoardAgent extends Agent {
                 // TODO: Cite Arena code
                 TimeSlot[] initialTimeSlots = new TimeSlot[config.getNumOfSlotsPerAgent()];
 
-                // TODO: find out: is the number of requested time slots == the number of slots per agent?
                 for (int i = 0; i < config.getNumOfSlotsPerAgent(); i++) {
                     // Only allocate time-slots if there are slots available to allocate.
                     if (!availableTimeSlots.isEmpty()) {
@@ -238,6 +167,76 @@ public class AdvertisingBoardAgent extends Agent {
                         ACLMessage.INFORM
                 );
             }
+        }
+    }
+
+    public class InitiateExchangeBehaviour extends Behaviour {
+        private boolean isExchangeActive = false;
+        private final SequentialBehaviour exchange = new SequentialBehaviour();
+
+        public InitiateExchangeBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            if (!isExchangeActive) {
+                reset();
+
+                exchange.addSubBehaviour(new NewAdvertListenerBehaviour(myAgent));
+                exchange.addSubBehaviour(new InterestListenerBehaviour(myAgent));
+                exchange.addSubBehaviour(new TradeOfferResponseListenerBehaviour(myAgent));
+                exchange.addSubBehaviour(new SocialCapitaSyncPropagateBehaviour(myAgent));
+
+                myAgent.addBehaviour(exchange);
+
+                isExchangeActive = true;
+
+                AgentHelper.sendMessage(
+                        myAgent,
+                        householdAgents,
+                        "Exchange Initiated",
+                        ACLMessage.REQUEST
+                );
+            }
+        }
+
+        @Override
+        public boolean done() {
+            return exchange.done();
+        }
+
+        @Override
+        public int onEnd() {
+            AgentHelper.printAgentLog(
+                    myAgent.getLocalName(),
+                    "Exchange round over." +
+                            " | Trades started: " + numOfTradesStarted +
+                            " | Successful exchanges: " + numOfSuccessfulExchanges
+            );
+
+            if (numOfSuccessfulExchanges == 0) {
+                exchangeTimeout++;
+            } else {
+                exchangeTimeout = 0;
+            }
+
+            if (exchangeTimeout == 10) {
+                myAgent.addBehaviour(new CallItADayBehaviour(myAgent));
+            } else {
+                myAgent.addBehaviour(new InitiateExchangeBehaviour(myAgent));
+            }
+
+            return 0;
+        }
+
+        @Override
+        public void reset() {
+            super.reset();
+            adverts.clear();
+            numOfTradesStarted = 0;
+            numOfSuccessfulExchanges = 0;
+            agentsToNotify.clear();
         }
     }
 
