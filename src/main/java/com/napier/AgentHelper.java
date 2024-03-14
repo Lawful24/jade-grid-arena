@@ -184,6 +184,19 @@ public class AgentHelper {
         );
     }
 
+    public static ACLMessage receiveProposalReply(Agent agentToReceive) {
+        // Let the agent receive either ACCEPT_PROPOSAL, REJECT_PROPOSAL, or REFUSE messages
+        return agentToReceive.receive(
+                MessageTemplate.or(
+                        MessageTemplate.MatchPerformative(ACLMessage.REFUSE),
+                        MessageTemplate.or(
+                                MessageTemplate.MatchPerformative(ACLMessage.ACCEPT_PROPOSAL),
+                                MessageTemplate.MatchPerformative(ACLMessage.REJECT_PROPOSAL)
+                        )
+                )
+        );
+    }
+
     public static void printAgentLog(String agentNickname, String logMessage) {
         System.out.println(agentNickname + " says: " + logMessage);
     }
