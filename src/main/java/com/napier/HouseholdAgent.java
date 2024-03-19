@@ -15,7 +15,6 @@ import java.util.*;
 public class HouseholdAgent extends Agent {
     // Agent arguments
     private AgentStrategyType agentType;
-    private boolean madeInteraction;
     private ArrayList<TimeSlot> requestedTimeSlots;
     private ArrayList<TimeSlot> allocatedTimeSlots;
     private ArrayList<TimeSlotSatisfactionPair> timeSlotSatisfactionPairs;
@@ -41,7 +40,6 @@ public class HouseholdAgent extends Agent {
         this.agentType = (AgentStrategyType)getArguments()[0];
 
         // Initialise local attributes
-        this.madeInteraction = false;
         this.requestedTimeSlots = new ArrayList<>();
         this.allocatedTimeSlots = new ArrayList<>();
         this.timeSlotSatisfactionPairs = new ArrayList<>();
@@ -105,7 +103,6 @@ public class HouseholdAgent extends Agent {
         @Override
         public void reset() {
             super.reset();
-            madeInteraction = false;
             numOfDailyExchangesWithSocialCapital = 0;
             numOfDailyExchangesWithoutSocialCapital = 0;
             numOfDailyRejectedReceivedExchanges = 0;
@@ -293,7 +290,6 @@ public class HouseholdAgent extends Agent {
         @Override
         public void reset() {
             super.reset();
-            madeInteraction = false;
         }
     }
 
@@ -337,6 +333,7 @@ public class HouseholdAgent extends Agent {
     /* Exchange Requester Behaviours */
 
     public class ExchangeOpenListenerBehaviour extends Behaviour {
+        private boolean didAdvertiseTimeSlots = false;
         public ExchangeOpenListenerBehaviour(Agent a) {
             super(a);
         }
@@ -346,7 +343,7 @@ public class HouseholdAgent extends Agent {
             ACLMessage exchangeOpenMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, ACLMessage.CONFIRM);
 
             if (exchangeOpenMessage != null) {
-                if (!madeInteraction) {
+                if (!didAdvertiseTimeSlots) {
                     // Get the difference of the requested timeslots and the allocated timeslots
                     ArrayList<TimeSlot> desiredTimeSlots = new ArrayList<>(requestedTimeSlots);
                     desiredTimeSlots.removeAll(allocatedTimeSlots);
@@ -360,7 +357,7 @@ public class HouseholdAgent extends Agent {
                             ACLMessage.CFP
                     );
 
-                    madeInteraction = true;
+                    didAdvertiseTimeSlots = true;
                 }
             } else {
                 block();
@@ -369,11 +366,11 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public boolean done() {
-            if (madeInteraction) {
+            if (didAdvertiseTimeSlots) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "finished inquiring");
             }
 
-            return madeInteraction; // TODO: probably incorrect
+            return didAdvertiseTimeSlots;
         }
     }
 
@@ -488,7 +485,6 @@ public class HouseholdAgent extends Agent {
                                     incomingObject,
                                     responsePerformative
                             );
-
                         } else {
                             AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be answered: the received object has an incorrect type.");
                         }
