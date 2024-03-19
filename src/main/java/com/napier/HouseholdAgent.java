@@ -18,7 +18,7 @@ public class HouseholdAgent extends Agent {
     private ArrayList<TimeSlot> requestedTimeSlots;
     private ArrayList<TimeSlot> allocatedTimeSlots;
     private ArrayList<TimeSlotSatisfactionPair> timeSlotSatisfactionPairs;
-    private HashMap<Integer, Integer> favours = new HashMap<>();
+    private HashMap<String, Integer> favours = new HashMap<>();
     private boolean isExchangeRequestApproved;
     private int totalSocialCapital;
     private int numOfDailyExchangesWithSocialCapital;
@@ -566,10 +566,11 @@ public class HouseholdAgent extends Agent {
             }
 
             for (int i = 1; i <= RunConfigurationSingleton.getInstance().getPopulationCount(); i++) {
-                if (AgentHelper.getHouseholdAgentNumber(this.getLocalName()) != i) {
+                // Prevent the household agent from being registered in the favours storage
+                if (!this.getLocalName().equals("Household-" + i)) {
                     // Initially, no favours are owed or have been given to any other agent.
-                    // The key is the other agent's household number.
-                    this.favours.put(i, 0);
+                    // The key is the other agent's nickname (or local name).
+                    this.favours.put("Household-" + i, 0);
                 }
             }
         }
@@ -603,7 +604,7 @@ public class HouseholdAgent extends Agent {
                     this.numOfDailyExchangesWithoutSocialCapital++;
                 } else if (Double.compare(potentialSatisfaction, currentSatisfaction) == 0) {
                     if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapital()) {
-                        if (favours.get(AgentHelper.getHouseholdAgentNumber(offer.senderAgent().getLocalName())) < 0) {
+                        if (favours.get(offer.senderAgent().getLocalName()) < 0) {
                             exchangeRequestApproved = true;
                             this.numOfDailyExchangesWithSocialCapital++;
                         }
@@ -651,8 +652,9 @@ public class HouseholdAgent extends Agent {
         // Update the Agents relationship with the other Agent involved in the exchange.
         if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapital()) {
             if (Double.compare(newSatisfaction, previousSatisfaction) <= 0 && this.agentType == AgentStrategyType.SOCIAL) {
-                int otherHouseholdAgentNumber = AgentHelper.getHouseholdAgentNumber(offer.senderAgent().getLocalName());
-                this.favours.replace(otherHouseholdAgentNumber, this.favours.get(otherHouseholdAgentNumber) + 1);
+                int currentNumberOfFavours = this.favours.get(offer.senderAgent().getLocalName());
+
+                this.favours.replace(offer.senderAgent().getLocalName(), currentNumberOfFavours + 1);
 
                 otherAgentSCLoss = true;
             }
@@ -682,8 +684,9 @@ public class HouseholdAgent extends Agent {
         // Update the Agents relationship with the other Agent involved in the exchange.
         if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapital()) {
             if (Double.compare(newSatisfaction, previousSatisfaction) > 0 && this.agentType == AgentStrategyType.SOCIAL) {
-                int otherHouseholdAgentNumber = AgentHelper.getHouseholdAgentNumber(offer.receiverAgent().getLocalName());
-                this.favours.replace(otherHouseholdAgentNumber, this.favours.get(otherHouseholdAgentNumber) - 1);
+                int currentNumberOfFavours = this.favours.get(offer.receiverAgent().getLocalName());
+
+                this.favours.replace(offer.receiverAgent().getLocalName(), currentNumberOfFavours - 1);
 
                 otherAgentSCGain = true;
             }
