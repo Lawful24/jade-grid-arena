@@ -10,7 +10,7 @@ import jade.lang.acl.ACLMessage;
 import jade.lang.acl.UnreadableException;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.*; // TODO: get rid of the wildcard import
 
 public class AdvertisingBoardAgent extends Agent {
     private ArrayList<TimeSlot> availableTimeSlots;
@@ -174,8 +174,7 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
-    public class InitiateExchangeBehaviour extends Behaviour {
-        private boolean isExchangeActive = false;
+    public class InitiateExchangeBehaviour extends OneShotBehaviour {
         private final SequentialBehaviour exchange = new SequentialBehaviour();
 
         public InitiateExchangeBehaviour(Agent a) {
@@ -184,54 +183,22 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public void action() {
-            if (!isExchangeActive) {
-                reset();
+            reset();
 
-                exchange.addSubBehaviour(new NewAdvertListenerBehaviour(myAgent));
-                exchange.addSubBehaviour(new InterestListenerBehaviour(myAgent));
-                exchange.addSubBehaviour(new TradeOfferResponseListenerBehaviour(myAgent));
-                exchange.addSubBehaviour(new SocialCapitaSyncPropagateBehaviour(myAgent));
+            exchange.addSubBehaviour(new NewAdvertListenerBehaviour(myAgent));
+            exchange.addSubBehaviour(new InterestListenerBehaviour(myAgent));
+            exchange.addSubBehaviour(new TradeOfferResponseListenerBehaviour(myAgent));
+            exchange.addSubBehaviour(new SocialCapitaSyncPropagateBehaviour(myAgent));
+            exchange.addSubBehaviour(new ExchangeRoundOverListener(myAgent));
 
-                myAgent.addBehaviour(exchange);
+            myAgent.addBehaviour(exchange);
 
-                isExchangeActive = true;
-
-                AgentHelper.sendMessage(
-                        myAgent,
-                        householdAgents,
-                        "Exchange Initiated",
-                        ACLMessage.REQUEST
-                );
-            }
-        }
-
-        @Override
-        public boolean done() {
-            return exchange.done();
-        }
-
-        @Override
-        public int onEnd() {
-            AgentHelper.printAgentLog(
-                    myAgent.getLocalName(),
-                    "Exchange round over." +
-                            " | Trades started: " + numOfTradesStarted +
-                            " | Successful exchanges: " + numOfSuccessfulExchanges
+            AgentHelper.sendMessage(
+                    myAgent,
+                    householdAgents,
+                    "Exchange Initiated",
+                    ACLMessage.REQUEST
             );
-
-            if (numOfSuccessfulExchanges == 0) {
-                exchangeTimeout++;
-            } else {
-                exchangeTimeout = 0;
-            }
-
-            if (exchangeTimeout == 10) {
-                myAgent.addBehaviour(new CallItADayBehaviour(myAgent));
-            } else {
-                myAgent.addBehaviour(new InitiateExchangeBehaviour(myAgent));
-            }
-
-            return 0;
         }
 
         @Override
@@ -521,6 +488,8 @@ public class AdvertisingBoardAgent extends Agent {
                                         "Trade Rejected",
                                         ACLMessage.CANCEL
                                 );
+
+                                agentsToNotify.add(tradeOfferResponseMessage.getSender());
                             }
                         } else {
                             AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer response cannot be acted upon: the received object has an incorrect type.");
@@ -615,6 +584,54 @@ public class AdvertisingBoardAgent extends Agent {
             }
 
             return allSyncActionsHandled;
+        }
+    }
+
+    public class ExchangeRoundOverListener extends Behaviour {
+        private int numOfHouseholdAgentsFinished = 0;
+
+        public ExchangeRoundOverListener(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            ACLMessage doneWithExchangeMessage = AgentHelper.receiveMessage(myAgent, "Done");
+
+            if (doneWithExchangeMessage != null) {
+                numOfHouseholdAgentsFinished++;
+            } else {
+                block();
+            }
+        }
+
+        @Override
+        public boolean done() {
+            return numOfHouseholdAgentsFinished == RunConfigurationSingleton.getInstance().getPopulationCount();
+        }
+
+        @Override
+        public int onEnd() {
+            AgentHelper.printAgentLog(
+                    myAgent.getLocalName(),
+                    "Exchange round over." +
+                            " | Trades started: " + numOfTradesStarted +
+                            " | Successful exchanges: " + numOfSuccessfulExchanges
+            );
+
+            if (numOfSuccessfulExchanges == 0) {
+                exchangeTimeout++;
+            } else {
+                exchangeTimeout = 0;
+            }
+
+            if (exchangeTimeout == 10) {
+                myAgent.addBehaviour(new CallItADayBehaviour(myAgent));
+            } else {
+                myAgent.addBehaviour(new InitiateExchangeBehaviour(myAgent));
+            }
+
+            return 0;
         }
     }
 

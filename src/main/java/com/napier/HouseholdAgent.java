@@ -10,7 +10,7 @@ import jade.lang.acl.ACLMessage;
 import jade.lang.acl.UnreadableException;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.*; // TODO: get rid of the wildcard import
 
 public class HouseholdAgent extends Agent {
     // Agent arguments
@@ -19,7 +19,6 @@ public class HouseholdAgent extends Agent {
     private ArrayList<TimeSlot> allocatedTimeSlots;
     private ArrayList<TimeSlotSatisfactionPair> timeSlotSatisfactionPairs;
     private HashMap<Integer, Integer> favours = new HashMap<>();
-    private ArrayList<TimeSlot> exchangeRequestReceived = new ArrayList<>();
     private boolean isExchangeRequestApproved;
     private int totalSocialCapital;
     private int numOfDailyExchangesWithSocialCapital;
@@ -276,7 +275,15 @@ public class HouseholdAgent extends Agent {
         public boolean done() {
             if (exchange.done()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "household finished");
+
+                AgentHelper.sendMessage(
+                        myAgent,
+                        advertisingAgent,
+                        "Done",
+                        ACLMessage.INFORM
+                );
             }
+
             return exchange.done();
         }
 
@@ -421,8 +428,6 @@ public class HouseholdAgent extends Agent {
                     }
                 } else if (interestResultMessage.getPerformative() == ACLMessage.CANCEL) {
                     numOfDailyRejectedRequestedExchanges++;
-                } else {
-                    // TODO: let the agent's interest be refused
                 }
 
                 resultReceived = true;
