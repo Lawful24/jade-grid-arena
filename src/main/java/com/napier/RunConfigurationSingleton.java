@@ -26,7 +26,6 @@ public class RunConfigurationSingleton {
     private final int comparisonLevel; // simulation.comparisonLevel (COMPARISON_LEVEL)
     private final double[][] demandCurves; // demand.curves (demandCurves)
     private final int[] availabilityCurve; // availability.curve (availabilityCurves)
-    private final int percentageOfAgentsToEvolve; // agents.evolvePercentage (numberOfAgentsToEvolve)
     private final int selfishPopulationCount; // based on agent.typeRatio (agentTypes)
     private final double[] satisfactionCurve; // agent.satisfactionCurve (satisfactionCurve)
 
@@ -36,6 +35,7 @@ public class RunConfigurationSingleton {
     private ArrayList<Integer> demandCurveIndices;
     private final int[] bucketedAvailabilityCurve;
     private final int totalAvailableEnergy;
+    private final int numOfAgentsToEvolve; // agents.evolvePercentage (numberOfAgentsToEvolve)
 
     public static RunConfigurationSingleton getInstance() {
         if (instance == null) {
@@ -67,7 +67,7 @@ public class RunConfigurationSingleton {
         this.comparisonLevel = Integer.parseInt(properties.getProperty("simulation.comparisonLevel"));
         this.demandCurves = inputToDouble2DArray(properties.getProperty("demand.curves"));
         this.availabilityCurve = inputToIntArray(properties.getProperty("availability.curve"));
-        this.percentageOfAgentsToEvolve = Integer.parseInt(properties.getProperty("agents.evolvePercentage"));
+        double evolutionPercentage = Double.parseDouble(properties.getProperty("agents.evolvePercentage"));
         this.selfishPopulationCount = ratioToSelfishPopulationCount(properties.getProperty("agent.typeRatio"));
         this.satisfactionCurve = inputToDoubleArray(properties.getProperty("agent.satisfactionCurve"));
 
@@ -78,6 +78,7 @@ public class RunConfigurationSingleton {
         this.demandCurveIndices = this.createDemandCurveIndices();
         this.bucketedAvailabilityCurve = this.bucketSortAvailabilityCurve();
         this.totalAvailableEnergy = this.calculateTotalAvailableEnergy();
+        this.numOfAgentsToEvolve = this.calculateNumberOfAgentsToEvolve(evolutionPercentage);
     }
 
     /* Accessors */
@@ -150,8 +151,8 @@ public class RunConfigurationSingleton {
         return availabilityCurve;
     }
 
-    public int getPercentageOfAgentsToEvolve() {
-        return percentageOfAgentsToEvolve;
+    public int getNumOfAgentsToEvolve() {
+        return numOfAgentsToEvolve;
     }
 
     public int getSelfishPopulationCount() {
@@ -368,5 +369,9 @@ public class RunConfigurationSingleton {
         }
 
         return totalAvailableEnergy;
+    }
+
+    private int calculateNumberOfAgentsToEvolve(double agentsToEvolvePercentage) {
+        return (int)Math.round(((double)this.populationCount / 100.0) * agentsToEvolvePercentage);
     }
 }
