@@ -35,24 +35,12 @@ public class HouseholdAgent extends Agent {
 
     @Override
     protected void setup() {
-        // Import the arguments
-        this.agentType = (AgentStrategyType)getArguments()[0];
-
-        // Initialise local attributes
-        this.requestedTimeSlots = new ArrayList<>();
-        this.allocatedTimeSlots = new ArrayList<>();
-        this.timeSlotSatisfactionPairs = new ArrayList<>();
-        this.favours = new HashMap<>();
-        this.totalSocialCapital = 0;
-        this.numOfDailyExchangesWithSocialCapital = 0;
-        this.numOfDailyExchangesWithoutSocialCapital = 0;
-        this.numOfDailyRejectedReceivedExchanges = 0;
-        this.numOfDailyRejectedRequestedExchanges = 0;
-        this.numOfDailyAcceptedRequestedExchanges = 0;
-        initializeFavoursStore();
+        initialAgentSetup();
 
         AgentHelper.registerAgent(this, "Household");
 
+        addBehaviour(new FindTickerBehaviour(this));
+        addBehaviour(new FindAdvertisingBoardBehaviour(this));
         addBehaviour(new TickerDailyBehaviour(this));
     }
 
@@ -62,6 +50,28 @@ public class HouseholdAgent extends Agent {
         AgentHelper.deregisterAgent(this);
     }
 
+    public class FindTickerBehaviour extends OneShotBehaviour {
+        public FindTickerBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            tickerAgent = AgentHelper.saveAgentContacts(myAgent, "Ticker").getFirst().getAgentIdentifier();
+        }
+    }
+
+    public class FindAdvertisingBoardBehaviour extends OneShotBehaviour {
+        public FindAdvertisingBoardBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            advertisingAgent = AgentHelper.saveAgentContacts(myAgent, "Advertising-board").getFirst().getAgentIdentifier();
+        }
+    }
+
     public class TickerDailyBehaviour extends CyclicBehaviour {
         public TickerDailyBehaviour(Agent a) {
             super(a);
@@ -69,22 +79,22 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public void action() {
-            ACLMessage tick = AgentHelper.receiveMessage(myAgent, "New day", "Terminate");
+            ACLMessage tick = AgentHelper.receiveMessage(myAgent, tickerAgent, ACLMessage.INFORM);
 
-            if (tick != null) {
-                // Assign the ticker agent if it hasn't been assigned yet
-                if (tickerAgent == null) {
-                    tickerAgent = tick.getSender();
-                }
-
+            if (tick != null && tickerAgent != null) {
                 // Set up the daily tasks
-                if (tick.getContent().equals("New day")) {
+                if (!tick.getContent().equals("Terminate")) {
+                    // Do a reset on all agent attributes on each new simulation run
+                    if (tick.getContent().equals("New Run")) {
+                        initialAgentSetup();
+                        AgentHelper.printAgentLog(myAgent.getLocalName(), "new run woo!");
+                    }
+
                     // Set the daily tracking data to their initial values at the start of the day
                     reset();
 
                     // Define the daily sub-behaviours
                     SequentialBehaviour dailyTasks = new SequentialBehaviour();
-                    dailyTasks.addSubBehaviour(new FindAdvertisingBoardBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new DetermineDailyDemandBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new DetermineTimeSlotPreferenceBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new CalculateSlotSatisfactionBehaviour(myAgent));
@@ -112,17 +122,6 @@ public class HouseholdAgent extends Agent {
             requestedTimeSlots.clear();
             allocatedTimeSlots.clear();
             timeSlotSatisfactionPairs.clear();
-        }
-    }
-
-    public class FindAdvertisingBoardBehaviour extends OneShotBehaviour {
-        public FindAdvertisingBoardBehaviour(Agent a) {
-            super(a);
-        }
-
-        @Override
-        public void action() {
-            advertisingAgent = AgentHelper.saveAgentContacts(myAgent, "Advertising-board").getFirst().getAgentIdentifier();
         }
     }
 
@@ -210,7 +209,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public void action() {
-            ACLMessage incomingAllocationMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, ACLMessage.INFORM);
+            ACLMessage incomingAllocationMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, "Initial Allocation Enclosed.", ACLMessage.INFORM);
 
             if (incomingAllocationMessage != null) {
                 // Make sure the incoming object is readable
@@ -593,9 +592,6 @@ public class HouseholdAgent extends Agent {
                             // difference between the agents satisfaction and the observed satisfaction.
                             double observedAgentSatisfaction = ((AgentContact)incomingObject).getCurrentSatisfaction();
 
-                            AgentHelper.printAgentLog(myAgent.getLocalName(), "learning sat: " + learningAgentSatisfaction);
-                            AgentHelper.printAgentLog(myAgent.getLocalName(), "observed sat: " + observedAgentSatisfaction);
-
                             if (Math.round(learningAgentSatisfaction * config.getNumOfSlotsPerAgent()) < Math.round(observedAgentSatisfaction * config.getNumOfSlotsPerAgent())) {
                                 double difference = observedAgentSatisfaction - learningAgentSatisfaction;
 
@@ -641,6 +637,24 @@ public class HouseholdAgent extends Agent {
 
             return 0;
         }
+    }
+
+    private void initialAgentSetup() {
+        // Import the arguments
+        this.agentType = (AgentStrategyType)getArguments()[0];
+
+        // Initialise local attributes
+        this.requestedTimeSlots = new ArrayList<>();
+        this.allocatedTimeSlots = new ArrayList<>();
+        this.timeSlotSatisfactionPairs = new ArrayList<>();
+        this.favours = new HashMap<>();
+        this.totalSocialCapital = 0;
+        this.numOfDailyExchangesWithSocialCapital = 0;
+        this.numOfDailyExchangesWithoutSocialCapital = 0;
+        this.numOfDailyRejectedReceivedExchanges = 0;
+        this.numOfDailyRejectedRequestedExchanges = 0;
+        this.numOfDailyAcceptedRequestedExchanges = 0;
+        initializeFavoursStore();
     }
 
     // TODO: Cite Arena code

@@ -27,18 +27,11 @@ public class AdvertisingBoardAgent extends Agent {
 
     @Override
     protected void setup() {
-        availableTimeSlots = new ArrayList<>();
-        adverts = new HashMap<>();
-        numOfTradesStarted = 0;
-        numOfSuccessfulExchanges = 0;
-        agentsToNotify = new ArrayList<>();
-        exchangeTimeout = 0;
-
-        householdAgentContacts = new ArrayList<>();
-        householdAgentsInteractions = new HashMap<>();
+        initialAgentSetup();
 
         AgentHelper.registerAgent(this, "Advertising-board");
 
+        addBehaviour(new FindTickerBehaviour(this));
         addBehaviour(new FindHouseholdsBehaviour(this));
         addBehaviour(new TickerDailyBehaviour(this));
     }
@@ -47,6 +40,17 @@ public class AdvertisingBoardAgent extends Agent {
     protected void takeDown() {
         AgentHelper.printAgentLog(getLocalName(), "Terminating...");
         AgentHelper.deregisterAgent(this);
+    }
+
+    public class FindTickerBehaviour extends OneShotBehaviour {
+        public FindTickerBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            tickerAgent = AgentHelper.saveAgentContacts(myAgent, "Ticker").getFirst().getAgentIdentifier();
+        }
     }
 
     public class FindHouseholdsBehaviour extends OneShotBehaviour {
@@ -68,14 +72,17 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public void action() {
-            ACLMessage tick = AgentHelper.receiveMessage(myAgent, "New day", "Terminate");
+            ACLMessage tick = AgentHelper.receiveMessage(myAgent, tickerAgent, ACLMessage.INFORM);
 
-            if (tick != null) {
-                if (tickerAgent == null) {
-                    tickerAgent = tick.getSender();
-                }
+            if (tick != null && tickerAgent != null) {
+                if (!tick.getContent().equals("Terminate")) {
+                    // Do a reset on all agent attributes on each new simulation run
+                    if (tick.getContent().equals("New Run")) {
+                        initialAgentSetup();
+                        myAgent.addBehaviour(new FindHouseholdsBehaviour(myAgent));
+                        AgentHelper.printAgentLog(myAgent.getLocalName(), "new run woo!");
+                    }
 
-                if (tick.getContent().equals("New day")) {
                     // Set the daily resources and adverts to their initial values
                     reset();
 
@@ -798,6 +805,18 @@ public class AdvertisingBoardAgent extends Agent {
                     ACLMessage.INFORM
             );
         }
+    }
+
+    private void initialAgentSetup() {
+        availableTimeSlots = new ArrayList<>();
+        adverts = new HashMap<>();
+        numOfTradesStarted = 0;
+        numOfSuccessfulExchanges = 0;
+        agentsToNotify = new ArrayList<>();
+        exchangeTimeout = 0;
+
+        householdAgentContacts = new ArrayList<>();
+        householdAgentsInteractions = new HashMap<>();
     }
 
     private ArrayList<AID> getHouseholdAgentAIDList() {

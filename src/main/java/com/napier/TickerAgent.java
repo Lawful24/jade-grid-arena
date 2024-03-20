@@ -3,6 +3,7 @@ package com.napier;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
+import jade.core.behaviours.OneShotBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.UnreadableException;
 
@@ -10,12 +11,15 @@ import java.io.Serializable;
 import java.util.ArrayList;
 
 public class TickerAgent extends Agent {
+    private int currentSimulationRun = 1;
     private int currentDay = 1;
     private int currentDayAfterTakeover = 0;
     private boolean takeover = false;
 
     // Agent contact attributes
     private ArrayList<AID> allAgents;
+    private ArrayList<AgentContact> householdAgentContacts;
+    private AID advertisingAgent;
 
     @Override
     protected void setup() {
@@ -24,6 +28,8 @@ public class TickerAgent extends Agent {
         allAgents = new ArrayList<>();
 
         doWait(1500);
+        addBehaviour(new FindHouseholdsBehaviour(this));
+        addBehaviour(new FindAdvertisingBoardBehaviour(this));
         addBehaviour(new DailySyncBehaviour(this));
     }
 
@@ -33,14 +39,33 @@ public class TickerAgent extends Agent {
         AgentHelper.deregisterAgent(this);
     }
 
+    public class FindHouseholdsBehaviour extends OneShotBehaviour {
+        public FindHouseholdsBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            // Populate the contact collections
+            householdAgentContacts = AgentHelper.saveAgentContacts(myAgent, "Household");
+        }
+    }
+
+    public class FindAdvertisingBoardBehaviour extends OneShotBehaviour {
+        public FindAdvertisingBoardBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            advertisingAgent = AgentHelper.saveAgentContacts(myAgent, "Advertising-board").getFirst().getAgentIdentifier();
+        }
+    }
+
     public class DailySyncBehaviour extends Behaviour {
         private int step = 0;
         private int numOfSocialAgents = 0;
         private int numOfSelfishAgents = 0;
-
-        // Agent contact attributes
-        private ArrayList<AgentContact> householdAgentContacts;
-        private AID advertisingAgent;
 
         public DailySyncBehaviour(Agent a) {
             super(a);
@@ -48,15 +73,16 @@ public class TickerAgent extends Agent {
 
         @Override
         public void action() {
+            RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+
             // TODO: Cite JADE workbook for the step logic
             switch (step) {
                 case 0:
-                    // Find all Household and Advertising-board agents
-                    householdAgentContacts = AgentHelper.saveAgentContacts(myAgent, "Household");
-                    advertisingAgent = AgentHelper.saveAgentContacts(myAgent, "Advertising-board").getFirst().getAgentIdentifier();
+                    // Reshuffle the daily demand curve allocation
+                    config.recreateDemandCurveIndices();
 
                     // Collect all receivers
-                    if (allAgents.size() <= RunConfigurationSingleton.getInstance().getPopulationCount()) {
+                    if (allAgents.size() <= config.getPopulationCount()) {
                         allAgents.clear();
 
                         for (AgentContact householdAgentContact : householdAgentContacts) {
@@ -66,8 +92,22 @@ public class TickerAgent extends Agent {
                         allAgents.add(advertisingAgent);
                     }
 
-                    // Broadcast the start of the new day to other agents
-                    AgentHelper.sendMessage(myAgent, allAgents, "New day", ACLMessage.INFORM);
+                    if (currentDay == 1) {
+                        AgentHelper.sendMessage(
+                                myAgent,
+                                allAgents,
+                                "New Run",
+                                ACLMessage.INFORM
+                        );
+                    } else {
+                        // Broadcast the start of the new day to other agents
+                        AgentHelper.sendMessage(
+                                myAgent,
+                                allAgents,
+                                "New Day",
+                                ACLMessage.INFORM
+                        );
+                    }
 
                     // Progress the agent state
                     step++;
@@ -90,7 +130,7 @@ public class TickerAgent extends Agent {
                             // Make sure the incoming object is of the expected type
                             if (incomingObject instanceof SerializableAgentContactList) {
                                 // Overwrite the existing list of contacts with the updated list
-                                this.householdAgentContacts = ((SerializableAgentContactList)incomingObject).contacts();
+                                householdAgentContacts = ((SerializableAgentContactList)incomingObject).contacts();
                             }
                         } else {
                             AgentHelper.printAgentError(myAgent.getLocalName(), "Agent contact list was not updated: the received object has an incorrect type.");
@@ -123,33 +163,55 @@ public class TickerAgent extends Agent {
                 }
             }
 
+            System.out.println("social: " + numOfSocialAgents);
+            System.out.println("selfish: " + numOfSelfishAgents);
+
             // TODO: Cite Arena code
             if (((numOfSelfishAgents == 0 || numOfSocialAgents == 0) || config.getNumOfAgentsToEvolve() == 0) && !takeover) {
                 takeover = true;
-                System.out.println("takeover! social agents: " + numOfSocialAgents + " selfish agents: " + numOfSelfishAgents);
+                AgentHelper.printAgentLog(myAgent.getLocalName(), "takeover! social agents: " + numOfSocialAgents + " selfish agents: " + numOfSelfishAgents);
             }
 
             if (currentDayAfterTakeover == config.getAdditionalDays()) {
-                // Broadcast the Terminate message to all other agents
-                AgentHelper.sendMessage(myAgent, allAgents, "Terminate", ACLMessage.INFORM);
+                AgentHelper.printAgentLog(myAgent.getLocalName(), "End of run " + currentSimulationRun);
 
-                // Terminate the ticker agent itself
-                myAgent.doDelete();
+                if (currentSimulationRun == config.getNumOfSimulationRuns()) {
+                    // Broadcast the Terminate message to all other agents
+                    AgentHelper.sendMessage(
+                            myAgent,
+                            allAgents,
+                            "Terminate",
+                            ACLMessage.INFORM
+                    );
+
+                    // Terminate the ticker agent itself
+                    myAgent.doDelete();
+                } else {
+                    currentSimulationRun++;
+                    initialAgentSetup();
+
+                    myAgent.addBehaviour(new FindHouseholdsBehaviour(myAgent));
+                    myAgent.addBehaviour(new DailySyncBehaviour(myAgent));
+                }
             } else {
-                // Reshuffle the daily demand curve allocation
-                config.recreateDemandCurveIndices();
+                currentDay++;
+
+                if (takeover) {
+                    currentDayAfterTakeover++;
+                }
 
                 // Recreate the sync behaviour and add it to the ticker's behaviour queue
+                myAgent.addBehaviour(new FindHouseholdsBehaviour(myAgent));
                 myAgent.addBehaviour(new DailySyncBehaviour(myAgent));
-            }
-
-            currentDay++;
-
-            if (takeover) {
-                currentDayAfterTakeover++;
             }
 
             return 0;
         }
+    }
+
+    private void initialAgentSetup() {
+        this.currentDay = 1;
+        this.currentDayAfterTakeover = 0;
+        this.takeover = false;
     }
 }
