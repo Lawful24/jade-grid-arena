@@ -47,8 +47,8 @@ public class AgentHelper {
     }
 
     // TODO: Cite JADE workbook
-    public static ArrayList<AID> saveAgentContacts(Agent agent, String agentTypeToFind) {
-        ArrayList<AID> agentContacts = new ArrayList<>();
+    public static ArrayList<AgentContact> saveAgentContacts(Agent agent, String agentTypeToFind) {
+        ArrayList<AgentContact> agentContacts = new ArrayList<>();
 
         DFAgentDescription agentDescription = new DFAgentDescription();
         ServiceDescription serviceDescription = new ServiceDescription();
@@ -59,7 +59,14 @@ public class AgentHelper {
             DFAgentDescription[] agentsOfType = DFService.search(agent, agentDescription);
 
             for (DFAgentDescription foundAgent : agentsOfType) {
-                agentContacts.add(foundAgent.getName());
+                String nickName = foundAgent.getName().getLocalName();
+
+                if (nickName.contains("Household")) {
+                    agentContacts.add(new AgentContact(foundAgent.getName(), determineAgentType(AgentHelper.getHouseholdAgentNumber(nickName))));
+                } else {
+                    agentContacts.add(new AgentContact(foundAgent.getName()));
+                }
+
                 //AgentHelper.printAgentLog(agent.getLocalName(), "Registered: " + foundAgent.getName());
             }
         } catch (FIPAException e) {

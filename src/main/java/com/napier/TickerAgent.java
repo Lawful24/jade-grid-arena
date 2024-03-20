@@ -36,7 +36,7 @@ public class TickerAgent extends Agent {
 
     public class DailySyncBehaviour extends Behaviour {
         private int step = 0;
-        private ArrayList<AID> householdAgents;
+        private ArrayList<AgentContact> householdAgentContacts;
         private AID advertisingAgent;
 
         public DailySyncBehaviour(Agent a) {
@@ -49,13 +49,17 @@ public class TickerAgent extends Agent {
             switch (step) {
                 case 0:
                     // Find all Household and Advertising-board agents
-                    householdAgents = AgentHelper.saveAgentContacts(myAgent, "Household");
-                    advertisingAgent = AgentHelper.saveAgentContacts(myAgent, "Advertising-board").getFirst();
+                    householdAgentContacts = AgentHelper.saveAgentContacts(myAgent, "Household");
+                    advertisingAgent = AgentHelper.saveAgentContacts(myAgent, "Advertising-board").getFirst().getAgentIdentifier();
 
                     // Collect all receivers
                     if (allAgents.size() <= RunConfigurationSingleton.getInstance().getPopulationCount()) {
                         allAgents.clear();
-                        allAgents.addAll(householdAgents);
+
+                        for (AgentContact householdAgentContact : householdAgentContacts) {
+                            allAgents.add(householdAgentContact.getAgentIdentifier());
+                        }
+
                         allAgents.add(advertisingAgent);
                     }
 
