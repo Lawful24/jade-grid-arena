@@ -18,7 +18,7 @@ public class HouseholdAgent extends Agent {
     private ArrayList<TimeSlot> requestedTimeSlots;
     private ArrayList<TimeSlot> allocatedTimeSlots;
     private ArrayList<TimeSlotSatisfactionPair> timeSlotSatisfactionPairs;
-    private HashMap<String, Integer> favours = new HashMap<>();
+    private HashMap<String, Integer> favours;
     private boolean isExchangeRequestApproved;
     private int totalSocialCapital;
     private int numOfDailyExchangesWithSocialCapital;
@@ -26,7 +26,7 @@ public class HouseholdAgent extends Agent {
     private int numOfDailyRejectedReceivedExchanges;
     private int numOfDailyRejectedRequestedExchanges;
     private int numOfDailyAcceptedRequestedExchanges;
-    private double[] dailyDemandCurve = new double[RunConfigurationSingleton.getInstance().getBucketedDemandCurves().length];
+    private double[] dailyDemandCurve;
     private double dailyDemandValue;
 
     // Agent contact attributes
@@ -42,6 +42,7 @@ public class HouseholdAgent extends Agent {
         this.requestedTimeSlots = new ArrayList<>();
         this.allocatedTimeSlots = new ArrayList<>();
         this.timeSlotSatisfactionPairs = new ArrayList<>();
+        this.favours = new HashMap<>();
         this.totalSocialCapital = 0;
         this.numOfDailyExchangesWithSocialCapital = 0;
         this.numOfDailyExchangesWithoutSocialCapital = 0;
@@ -91,6 +92,7 @@ public class HouseholdAgent extends Agent {
                     dailyTasks.addSubBehaviour(new InitiateExchangeListenerBehaviour(myAgent));
 
                     myAgent.addBehaviour(dailyTasks);
+                    myAgent.addBehaviour(new SocialLearningListenerBehaviour(myAgent));
                 } else {
                     myAgent.doDelete();
                 }
@@ -120,7 +122,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public void action() {
-            advertisingAgent = AgentHelper.saveAgentContacts(myAgent, "Advertising-board").getFirst();
+            advertisingAgent = AgentHelper.saveAgentContacts(myAgent, "Advertising-board").getFirst().getAgentIdentifier();
         }
     }
 
@@ -273,13 +275,14 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public boolean done() {
-            if (exchange.done()) {
+            if (exchange.done()) { // TODO: move all the code in the ifs of done methods to onEnd methods
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "household finished");
 
                 AgentHelper.sendMessage(
                         myAgent,
                         advertisingAgent,
-                        "Done",
+                        "Exchange Done",
+                        new AgentContact(myAgent.getAID(), agentType, AgentHelper.calculateSatisfaction(allocatedTimeSlots, requestedTimeSlots)),
                         ACLMessage.INFORM
                 );
             }
@@ -551,6 +554,86 @@ public class HouseholdAgent extends Agent {
             }
 
             return socialCapitaSyncHandled;
+        }
+    }
+
+    public class SocialLearningListenerBehaviour extends Behaviour {
+        private boolean processedSocialLearningMessage = false;
+
+        public SocialLearningListenerBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            ACLMessage socialLearningMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, ACLMessage.QUERY_IF);
+
+            if (socialLearningMessage != null) {
+                if (socialLearningMessage.getContent().equals("Selected for Social Learning")) {
+                    // Make sure the incoming object is readable
+                    Serializable incomingObject = null;
+
+                    try {
+                        incomingObject = socialLearningMessage.getContentObject();
+                    } catch (UnreadableException e) {
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming agent contact is unreadable: " + e.getMessage());
+                    }
+
+                    double learningAgentSatisfaction = AgentHelper.calculateSatisfaction(allocatedTimeSlots, requestedTimeSlots);
+
+                    if (incomingObject != null) {
+                        // Make sure the incoming object is of the expected type
+                        if (incomingObject instanceof AgentContact) {
+                            RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+
+                            // TODO: Cite Arena code
+                            // Copy the observed agents strategy if it is better than its own, with likelihood dependent on the
+                            // difference between the agents satisfaction and the observed satisfaction.
+                            double observedAgentSatisfaction = ((AgentContact)incomingObject).getCurrentSatisfaction();
+
+                            if (Math.round(learningAgentSatisfaction * config.getNumOfSlotsPerAgent()) < Math.round(observedAgentSatisfaction * config.getNumOfSlotsPerAgent())) {
+                                double difference = observedAgentSatisfaction - learningAgentSatisfaction;
+
+                                if (difference >= 0) {
+                                    double learningChance = 1 / (1 + (Math.exp(-config.getBeta() * difference)));
+                                    double normalisedLearningChance = (learningChance * 2) - 1;
+
+                                    double threshold = config.getRandom().nextDouble();
+
+                                    if (normalisedLearningChance > threshold) {
+                                        agentType = ((AgentContact)incomingObject).getType();
+                                    }
+                                }
+                            }
+                        } else {
+                            AgentHelper.printAgentError(myAgent.getLocalName(), "Social Learning cannot be started: the received object has an incorrect type.");
+                        }
+                    }
+                }
+
+                processedSocialLearningMessage = true;
+
+                AgentHelper.sendMessage(
+                        myAgent,
+                        advertisingAgent,
+                        "Social Learning Done",
+                        ACLMessage.INFORM
+                );
+            } else {
+                block();
+            }
+        }
+
+        @Override
+        public boolean done() {
+            return processedSocialLearningMessage;
+        }
+
+        @Override
+        public int onEnd() {
+            AgentHelper.printAgentLog(myAgent.getLocalName(), "social learning finished");
+
+            return 0;
         }
     }
 

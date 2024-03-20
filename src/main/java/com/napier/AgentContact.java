@@ -7,7 +7,7 @@ import java.io.Serializable;
 public class AgentContact implements Serializable {
     private final AID agentIdentifier;
     private AgentStrategyType type;
-    private int currentSatisfaction;
+    private double currentSatisfaction;
 
     public AgentContact(AID agentIdentifier) {
         this.agentIdentifier = agentIdentifier;
@@ -19,6 +19,12 @@ public class AgentContact implements Serializable {
         // TODO: satisfaction
     }
 
+    public AgentContact(AID agentIdentifier, AgentStrategyType type, double currentSatisfaction) {
+        this.agentIdentifier = agentIdentifier;
+        this.type = type;
+        this.currentSatisfaction = currentSatisfaction;
+    }
+
     public AID getAgentIdentifier() {
         return agentIdentifier;
     }
@@ -27,7 +33,7 @@ public class AgentContact implements Serializable {
         return type;
     }
 
-    public int getCurrentSatisfaction() {
+    public double getCurrentSatisfaction() {
         return currentSatisfaction;
     }
 
@@ -35,7 +41,7 @@ public class AgentContact implements Serializable {
         this.type = type;
     }
 
-    public void setCurrentSatisfaction(int currentSatisfaction) {
+    public void setCurrentSatisfaction(double currentSatisfaction) {
         this.currentSatisfaction = currentSatisfaction;
     }
 }

@@ -22,7 +22,7 @@ public class AdvertisingBoardAgent extends Agent {
 
     // Agent contact attributes
     private AID tickerAgent;
-    private ArrayList<AID> householdAgents;
+    private ArrayList<AgentContact> householdAgentContacts;
     private HashMap<AID, Boolean> householdAgentsInteractions;
 
     @Override
@@ -34,11 +34,12 @@ public class AdvertisingBoardAgent extends Agent {
         agentsToNotify = new ArrayList<>();
         exchangeTimeout = 0;
 
-        householdAgents = new ArrayList<>();
+        householdAgentContacts = new ArrayList<>();
         householdAgentsInteractions = new HashMap<>();
 
         AgentHelper.registerAgent(this, "Advertising-board");
 
+        addBehaviour(new FindHouseholdsBehaviour(this));
         addBehaviour(new TickerDailyBehaviour(this));
     }
 
@@ -46,6 +47,18 @@ public class AdvertisingBoardAgent extends Agent {
     protected void takeDown() {
         AgentHelper.printAgentLog(getLocalName(), "Terminating...");
         AgentHelper.deregisterAgent(this);
+    }
+
+    public class FindHouseholdsBehaviour extends OneShotBehaviour {
+        public FindHouseholdsBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            // Populate the contact collections
+            householdAgentContacts = AgentHelper.saveAgentContacts(myAgent, "Household");
+        }
     }
 
     public class TickerDailyBehaviour extends CyclicBehaviour {
@@ -68,7 +81,6 @@ public class AdvertisingBoardAgent extends Agent {
 
                     // Define the daily sub-behaviours
                     SequentialBehaviour dailyTasks = new SequentialBehaviour();
-                    dailyTasks.addSubBehaviour(new FindHouseholdsBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new GenerateTimeSlotsBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new DistributeInitialRandomTimeSlotAllocations(myAgent));
                     dailyTasks.addSubBehaviour(new InitiateExchangeBehaviour(myAgent));
@@ -88,18 +100,6 @@ public class AdvertisingBoardAgent extends Agent {
             availableTimeSlots.clear();
             adverts.clear();
             exchangeTimeout = 0;
-        }
-    }
-
-    public class FindHouseholdsBehaviour extends OneShotBehaviour {
-        public FindHouseholdsBehaviour(Agent a) {
-            super(a);
-        }
-
-        @Override
-        public void action() {
-            // Populate the contact collections
-            householdAgents = AgentHelper.saveAgentContacts(myAgent, "Household");
         }
     }
 
@@ -143,9 +143,9 @@ public class AdvertisingBoardAgent extends Agent {
         public void action() {
             RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
 
-            Collections.shuffle(householdAgents, config.getRandom());
+            Collections.shuffle(householdAgentContacts, config.getRandom());
 
-            for (AID householdAgent : householdAgents) {
+            for (AgentContact contact : householdAgentContacts) {
                 // TODO: Cite Arena code
                 TimeSlot[] initialTimeSlots = new TimeSlot[config.getNumOfSlotsPerAgent()];
 
@@ -165,7 +165,7 @@ public class AdvertisingBoardAgent extends Agent {
                 // Send the initial allocation to the given household
                 AgentHelper.sendMessage(
                         myAgent,
-                        householdAgent,
+                        contact.getAgentIdentifier(),
                         "Initial Allocation Enclosed.",
                         new SerializableTimeSlotArray(initialTimeSlots),
                         ACLMessage.INFORM
@@ -193,9 +193,10 @@ public class AdvertisingBoardAgent extends Agent {
 
             myAgent.addBehaviour(exchange);
 
+            // Broadcast the start of the exchange round to all household agents
             AgentHelper.sendMessage(
                     myAgent,
-                    householdAgents,
+                    new ArrayList<>(householdAgentsInteractions.keySet()),
                     "Exchange Initiated",
                     ACLMessage.REQUEST
             );
@@ -211,12 +212,12 @@ public class AdvertisingBoardAgent extends Agent {
             householdAgentsInteractions.clear();
 
             // Shuffle the list of household agents before every exchange
-            Collections.shuffle(householdAgents, RunConfigurationSingleton.getInstance().getRandom());
+            Collections.shuffle(householdAgentContacts, RunConfigurationSingleton.getInstance().getRandom());
 
             // Reset each household agent's "made interaction" flag to false
             // By recreating the hashmap that holds the (AID, Boolean) pairs
-            for (AID contact : householdAgents) {
-                householdAgentsInteractions.put(contact, false);
+            for (AgentContact contact : householdAgentContacts) {
+                householdAgentsInteractions.put(contact.getAgentIdentifier(), false);
             }
         }
     }
@@ -257,15 +258,15 @@ public class AdvertisingBoardAgent extends Agent {
                 }
 
                 // This has to be integrated in this behaviour to make sure that the adverts have been collected
-                if (numOfAdvertsReceived == RunConfigurationSingleton.getInstance().getPopulationCount() && householdAgents.size() == numOfAdvertsReceived) {
+                if (numOfAdvertsReceived == RunConfigurationSingleton.getInstance().getPopulationCount() && householdAgentContacts.size() == numOfAdvertsReceived) {
                     // Shuffle the agent contact list before broadcasting the exchange open message
                     // This likely determines the order in which agents participate in the exchange
-                    Collections.shuffle(householdAgents, RunConfigurationSingleton.getInstance().getRandom());
+                    Collections.shuffle(householdAgentContacts, RunConfigurationSingleton.getInstance().getRandom());
 
                     // Broadcast to all agents that the exchange is open
                     AgentHelper.sendMessage(
                             myAgent,
-                            householdAgents,
+                            getHouseholdAgentAIDList(),
                             "Exchange is Open",
                             ACLMessage.CONFIRM
                     );
@@ -398,7 +399,7 @@ public class AdvertisingBoardAgent extends Agent {
                 if (numOfRequestsProcessed == populationCount && agentsToReceiveTradeOffer.size() <= populationCount) {
                     // By subtracting the arraylist of agents from the list of all agents, get the agents who did not
                     // receive a trade request in the current exchange round and notify them.
-                    agentsToNotify = new ArrayList<>(householdAgents);
+                    agentsToNotify = new ArrayList<>(getHouseholdAgentAIDList());
                     agentsToNotify.removeAll(agentsToReceiveTradeOffer);
 
                     // Broadcast the "no offers" message to the agents who did not receive a trade offer for various reasons
@@ -568,7 +569,7 @@ public class AdvertisingBoardAgent extends Agent {
             } else {
                 AgentHelper.sendMessage(
                         myAgent,
-                        householdAgents,
+                        getHouseholdAgentAIDList(),
                         "No Syncing Necessary",
                         ACLMessage.INFORM_IF
                 );
@@ -596,9 +597,33 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public void action() {
-            ACLMessage doneWithExchangeMessage = AgentHelper.receiveMessage(myAgent, "Done");
+            ACLMessage doneWithExchangeMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.INFORM);
 
             if (doneWithExchangeMessage != null) {
+                // Make sure the incoming object is readable
+                Serializable incomingObject = null;
+
+                try {
+                    incomingObject = doneWithExchangeMessage.getContentObject();
+                } catch (UnreadableException e) {
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming agent contact is unreadable: " + e.getMessage());
+                }
+
+                if (incomingObject != null) {
+                    // Make sure the incoming object is of the expected type
+                    if (incomingObject instanceof AgentContact) {
+                        for (AgentContact contact : householdAgentContacts) {
+                            // Update the agent contact details with its current values
+                            if (contact.getAgentIdentifier() == ((AgentContact)incomingObject).getAgentIdentifier()) {
+                                contact.setType(((AgentContact)incomingObject).getType());
+                                contact.setCurrentSatisfaction(((AgentContact)incomingObject).getCurrentSatisfaction());
+                            }
+                        }
+                    } else {
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Social Learning cannot be started: the received object has an incorrect type.");
+                    }
+                }
+
                 numOfHouseholdAgentsFinished++;
             } else {
                 block();
@@ -626,7 +651,13 @@ public class AdvertisingBoardAgent extends Agent {
             }
 
             if (exchangeTimeout == 10) {
-                myAgent.addBehaviour(new CallItADayBehaviour(myAgent));
+                SequentialBehaviour endOfDaySequence = new SequentialBehaviour();
+
+                endOfDaySequence.addSubBehaviour(new InitiateSocialLearningBehaviour(myAgent));
+                endOfDaySequence.addSubBehaviour(new SocialLearningOverListenerBehaviour(myAgent));
+                endOfDaySequence.addSubBehaviour(new CallItADayBehaviour(myAgent));
+
+                myAgent.addBehaviour(endOfDaySequence);
             } else {
                 myAgent.addBehaviour(new InitiateExchangeBehaviour(myAgent));
             }
@@ -635,17 +666,115 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
-    public class CallItADayBehaviour extends OneShotBehaviour {
+    public class InitiateSocialLearningBehaviour extends OneShotBehaviour {
+        public InitiateSocialLearningBehaviour(Agent a) {
+            super(a);
+        }
 
+        @Override
+        public void action() {
+            RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+
+            // TODO: Cite Arena code
+            // Copy agents to store all agents that haven't yet been selected for social learning.
+            ArrayList<AID> unselectedAgents = new ArrayList<>(getHouseholdAgentAIDList());
+
+            // Agents who mutated can't do social learning.
+            int learningSize = config.getNumOfAgentsToEvolve();
+
+            if (unselectedAgents.size() < learningSize) {
+                learningSize = unselectedAgents.size();
+            }
+
+            Collections.shuffle(unselectedAgents, config.getRandom());
+
+            for (int i = 0; i < learningSize; i++) {
+                // Assign the selected agent another agents performance to 'retrospectively' observe.
+                int observedPerformanceIndex = config.getRandom().nextInt(config.getPopulationCount());
+
+                // Ensure the agent altering its strategy doesn't copy itself.
+                while (i == observedPerformanceIndex) {
+                    observedPerformanceIndex = config.getRandom().nextInt(config.getPopulationCount());
+                }
+
+                // Send the observed agent's contact to the agent selected to learn
+                AgentHelper.sendMessage(
+                        myAgent,
+                        getHouseholdAgentAIDList().get(i),
+                        "Selected for Social Learning",
+                        householdAgentContacts.get(observedPerformanceIndex),
+                        ACLMessage.QUERY_IF
+                );
+
+                unselectedAgents.remove(getHouseholdAgentAIDList().get(i));
+            }
+
+            if (!unselectedAgents.isEmpty()) {
+                AgentHelper.sendMessage(
+                        myAgent,
+                        unselectedAgents,
+                        "Not Selected for Social Learning",
+                        ACLMessage.QUERY_IF
+                );
+            }
+        }
+
+        @Override
+        public int onEnd() {
+            AgentHelper.printAgentLog(myAgent.getLocalName(), "initiated social learning");
+
+            return 0;
+        }
+    }
+
+    public class SocialLearningOverListenerBehaviour extends Behaviour {
+        private int socialLearningOverMessagesReceived = 0;
+
+        public SocialLearningOverListenerBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            ACLMessage socialLearningOverMessage = AgentHelper.receiveMessage(myAgent, "Social Learning Done");
+
+            if (socialLearningOverMessage != null) {
+                socialLearningOverMessagesReceived++;
+            } else {
+                block();
+            }
+        }
+
+        @Override
+        public boolean done() {
+            return socialLearningOverMessagesReceived == RunConfigurationSingleton.getInstance().getPopulationCount();
+        }
+
+        @Override
+        public int onEnd() {
+            AgentHelper.printAgentLog(myAgent.getLocalName(), "done waiting for social learning to finish");
+
+            return 0;
+        }
+    }
+
+    public class CallItADayBehaviour extends OneShotBehaviour {
         public CallItADayBehaviour(Agent a) {
             super(a);
         }
 
         @Override
         public void action() {
-            AgentHelper.sendMessage(myAgent, tickerAgent, "Done", ACLMessage.INFORM);
-
-            myAgent.removeBehaviour(this);
+            AgentHelper.sendMessage(
+                    myAgent,
+                    tickerAgent,
+                    "Done",
+                    ACLMessage.INFORM
+            );
         }
+    }
+
+    private ArrayList<AID> getHouseholdAgentAIDList() {
+        return new ArrayList<>(this.householdAgentsInteractions.keySet());
     }
 }
