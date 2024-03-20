@@ -3,6 +3,7 @@ package com.napier;
 import jade.core.AID;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 public class AgentContact implements Serializable {
     private final AID agentIdentifier;
@@ -43,5 +44,22 @@ public class AgentContact implements Serializable {
 
     public void setCurrentSatisfaction(double currentSatisfaction) {
         this.currentSatisfaction = currentSatisfaction;
+    }
+
+
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) return true;
+
+        if (object == null || getClass() != object.getClass()) return false;
+
+        AgentContact that = (AgentContact) object;
+
+        return Objects.equals(agentIdentifier, that.agentIdentifier);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(agentIdentifier);
     }
 }

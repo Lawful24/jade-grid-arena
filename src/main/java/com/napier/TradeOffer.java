@@ -19,10 +19,10 @@ public record TradeOffer(
 
         TradeOffer that = (TradeOffer) object;
 
-        return Objects.equals(senderAgent, that.senderAgent)
-                && Objects.equals(receiverAgent, that.receiverAgent)
-                && Objects.equals(timeSlotOffered, that.timeSlotOffered)
-                && Objects.equals(timeSlotRequested, that.timeSlotRequested);
+        return Objects.equals(this.senderAgent, that.senderAgent)
+                && Objects.equals(this.receiverAgent, that.receiverAgent)
+                && Objects.equals(this.timeSlotOffered, that.timeSlotOffered)
+                && Objects.equals(this.timeSlotRequested, that.timeSlotRequested);
     }
 
     @Override

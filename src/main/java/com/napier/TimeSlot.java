@@ -1,6 +1,7 @@
 package com.napier;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 public class TimeSlot implements Serializable {
     private int startHour;
@@ -20,15 +21,18 @@ public class TimeSlot implements Serializable {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj == null || getClass() != obj.getClass()) {
-            return false;
-        } else if (obj == this) {
-            return true;
-        } else {
-            TimeSlot timeSlot = (TimeSlot) obj;
+    public boolean equals(Object object) {
+        if (this == object) return true;
 
-            return this.startHour == timeSlot.getStartHour();
-        }
+        if (object == null || getClass() != object.getClass()) return false;
+
+        TimeSlot that = (TimeSlot) object;
+
+        return this.startHour == that.startHour;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(startHour);
     }
 }
