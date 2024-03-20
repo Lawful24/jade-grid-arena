@@ -87,7 +87,10 @@ public class HouseholdAgent extends Agent {
                     // Do a reset on all agent attributes on each new simulation run
                     if (tick.getContent().equals("New Run")) {
                         initialAgentSetup();
-                        AgentHelper.printAgentLog(myAgent.getLocalName(), "new run woo!");
+
+                        if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+                            AgentHelper.printAgentLog(myAgent.getLocalName(), "Reset for new run");
+                        }
                     }
 
                     // Set the daily tracking data to their initial values at the start of the day
@@ -253,7 +256,10 @@ public class HouseholdAgent extends Agent {
                 ACLMessage newExchangeMessage = AgentHelper.receiveMessage(myAgent, "Exchange Initiated");
 
                 if (newExchangeMessage != null) {
-                    AgentHelper.printAgentLog(myAgent.getLocalName(), "joining the exchange");
+                    if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+                        AgentHelper.printAgentLog(myAgent.getLocalName(), "joining the exchange");
+                    }
+
                     reset();
 
                     // Define the behaviours of the exchange
@@ -274,23 +280,23 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public boolean done() {
-            if (exchange.done()) { // TODO: move all the code in the ifs of done methods to onEnd methods
-                AgentHelper.printAgentLog(myAgent.getLocalName(), "household finished");
-
-                AgentHelper.sendMessage(
-                        myAgent,
-                        advertisingAgent,
-                        "Exchange Done",
-                        new AgentContact(myAgent.getAID(), agentType, AgentHelper.calculateSatisfaction(allocatedTimeSlots, requestedTimeSlots)),
-                        ACLMessage.INFORM
-                );
-            }
-
             return exchange.done();
         }
 
         @Override
         public int onEnd() {
+            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+                AgentHelper.printAgentLog(myAgent.getLocalName(), "household finished");
+            }
+
+            AgentHelper.sendMessage(
+                    myAgent,
+                    advertisingAgent,
+                    "Exchange Done",
+                    new AgentContact(myAgent.getAID(), agentType, AgentHelper.calculateSatisfaction(allocatedTimeSlots, requestedTimeSlots)),
+                    ACLMessage.INFORM
+            );
+
             myAgent.addBehaviour(new InitiateExchangeListenerBehaviour(myAgent));
 
             return 0;
@@ -331,11 +337,16 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public boolean done() {
-            if (isAdPosted) {
+            return isAdPosted;
+        }
+
+        @Override
+        public int onEnd() {
+            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "finished advertising");
             }
 
-            return isAdPosted;
+            return 0;
         }
     }
 
@@ -375,11 +386,16 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public boolean done() {
-            if (didAdvertiseTimeSlots) {
+            return didAdvertiseTimeSlots;
+        }
+
+        @Override
+        public int onEnd() {
+            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "finished inquiring");
             }
 
-            return didAdvertiseTimeSlots;
+            return 0;
         }
     }
 
@@ -440,11 +456,16 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public boolean done() {
-            if (resultReceived) {
+            return resultReceived;
+        }
+
+        @Override
+        public int onEnd() {
+            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "finished listening to the result of the interest");
             }
 
-            return resultReceived;
+            return 0;
         }
     }
 
@@ -513,11 +534,16 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public boolean done() {
-            if (proposalProcessed) {
+            return proposalProcessed;
+        }
+
+        @Override
+        public int onEnd() {
+            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "finished processing the proposal");
             }
 
-            return proposalProcessed;
+            return 0;
         }
     }
 
@@ -548,11 +574,16 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public boolean done() {
-            if (socialCapitaSyncHandled) {
-                AgentHelper.printAgentLog(myAgent.getLocalName(), "finished syncing");
+            return socialCapitaSyncHandled;
+        }
+
+        @Override
+        public int onEnd() {
+            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+                AgentHelper.printAgentLog(myAgent.getLocalName(), "finished syncing social capita");
             }
 
-            return socialCapitaSyncHandled;
+            return 0;
         }
     }
 
@@ -633,7 +664,9 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public int onEnd() {
-            AgentHelper.printAgentLog(myAgent.getLocalName(), "social learning finished");
+            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+                AgentHelper.printAgentLog(myAgent.getLocalName(), "finished with social learning");
+            }
 
             return 0;
         }

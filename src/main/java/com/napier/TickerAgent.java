@@ -150,9 +150,11 @@ public class TickerAgent extends Agent {
 
         @Override
         public int onEnd() {
-            AgentHelper.printAgentLog(myAgent.getLocalName(), "End of day " + currentDay);
-
             RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+
+            if (config.isDebugMode()) {
+                AgentHelper.printAgentLog(myAgent.getLocalName(), "End of day " + currentDay);
+            }
 
             // TODO: Cite Arena code
             for (AgentContact householdAgentContact : householdAgentContacts) {
@@ -163,17 +165,30 @@ public class TickerAgent extends Agent {
                 }
             }
 
-            System.out.println("social: " + numOfSocialAgents);
-            System.out.println("selfish: " + numOfSelfishAgents);
-
             // TODO: Cite Arena code
             if (((numOfSelfishAgents == 0 || numOfSocialAgents == 0) || config.getNumOfAgentsToEvolve() == 0) && !takeover) {
                 takeover = true;
-                AgentHelper.printAgentLog(myAgent.getLocalName(), "takeover! social agents: " + numOfSocialAgents + " selfish agents: " + numOfSelfishAgents);
+
+                if (config.isDebugMode()) {
+                    AgentHelper.printAgentLog(myAgent.getLocalName(), "takeover! social agents: " + numOfSocialAgents + " selfish agents: " + numOfSelfishAgents);
+                }
             }
 
             if (currentDayAfterTakeover == config.getAdditionalDays()) {
-                AgentHelper.printAgentLog(myAgent.getLocalName(), "End of run " + currentSimulationRun);
+                AgentHelper.printAgentLog(myAgent.getLocalName(), currentSimulationRun + "/" + config.getNumOfSimulationRuns() + " runs ended.");
+                // TODO: print run stats here (maybe in a method)
+                // - days it took
+                // - what kind of takeover was it
+                // - average satisfaction?
+                AgentStrategyType takeoverType;
+
+                if (numOfSelfishAgents == 0) {
+                    takeoverType = AgentStrategyType.SOCIAL;
+                } else {
+                    takeoverType = AgentStrategyType.SELFISH;
+                }
+
+                AgentHelper.printAgentLog(myAgent.getLocalName(), "Days: " + currentDay + ", Takeover: " + takeoverType + ", Average satisfaction: ");
 
                 if (currentSimulationRun == config.getNumOfSimulationRuns()) {
                     // Broadcast the Terminate message to all other agents

@@ -7,6 +7,7 @@ import java.util.*;
 
 public class RunConfigurationSingleton {
     private static RunConfigurationSingleton instance;
+    private final boolean debugMode;
     private static final Random random = new Random();
 
     /* Configuration Properties */
@@ -39,13 +40,15 @@ public class RunConfigurationSingleton {
 
     public static RunConfigurationSingleton getInstance() {
         if (instance == null) {
-            instance = new RunConfigurationSingleton(true);
+            instance = new RunConfigurationSingleton(false);
         }
 
         return instance;
     }
 
     private RunConfigurationSingleton(boolean debugMode) {
+        this.debugMode = debugMode;
+
         // Retrieve user parameters from the config file
         Properties properties = new Properties();
         loadPropertiesFromFile(properties, debugMode);
@@ -82,105 +85,108 @@ public class RunConfigurationSingleton {
     }
 
     /* Accessors */
+    public boolean isDebugMode() {
+        return this.debugMode;
+    }
 
     public Random getRandom() {
         return random;
     }
 
     public long getSeed() {
-        return seed;
+        return this.seed;
     }
 
     public String getResultsFolderPath() {
-        return resultsFolderPath;
+        return this.resultsFolderPath;
     }
 
     public String getPythonExePath() {
-        return pythonExePath;
+        return this.pythonExePath;
     }
 
     public String getPythonScriptsPath() {
-        return pythonScriptsPath;
+        return this.pythonScriptsPath;
     }
 
     public int getPopulationCount() {
-        return populationCount;
+        return this.populationCount;
     }
 
     public int getNumOfSlotsPerAgent() {
-        return numOfSlotsPerAgent;
+        return this.numOfSlotsPerAgent;
     }
 
     public int getNumOfUniqueTimeSlots() {
-        return numOfUniqueTimeSlots;
+        return this.numOfUniqueTimeSlots;
     }
 
     public int getAdditionalDays() {
-        return additionalDays;
+        return this.additionalDays;
     }
 
     public int getNumOfSimulationRuns() {
-        return numOfSimulationRuns;
+        return this.numOfSimulationRuns;
     }
 
     public boolean isSingleAgentTypeUsed() {
-        return isSingleAgentTypeUsed;
+        return this.isSingleAgentTypeUsed;
     }
 
     public AgentStrategyType getSelectedSingleAgentType() {
-        return selectedSingleAgentType;
+        return this.selectedSingleAgentType;
     }
 
     public boolean doesUtiliseSocialCapital() {
-        return doesUtiliseSocialCapital;
+        return this.doesUtiliseSocialCapital;
     }
 
     public double getBeta() {
-        return beta;
+        return this.beta;
     }
 
     public int getComparisonLevel() {
-        return comparisonLevel;
+        return this.comparisonLevel;
     }
 
     public double[][] getDemandCurves() {
-        return demandCurves;
+        return this.demandCurves;
     }
 
     public int[] getAvailabilityCurve() {
-        return availabilityCurve;
+        return this.availabilityCurve;
     }
 
     public int getNumOfAgentsToEvolve() {
-        return numOfAgentsToEvolve;
+        return this.numOfAgentsToEvolve;
     }
 
     public int getSelfishPopulationCount() {
-        return selfishPopulationCount;
+        return this.selfishPopulationCount;
     }
 
     public double[] getSatisfactionCurve() {
-        return satisfactionCurve;
+        return this.satisfactionCurve;
     }
 
     public ArrayList<Integer> getDemandCurveIndices() {
-        return demandCurveIndices;
+        return this.demandCurveIndices;
     }
 
     public double[][] getBucketedDemandCurves() {
-        return bucketedDemandCurves;
+        return this.bucketedDemandCurves;
     }
 
     public double[] getTotalDemandValues() {
-        return totalDemandValues;
+        return this.totalDemandValues;
     }
 
     public int[] getBucketedAvailabilityCurve() {
-        return bucketedAvailabilityCurve;
+        return this.bucketedAvailabilityCurve;
     }
 
     public int getTotalAvailableEnergy() {
-        return totalAvailableEnergy;
+        return this.totalAvailableEnergy;
     }
 
     /* Mutators */

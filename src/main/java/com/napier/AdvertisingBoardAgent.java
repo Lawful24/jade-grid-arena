@@ -79,8 +79,12 @@ public class AdvertisingBoardAgent extends Agent {
                     // Do a reset on all agent attributes on each new simulation run
                     if (tick.getContent().equals("New Run")) {
                         initialAgentSetup();
+
+                        if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+                            AgentHelper.printAgentLog(myAgent.getLocalName(), "Reset for new run");
+                        }
+
                         myAgent.addBehaviour(new FindHouseholdsBehaviour(myAgent));
-                        AgentHelper.printAgentLog(myAgent.getLocalName(), "new run woo!");
                     }
 
                     // Set the daily resources and adverts to their initial values
@@ -137,7 +141,9 @@ public class AdvertisingBoardAgent extends Agent {
                 availableTimeSlots.add(new TimeSlot(timeSlotStart));
             }
 
-            AgentHelper.printAgentLog(myAgent.getLocalName(), "Time Slots generated: " + availableTimeSlots.size());
+            if (config.isDebugMode()) {
+                AgentHelper.printAgentLog(myAgent.getLocalName(), "Time Slots generated: " + availableTimeSlots.size());
+            }
         }
     }
 
@@ -285,11 +291,16 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public boolean done() {
-            if (numOfAdvertsReceived == RunConfigurationSingleton.getInstance().getPopulationCount()) {
+            return numOfAdvertsReceived == RunConfigurationSingleton.getInstance().getPopulationCount();
+        }
+
+        @Override
+        public int onEnd() {
+            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "done listening for new adverts");
             }
 
-            return numOfAdvertsReceived == RunConfigurationSingleton.getInstance().getPopulationCount();
+            return 0;
         }
     }
 
@@ -438,13 +449,16 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public boolean done() {
-            boolean areAllRequestsProcessed = numOfRequestsProcessed == RunConfigurationSingleton.getInstance().getPopulationCount();
+            return numOfRequestsProcessed == RunConfigurationSingleton.getInstance().getPopulationCount();
+        }
 
-            if (areAllRequestsProcessed) {
+        @Override
+        public int onEnd() {
+            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "done processing cfps");
             }
 
-            return areAllRequestsProcessed;
+            return 0;
         }
     }
 
@@ -513,11 +527,16 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public boolean done() {
-            if (numOfTradesStarted == numOfTradeOfferReplies) {
+            return numOfTradesStarted == numOfTradeOfferReplies;
+        }
+
+        @Override
+        public int onEnd() {
+            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "done listening for trades");
             }
 
-            return numOfTradesStarted == numOfTradeOfferReplies;
+            return 0;
         }
     }
 
@@ -587,11 +606,16 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public boolean done() {
-            if (allSyncActionsHandled) {
+            return allSyncActionsHandled;
+        }
+
+        @Override
+        public int onEnd() {
+            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "done propagating");
             }
 
-            return allSyncActionsHandled;
+            return 0;
         }
     }
 
@@ -644,12 +668,14 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public int onEnd() {
-            AgentHelper.printAgentLog(
-                    myAgent.getLocalName(),
-                    "Exchange round over." +
-                            " | Trades started: " + numOfTradesStarted +
-                            " | Successful exchanges: " + numOfSuccessfulExchanges
-            );
+            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+                AgentHelper.printAgentLog(
+                        myAgent.getLocalName(),
+                        "Exchange round over." +
+                                " | Trades started: " + numOfTradesStarted +
+                                " | Successful exchanges: " + numOfSuccessfulExchanges
+                );
+            }
 
             if (numOfSuccessfulExchanges == 0) {
                 exchangeTimeout++;
@@ -729,7 +755,9 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public int onEnd() {
-            AgentHelper.printAgentLog(myAgent.getLocalName(), "initiated social learning");
+            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+                AgentHelper.printAgentLog(myAgent.getLocalName(), "initiated social learning");
+            }
 
             return 0;
         }
@@ -784,7 +812,9 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public int onEnd() {
-            AgentHelper.printAgentLog(myAgent.getLocalName(), "done waiting for social learning to finish");
+            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+                AgentHelper.printAgentLog(myAgent.getLocalName(), "done waiting for social learning to finish");
+            }
 
             return 0;
         }
