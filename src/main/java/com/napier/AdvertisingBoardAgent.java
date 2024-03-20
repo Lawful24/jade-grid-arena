@@ -710,6 +710,7 @@ public class AdvertisingBoardAgent extends Agent {
             }
 
             if (!unselectedAgents.isEmpty()) {
+                // Broadcast to the rest of the agents that they have not been selected for social learning today
                 AgentHelper.sendMessage(
                         myAgent,
                         unselectedAgents,
@@ -736,9 +737,33 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public void action() {
-            ACLMessage socialLearningOverMessage = AgentHelper.receiveMessage(myAgent, "Social Learning Done");
+            ACLMessage socialLearningOverMessage = AgentHelper.receiveMessage(myAgent, "Social Learning Done", true);
 
             if (socialLearningOverMessage != null) {
+                // Make sure the incoming object is readable
+                Serializable incomingObject = null;
+
+                try {
+                    incomingObject = socialLearningOverMessage.getContentObject();
+                } catch (UnreadableException e) {
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming agent contact is unreadable: " + e.getMessage());
+                }
+
+                if (incomingObject != null) {
+                    if (incomingObject instanceof AgentContact) {
+                        for (AgentContact contact : householdAgentContacts) {
+                            if (contact.getAgentIdentifier().equals(((AgentContact)incomingObject).getAgentIdentifier())) {
+                                contact.setType(((AgentContact)incomingObject).getType());
+                                contact.setCurrentSatisfaction(((AgentContact)incomingObject).getCurrentSatisfaction());
+
+                                break;
+                            }
+                        }
+                    } else {
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "The changes after social learning cannot be reflected: the received object has an incorrect type.");
+                    }
+                }
+
                 socialLearningOverMessagesReceived++;
             } else {
                 block();
@@ -769,6 +794,7 @@ public class AdvertisingBoardAgent extends Agent {
                     myAgent,
                     tickerAgent,
                     "Done",
+                    new SerializableAgentContactList(new ArrayList<>(householdAgentContacts)),
                     ACLMessage.INFORM
             );
         }

@@ -4,16 +4,15 @@ import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
 import jade.lang.acl.ACLMessage;
+import jade.lang.acl.UnreadableException;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 public class TickerAgent extends Agent {
-    // TODO: figure out how to import the max number of days as a property
-    // there is no max number of days, the simulation runs until a takeover is achieved
-    // configuration properties class?
-    // global variable
-    private final int maxNumOfDays = 30;
-    private int currentDay = 0;
+    private int currentDay = 1;
+    private int currentDayAfterTakeover = 0;
+    private boolean takeover = false;
 
     // Agent contact attributes
     private ArrayList<AID> allAgents;
@@ -36,6 +35,10 @@ public class TickerAgent extends Agent {
 
     public class DailySyncBehaviour extends Behaviour {
         private int step = 0;
+        private int numOfSocialAgents = 0;
+        private int numOfSelfishAgents = 0;
+
+        // Agent contact attributes
         private ArrayList<AgentContact> householdAgentContacts;
         private AID advertisingAgent;
 
@@ -68,11 +71,31 @@ public class TickerAgent extends Agent {
 
                     // Progress the agent state
                     step++;
-                    currentDay++;
 
                     break;
                 case 1:
-                    if (AgentHelper.receiveMessage(myAgent, "Done") != null) {
+                    ACLMessage advertisingDayOverMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, "Done", ACLMessage.INFORM);
+
+                    if (advertisingDayOverMessage != null) {
+                        // Make sure the incoming object is readable
+                        Serializable incomingObject = null;
+
+                        try {
+                            incomingObject = advertisingDayOverMessage.getContentObject();
+                        } catch (UnreadableException e) {
+                            AgentHelper.printAgentError(myAgent.getLocalName(), "Agent contact list is unreadable: " + e.getMessage());
+                        }
+
+                        if (incomingObject != null) {
+                            // Make sure the incoming object is of the expected type
+                            if (incomingObject instanceof SerializableAgentContactList) {
+                                // Overwrite the existing list of contacts with the updated list
+                                this.householdAgentContacts = ((SerializableAgentContactList)incomingObject).contacts();
+                            }
+                        } else {
+                            AgentHelper.printAgentError(myAgent.getLocalName(), "Agent contact list was not updated: the received object has an incorrect type.");
+                        }
+
                         step++;
                     } else {
                         block();
@@ -89,18 +112,41 @@ public class TickerAgent extends Agent {
         public int onEnd() {
             AgentHelper.printAgentLog(myAgent.getLocalName(), "End of day " + currentDay);
 
-            // Reshuffle the daily demand curve allocation
-            RunConfigurationSingleton.getInstance().recreateDemandCurveIndices();
+            RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
 
-            if (currentDay == maxNumOfDays) {
+            // TODO: Cite Arena code
+            for (AgentContact householdAgentContact : householdAgentContacts) {
+                if (householdAgentContact.getType() == AgentStrategyType.SOCIAL) {
+                    numOfSocialAgents++;
+                } else if (householdAgentContact.getType() == AgentStrategyType.SELFISH) {
+                    numOfSelfishAgents++;
+                }
+            }
+
+            // TODO: Cite Arena code
+            if (((numOfSelfishAgents == 0 || numOfSocialAgents == 0) || config.getNumOfAgentsToEvolve() == 0) && !takeover) {
+                takeover = true;
+                System.out.println("takeover! social agents: " + numOfSocialAgents + " selfish agents: " + numOfSelfishAgents);
+            }
+
+            if (currentDayAfterTakeover == config.getAdditionalDays()) {
                 // Broadcast the Terminate message to all other agents
                 AgentHelper.sendMessage(myAgent, allAgents, "Terminate", ACLMessage.INFORM);
 
                 // Terminate the ticker agent itself
                 myAgent.doDelete();
             } else {
+                // Reshuffle the daily demand curve allocation
+                config.recreateDemandCurveIndices();
+
                 // Recreate the sync behaviour and add it to the ticker's behaviour queue
                 myAgent.addBehaviour(new DailySyncBehaviour(myAgent));
+            }
+
+            currentDay++;
+
+            if (takeover) {
+                currentDayAfterTakeover++;
             }
 
             return 0;

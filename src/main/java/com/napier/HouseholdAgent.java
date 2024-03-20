@@ -569,7 +569,9 @@ public class HouseholdAgent extends Agent {
             ACLMessage socialLearningMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, ACLMessage.QUERY_IF);
 
             if (socialLearningMessage != null) {
-                if (socialLearningMessage.getContent().equals("Selected for Social Learning")) {
+                double learningCurrentSatisfaction = AgentHelper.calculateSatisfaction(allocatedTimeSlots, requestedTimeSlots);
+
+                if (socialLearningMessage.getConversationId().equals("Selected for Social Learning")) {
                     // Make sure the incoming object is readable
                     Serializable incomingObject = null;
 
@@ -590,6 +592,9 @@ public class HouseholdAgent extends Agent {
                             // Copy the observed agents strategy if it is better than its own, with likelihood dependent on the
                             // difference between the agents satisfaction and the observed satisfaction.
                             double observedAgentSatisfaction = ((AgentContact)incomingObject).getCurrentSatisfaction();
+
+                            AgentHelper.printAgentLog(myAgent.getLocalName(), "learning sat: " + learningAgentSatisfaction);
+                            AgentHelper.printAgentLog(myAgent.getLocalName(), "observed sat: " + observedAgentSatisfaction);
 
                             if (Math.round(learningAgentSatisfaction * config.getNumOfSlotsPerAgent()) < Math.round(observedAgentSatisfaction * config.getNumOfSlotsPerAgent())) {
                                 double difference = observedAgentSatisfaction - learningAgentSatisfaction;
@@ -617,6 +622,7 @@ public class HouseholdAgent extends Agent {
                         myAgent,
                         advertisingAgent,
                         "Social Learning Done",
+                        new AgentContact(myAgent.getAID(), agentType, learningCurrentSatisfaction),
                         ACLMessage.INFORM
                 );
             } else {

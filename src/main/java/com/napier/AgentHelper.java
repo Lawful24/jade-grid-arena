@@ -108,14 +108,15 @@ public class AgentHelper {
         }
     }
 
-    public static void sendMessage (Agent sender, AID receiver, String content, Serializable object, int performative) {
+    public static void sendMessage (Agent sender, AID receiver, String messageText, Serializable object, int performative) {
+        // TODO: this is incorrect. setContentObject() overrides setContent(). we can only send either a string or an object
         if (object != null) {
             // Check if provided int is a registered ACL performative
             if (isValidACLPerformative(performative)) {
                 // Build the message
                 ACLMessage message = new ACLMessage(performative);
 
-                message.setContent(content);
+                message.setConversationId(messageText);
 
                 try {
                     message.setContentObject(object);
@@ -141,6 +142,7 @@ public class AgentHelper {
     }
 
     // TODO: Cite JADE workbook
+    // TODO: rework this
     public static ACLMessage receiveMessage(Agent agentToReceive, String messageContent) {
         return agentToReceive.receive(MessageTemplate.MatchContent(messageContent));
     }
@@ -149,6 +151,27 @@ public class AgentHelper {
     // TODO: rework this
     public static ACLMessage receiveMessage(Agent agentToReceive, String messageContent, String optionalMessageContent) {
         return agentToReceive.receive(MessageTemplate.or(MessageTemplate.MatchContent(messageContent), MessageTemplate.MatchContent(optionalMessageContent)));
+    }
+
+    public static ACLMessage receiveMessage(Agent agentToReceive, String messageText, boolean changeThis) {
+        return agentToReceive.receive(MessageTemplate.MatchConversationId(messageText));
+    }
+
+    public static ACLMessage receiveMessage(Agent agentToReceive, AID sender, String messageText, int performative) {
+        if (isValidACLPerformative(performative)) {
+            return agentToReceive.receive(
+                    MessageTemplate.and(
+                            MessageTemplate.MatchSender(sender),
+                            MessageTemplate.and(
+                                    MessageTemplate.MatchConversationId(messageText),
+                                    MessageTemplate.MatchPerformative(performative)
+                            )
+                    )
+            );
+        } else {
+            System.err.println("Incorrect ACL performative: " + performative);
+            return null;
+        }
     }
 
     public static ACLMessage receiveMessage(Agent agentToReceive, int performative) {
