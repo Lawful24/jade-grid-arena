@@ -6,14 +6,56 @@ import jade.core.Runtime;
 import jade.wrapper.ContainerController;
 
 public class Main {
+    private static boolean debugMode;
+    private static ExchangeType exchangeType;
+
     public static void main(String[] args) {
-        initEnvironment();
+        debugMode = false;
+
+        if (args.length == 1 || args.length == 2) {
+            exchangeType = parseType(args[0]);
+
+            if (args.length == 2) {
+                if (args[1].equals("--debug")) {
+                    debugMode = true;
+                } else {
+                    exchangeType = null;
+
+                    System.err.println("The second argument can only be \"--debug\".");
+                }
+            }
+
+            if (exchangeType != null) {
+                initEnvironment();
+            }
+        } else {
+            System.err.println("Incorrect list of arguments. Please try providing an exchange type.");
+            System.err.println("The available flags are: \"--MessagePassing\" and \"--SmartContract\".");
+        }
+    }
+
+    public static boolean isDebugMode() {
+        return debugMode;
+    }
+
+    public static ExchangeType getExchangeType() {
+        return exchangeType;
+    }
+
+    private static ExchangeType parseType(String input) {
+        if (input.equals("--MessagePassing")) {
+            return ExchangeType.MessagePassing;
+        } else if (input.equals("--SmartContract")) {
+            return ExchangeType.SmartContract;
+        }
+
+        System.err.println("Invalid exchange type. The available flags are: \"--MessagePassing\" and \"--SmartContract\".");
+
+        return null;
     }
 
     private static void initEnvironment() {
         RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
-        // ^ Debug mode can be toggled in the RunConfigurationSingleton class
-        // TODO: Find a better way to toggle debug mode
 
         // TODO: Comments and cite the JADE workbook
         Profile profile = new ProfileImpl();

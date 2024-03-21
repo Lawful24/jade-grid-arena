@@ -8,6 +8,7 @@ import java.util.*;
 public class RunConfigurationSingleton {
     private static RunConfigurationSingleton instance;
     private final boolean debugMode;
+    private final ExchangeType exchangeType;
     private static final Random random = new Random();
 
     /* Configuration Properties */
@@ -41,18 +42,19 @@ public class RunConfigurationSingleton {
 
     public static RunConfigurationSingleton getInstance() {
         if (instance == null) {
-            instance = new RunConfigurationSingleton(false);
+            instance = new RunConfigurationSingleton();
         }
 
         return instance;
     }
 
-    private RunConfigurationSingleton(boolean debugMode) {
-        this.debugMode = debugMode;
+    private RunConfigurationSingleton() {
+        this.debugMode = Main.isDebugMode();
+        this.exchangeType = Main.getExchangeType();
 
         // Retrieve user parameters from the config file
         Properties properties = new Properties();
-        loadPropertiesFromFile(properties, debugMode);
+        loadPropertiesFromFile(properties, this.debugMode);
 
         // Read the configuration variables from the config properties and store them in the attributes
         this.seed = Long.parseLong(properties.getProperty("seed"));
@@ -88,6 +90,10 @@ public class RunConfigurationSingleton {
     /* Accessors */
     public boolean isDebugMode() {
         return this.debugMode;
+    }
+
+    public ExchangeType getExchangeType() {
+        return this.exchangeType;
     }
 
     public Random getRandom() {
