@@ -52,7 +52,6 @@ public class Main {
                         }
                 ).start();
             }
-
         } catch (Exception e) {
             System.err.println(e.getMessage());
         }

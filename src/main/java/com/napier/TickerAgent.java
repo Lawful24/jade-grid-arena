@@ -181,14 +181,23 @@ public class TickerAgent extends Agent {
                 // - what kind of takeover was it
                 // - average satisfaction?
                 AgentStrategyType takeoverType;
+                double runSatisfactionSum = 0;
 
-                if (numOfSelfishAgents == 0) {
-                    takeoverType = AgentStrategyType.SOCIAL;
-                } else {
-                    takeoverType = AgentStrategyType.SELFISH;
+                takeoverType = householdAgentContacts.getFirst().getType();
+
+                for (AgentContact householdAgentContact : householdAgentContacts) {
+                    runSatisfactionSum += householdAgentContact.getCurrentSatisfaction();
                 }
 
-                AgentHelper.printAgentLog(myAgent.getLocalName(), "Days: " + currentDay + ", Takeover: " + takeoverType + ", Average satisfaction: ");
+                AgentHelper.printAgentLog(
+                        myAgent.getLocalName(),
+                        "Days: "
+                                + currentDay
+                                + ", Takeover: "
+                                + takeoverType
+                                + ", Average satisfaction: "
+                                + runSatisfactionSum / config.getPopulationCount()
+                );
 
                 if (currentSimulationRun == config.getNumOfSimulationRuns()) {
                     // Broadcast the Terminate message to all other agents
