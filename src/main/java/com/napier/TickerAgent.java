@@ -1,11 +1,14 @@
 package com.napier;
 
+import jade.content.onto.basic.Action;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.OneShotBehaviour;
+import jade.domain.JADEAgentManagement.ShutdownPlatform;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.UnreadableException;
+import jade.wrapper.ControllerException;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -37,6 +40,8 @@ public class TickerAgent extends Agent {
     protected void takeDown() {
         AgentHelper.printAgentLog(getLocalName(), "Terminating...");
         AgentHelper.deregisterAgent(this);
+
+        System.exit(0);
     }
 
     public class FindHouseholdsBehaviour extends OneShotBehaviour {
