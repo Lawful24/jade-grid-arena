@@ -484,13 +484,13 @@ public class AdvertisingBoardAgent extends Agent {
                             if (tradeOfferResponseMessage.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
                                 // Handle the accepted trade offer
                                 // Remove the traded timeslots from the adverts
-                                adverts.get(tradeOfferResponseMessage.getSender()).remove(((TradeOffer) incomingObject).timeSlotRequested());
-                                adverts.get(((TradeOffer) incomingObject).senderAgent()).remove(((TradeOffer) incomingObject).timeSlotOffered());
+                                adverts.get(tradeOfferResponseMessage.getSender()).remove(((TradeOffer) incomingObject).getTimeSlotRequested());
+                                adverts.get(((TradeOffer) incomingObject).getRequesterAgent()).remove(((TradeOffer) incomingObject).getTimeSlotOffered());
 
                                 // Notify the agent who initiated the interest
                                 AgentHelper.sendMessage(
                                         myAgent,
-                                        ((TradeOffer) incomingObject).senderAgent(),
+                                        ((TradeOffer) incomingObject).getRequesterAgent(),
                                         tradeOfferResponseMessage.getConversationId(),
                                         incomingObject,
                                         ACLMessage.AGREE
@@ -500,7 +500,7 @@ public class AdvertisingBoardAgent extends Agent {
                             } else {
                                 AgentHelper.sendMessage(
                                         myAgent,
-                                        ((TradeOffer) incomingObject).senderAgent(),
+                                        ((TradeOffer) incomingObject).getRequesterAgent(),
                                         "Trade Rejected",
                                         ACLMessage.CANCEL
                                 );
@@ -625,8 +625,7 @@ public class AdvertisingBoardAgent extends Agent {
             reset();
 
             exchange.addSubBehaviour(new NewAdvertListenerBehaviour(myAgent));
-            exchange.addSubBehaviour(new InterestListenerBehaviour(myAgent));
-            exchange.addSubBehaviour(new SocialCapitaSyncPropagateBehaviour(myAgent));
+            exchange.addSubBehaviour(new InterestListenerSCBehaviour(myAgent));
             exchange.addSubBehaviour(new ExchangeRoundOverListener(myAgent));
 
             myAgent.addBehaviour(exchange);
@@ -644,6 +643,7 @@ public class AdvertisingBoardAgent extends Agent {
         public void reset() {
             super.reset();
 
+            exchangeValuesReset();
         }
     }
 
@@ -724,22 +724,22 @@ public class AdvertisingBoardAgent extends Agent {
                                     }
                                 }
 
-                                // Check if the sender has any timeslots to offer in return and if a desired timeslot was found
-                                if (targetTimeSlot != null) {
-                                    // Offer the sender's least wanted timeslot - the first element of the advert
-                                    // Send the trade offer to the agent that has the desired timeslot, with the
-                                    // sender's nickname as the text content
+                                // Check if the requester has any timeslots to offer in return and if a desired timeslot was found
+                                if (targetTimeSlot != null) { // TODO: change all occurrences of "sender" to "requester"
+                                    // Offer the requester's least wanted timeslot - the first element of the advert
+                                    // Send the created trade offer object to the requester agent so that it can forward
+                                    // it to the target agent.
                                     AgentHelper.sendMessage(
                                             myAgent,
-                                            targetOwner,
-                                            "New Offer",
+                                            interestMessage.getSender(),
+                                            "Offer Created",
                                             new TradeOffer(
                                                     interestMessage.getSender(),
                                                     targetOwner,
                                                     sendersAdvertisedTimeSlots.getFirst(),
                                                     targetTimeSlot
                                             ),
-                                            ACLMessage.PROPOSE
+                                            ACLMessage.AGREE
                                     );
 
                                     numOfTradesStarted++;
@@ -752,6 +752,7 @@ public class AdvertisingBoardAgent extends Agent {
                     }
                 } else {
                     // TODO: let the requesting agent know that it has already made interaction therefore cannot make any more requests
+                    // TODO: this means that this agent could be a receiver
                 }
 
                 numOfRequestsProcessed++;

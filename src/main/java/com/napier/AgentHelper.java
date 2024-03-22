@@ -91,7 +91,7 @@ public class AgentHelper {
         }
     }
 
-    public static void sendMessage(Agent sender, ArrayList<AID> receivers, String messageText, int performative) {
+    public static ACLMessage sendMessage(Agent sender, ArrayList<AID> receivers, String messageText, int performative) {
         // Check if provided int is a registered ACL performative
         if (isValidACLPerformative(performative)) {
             // Build the message
@@ -105,7 +105,11 @@ public class AgentHelper {
 
             // Send the message
             sender.send(message);
+
+            return message;
         }
+
+        return null;
     }
 
     public static void sendMessage (Agent sender, AID receiver, String messageText, Serializable object, int performative) {

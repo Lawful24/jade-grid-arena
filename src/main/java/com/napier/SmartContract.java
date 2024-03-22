@@ -1,12 +1,12 @@
 package com.napier;
 
-import jade.core.Agent;
-
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-public class SmartContract {
+public class SmartContract implements PropertyChangeListener {
     private static SmartContract instance;
 
     public static SmartContract getInstance() {
@@ -21,8 +21,8 @@ public class SmartContract {
 
     }
 
-    private void execute() {
-
+    public void propertyChange(PropertyChangeEvent evt) {
+        // TODO: execute the contract here
     }
 
     private void createNewBlock(Transaction transaction) {
