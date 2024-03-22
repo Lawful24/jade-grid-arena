@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.util.Objects;
 
 public class TimeSlot implements Serializable {
-    private int startHour;
+    private final int startHour;
     private final double energyAvailableKwh = 1.0;
 
     public TimeSlot(int startHour) {

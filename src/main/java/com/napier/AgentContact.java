@@ -17,7 +17,6 @@ public class AgentContact implements Serializable {
     public AgentContact(AID agentIdentifier, AgentStrategyType type) {
         this.agentIdentifier = agentIdentifier;
         this.type = type;
-        // TODO: satisfaction
     }
 
     public AgentContact(AID agentIdentifier, AgentStrategyType type, double currentSatisfaction) {

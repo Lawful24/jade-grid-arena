@@ -32,12 +32,17 @@ public class HouseholdAgent extends Agent {
     // Agent contact attributes
     private AID tickerAgent;
     private AID advertisingAgent;
+    private ArrayList<AgentContact> householdAgentContacts;
 
     @Override
     protected void setup() {
         initialAgentSetup();
 
         AgentHelper.registerAgent(this, "Household");
+
+        if (RunConfigurationSingleton.getInstance().getExchangeType() == ExchangeType.SmartContract) {
+            addBehaviour(new FindHouseholdsBehaviour(this));
+        }
 
         addBehaviour(new FindTickerBehaviour(this));
         addBehaviour(new FindAdvertisingBoardBehaviour(this));
@@ -72,6 +77,18 @@ public class HouseholdAgent extends Agent {
         }
     }
 
+    public class FindHouseholdsBehaviour extends OneShotBehaviour {
+        public FindHouseholdsBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            // Populate the contact collections
+            householdAgentContacts = AgentHelper.saveAgentContacts(myAgent, "Household");
+        }
+    }
+
     public class TickerDailyBehaviour extends CyclicBehaviour {
         public TickerDailyBehaviour(Agent a) {
             super(a);
@@ -83,9 +100,9 @@ public class HouseholdAgent extends Agent {
 
             if (tick != null && tickerAgent != null) {
                 // Set up the daily tasks
-                if (!tick.getContent().equals("Terminate")) {
+                if (!tick.getConversationId().equals("Terminate")) {
                     // Do a reset on all agent attributes on each new simulation run
-                    if (tick.getContent().equals("New Run")) {
+                    if (tick.getConversationId().equals("New Run")) {
                         initialAgentSetup();
 
                         if (RunConfigurationSingleton.getInstance().isDebugMode()) {
@@ -265,8 +282,15 @@ public class HouseholdAgent extends Agent {
                     // Define the behaviours of the exchange
                     exchange.addSubBehaviour(new AdvertiseUnwantedTimeSlotsBehaviour(myAgent));
                     exchange.addSubBehaviour(new ExchangeOpenListenerBehaviour(myAgent));
-                    exchange.addSubBehaviour(new TradeOfferListenerBehaviour(myAgent));
-                    exchange.addSubBehaviour(new InterestResultListenerBehaviour(myAgent));
+
+                    if (RunConfigurationSingleton.getInstance().getExchangeType() == ExchangeType.SmartContract) {
+                        exchange.addSubBehaviour(new InterestResultListenerBehaviour(myAgent));
+                        exchange.addSubBehaviour(new TradeOfferListenerBehaviour(myAgent));
+                    } else {
+                        exchange.addSubBehaviour(new TradeOfferListenerBehaviour(myAgent));
+                        exchange.addSubBehaviour(new InterestResultListenerBehaviour(myAgent));
+                    }
+
                     exchange.addSubBehaviour(new SocialCapitaSyncReceiverBehaviour(myAgent));
 
                     myAgent.addBehaviour(exchange);
@@ -424,28 +448,43 @@ public class HouseholdAgent extends Agent {
                     if (incomingObject != null) {
                         // Make sure the incoming object is of the expected type
                         if (incomingObject instanceof TradeOffer) {
-                            // The content of the incoming message is a boolean that carries the information whether
-                            // the requesting party should lose social capita following the trade.
-                            boolean doesReceiverGainSocialCapita = completeRequestedExchange((TradeOffer) incomingObject);
+                            if (RunConfigurationSingleton.getInstance().getExchangeType() == ExchangeType.MessagePassing) {
+                                // The content of the incoming message is a boolean that carries the information whether
+                                // the requesting party should lose social capita following the trade.
+                                boolean doesReceiverGainSocialCapita = completeRequestedExchange((TradeOffer) incomingObject);
 
-                            // Adjust the agent's properties based on the trade offer
-                            if (Boolean.parseBoolean(interestResultMessage.getContent())) {
-                                totalSocialCapital--;
+                                // Adjust the agent's properties based on the trade offer
+                                if (Boolean.parseBoolean(interestResultMessage.getConversationId())) {
+                                    totalSocialCapital--;
+                                }
+
+                                AgentHelper.sendMessage(
+                                        myAgent,
+                                        advertisingAgent,
+                                        Boolean.toString(doesReceiverGainSocialCapita),
+                                        ((TradeOffer) incomingObject).receiverAgent(),
+                                        ACLMessage.PROPAGATE
+                                );
+                            } else {
+                                // Send the trade offer directly to the owner of the requested timeslot
+                                AgentHelper.sendMessage(
+                                        myAgent,
+                                        ((TradeOffer)incomingObject).receiverAgent(),
+                                        "New Offer",
+                                        incomingObject,
+                                        ACLMessage.PROPOSE
+                                );
                             }
-
-                            AgentHelper.sendMessage(
-                                    myAgent,
-                                    advertisingAgent,
-                                    Boolean.toString(doesReceiverGainSocialCapita),
-                                    ((TradeOffer) incomingObject).receiverAgent(),
-                                    ACLMessage.PROPAGATE
-                            );
                         } else {
                             AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be handled: the received object has an incorrect type.");
                         }
                     }
                 } else if (interestResultMessage.getPerformative() == ACLMessage.CANCEL) {
                     numOfDailyRejectedRequestedExchanges++;
+                } else {
+                    // TODO: what happens here when there are no results to the interest?
+                    // TODO: we need to wait until a potential incoming trade request before we can skip straight to the end of the exchange
+                    // TODO: this needs to be reflected with a class level flag
                 }
 
                 resultReceived = true;
@@ -479,10 +518,10 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public void action() {
-            ACLMessage tradeOfferMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, ACLMessage.PROPOSE);
+            ACLMessage tradeOfferMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.PROPOSE);
 
             if (tradeOfferMessage != null) {
-                if (!tradeOfferMessage.getContent().equals("No Offers")) {
+                if (!tradeOfferMessage.getConversationId().equals("No Offers")) {
                     // Make sure the incoming object is readable
                     Serializable incomingObject = null;
                     int responsePerformative = ACLMessage.REJECT_PROPOSAL;
@@ -501,18 +540,24 @@ public class HouseholdAgent extends Agent {
                             // Consider the trade offer AND
                             // Check whether the requested time slot is actually owned by the agent
                             if (considerRequest((TradeOffer)incomingObject) && allocatedTimeSlots.contains(((TradeOffer)incomingObject).timeSlotRequested())) {
-                                // Adjust the agent's properties based on the trade offer
-                                doesRequesterLoseSocialCapita = completeReceivedExchange((TradeOffer)incomingObject);
-                                responsePerformative = ACLMessage.ACCEPT_PROPOSAL;
+                                if (RunConfigurationSingleton.getInstance().getExchangeType() == ExchangeType.MessagePassing) {
+                                    // Adjust the agent's properties based on the trade offer
+                                    doesRequesterLoseSocialCapita = completeReceivedExchange((TradeOffer)incomingObject);
+                                    responsePerformative = ACLMessage.ACCEPT_PROPOSAL;
+                                } else {
+                                    ((TradeOffer)incomingObject).acceptTrade();
+                                }
                             }
 
-                            AgentHelper.sendMessage(
-                                    myAgent,
-                                    advertisingAgent,
-                                    Boolean.toString(doesRequesterLoseSocialCapita),
-                                    incomingObject,
-                                    responsePerformative
-                            );
+                            if (RunConfigurationSingleton.getInstance().getExchangeType() == ExchangeType.MessagePassing) {
+                                AgentHelper.sendMessage(
+                                        myAgent,
+                                        advertisingAgent,
+                                        Boolean.toString(doesRequesterLoseSocialCapita),
+                                        incomingObject,
+                                        responsePerformative
+                                );
+                            }
                         } else {
                             AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be answered: the received object has an incorrect type.");
                         }
@@ -558,8 +603,8 @@ public class HouseholdAgent extends Agent {
             ACLMessage incomingSyncMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, ACLMessage.INFORM_IF);
 
             if (incomingSyncMessage != null) {
-                if (!incomingSyncMessage.getContent().equals("No Syncing Necessary")) {
-                    boolean doesReceiverAgentGainSocialCapita = Boolean.parseBoolean(incomingSyncMessage.getContent());
+                if (!incomingSyncMessage.getConversationId().equals("No Syncing Necessary")) {
+                    boolean doesReceiverAgentGainSocialCapita = Boolean.parseBoolean(incomingSyncMessage.getConversationId());
 
                     if (doesReceiverAgentGainSocialCapita) {
                         totalSocialCapital++;

@@ -75,9 +75,9 @@ public class AdvertisingBoardAgent extends Agent {
             ACLMessage tick = AgentHelper.receiveMessage(myAgent, tickerAgent, ACLMessage.INFORM);
 
             if (tick != null && tickerAgent != null) {
-                if (!tick.getContent().equals("Terminate")) {
+                if (!tick.getConversationId().equals("Terminate")) {
                     // Do a reset on all agent attributes on each new simulation run
-                    if (tick.getContent().equals("New Run")) {
+                    if (tick.getConversationId().equals("New Run")) {
                         initialAgentSetup();
 
                         if (RunConfigurationSingleton.getInstance().isDebugMode()) {
@@ -200,8 +200,12 @@ public class AdvertisingBoardAgent extends Agent {
 
             exchange.addSubBehaviour(new NewAdvertListenerBehaviour(myAgent));
             exchange.addSubBehaviour(new InterestListenerBehaviour(myAgent));
-            exchange.addSubBehaviour(new TradeOfferResponseListenerBehaviour(myAgent));
-            exchange.addSubBehaviour(new SocialCapitaSyncPropagateBehaviour(myAgent));
+
+            if (RunConfigurationSingleton.getInstance().getExchangeType() == ExchangeType.MessagePassing) {
+                exchange.addSubBehaviour(new TradeOfferResponseListenerBehaviour(myAgent));
+                exchange.addSubBehaviour(new SocialCapitaSyncPropagateBehaviour(myAgent));
+            }
+
             exchange.addSubBehaviour(new ExchangeRoundOverListener(myAgent));
 
             myAgent.addBehaviour(exchange);
@@ -314,10 +318,12 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public void action() {
+            RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
             boolean refuseRequest = true;
+
             ACLMessage interestMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.CFP);
 
-            if (interestMessage != null && adverts.size() == RunConfigurationSingleton.getInstance().getPopulationCount()) {
+            if (interestMessage != null && adverts.size() == config.getPopulationCount()) {
                 // Check if the household agent has made interaction with another household agent in the current exchange round
                 if (!householdAgentsInteractions.get(interestMessage.getSender())) {
                     // Flip the "made interaction" flag
@@ -349,7 +355,7 @@ public class AdvertisingBoardAgent extends Agent {
 
                                 // Remove the requesting agent from the temp advert catalogue to avoid an unnecessary check
                                 shuffledAdvertPosters.remove(interestMessage.getSender());
-                                Collections.shuffle(shuffledAdvertPosters, RunConfigurationSingleton.getInstance().getRandom());
+                                Collections.shuffle(shuffledAdvertPosters, config.getRandom());
 
                                 // Find the desired timeslot in the published adverts
                                 browsingTimeSlots:
@@ -381,21 +387,36 @@ public class AdvertisingBoardAgent extends Agent {
 
                                 // Check if the sender has any timeslots to offer in return and if a desired timeslot was found
                                 if (targetTimeSlot != null) {
-                                    // Offer the sender's least wanted timeslot - the first element of the advert
-                                    // Send the trade offer to the agent that has the desired timeslot, with the
-                                    // sender's nickname as the text content
-                                    AgentHelper.sendMessage(
-                                            myAgent,
-                                            targetOwner,
-                                            "New Offer",
-                                            new TradeOffer(
-                                                    interestMessage.getSender(),
-                                                    targetOwner,
-                                                    sendersAdvertisedTimeSlots.getFirst(),
-                                                    targetTimeSlot
-                                            ),
-                                            ACLMessage.PROPOSE
-                                    );
+                                    if (config.getExchangeType() == ExchangeType.MessagePassing) {
+                                        // Offer the sender's least wanted timeslot - the first element of the advert
+                                        // Send the trade offer to the agent that has the desired timeslot, with the
+                                        // sender's nickname as the text content
+                                        AgentHelper.sendMessage(
+                                                myAgent,
+                                                targetOwner,
+                                                "New Offer",
+                                                new TradeOffer(
+                                                        interestMessage.getSender(),
+                                                        targetOwner,
+                                                        sendersAdvertisedTimeSlots.getFirst(),
+                                                        targetTimeSlot
+                                                ),
+                                                ACLMessage.PROPOSE
+                                        );
+                                    } else {
+                                        AgentHelper.sendMessage(
+                                                myAgent,
+                                                interestMessage.getSender(),
+                                                "Available Timeslot Found",
+                                                new TradeOffer(
+                                                        interestMessage.getSender(),
+                                                        targetOwner,
+                                                        sendersAdvertisedTimeSlots.getFirst(),
+                                                        targetTimeSlot
+                                                ),
+                                                ACLMessage.AGREE
+                                        );
+                                    }
 
                                     numOfTradesStarted++;
                                     refuseRequest = false;
@@ -421,12 +442,14 @@ public class AdvertisingBoardAgent extends Agent {
                     agentsToNotify.removeAll(agentsToReceiveTradeOffer);
 
                     // Broadcast the "no offers" message to the agents who did not receive a trade offer for various reasons
-                    AgentHelper.sendMessage(
-                            myAgent,
-                            agentsToNotify,
-                            "No Offers",
-                            ACLMessage.PROPOSE
-                    );
+                    if (config.getExchangeType() == ExchangeType.MessagePassing) {
+                        AgentHelper.sendMessage(
+                                myAgent,
+                                agentsToNotify,
+                                "No Offers",
+                                ACLMessage.PROPOSE
+                        );
+                    }
                 }
 
                 if (refuseRequest) {
@@ -497,7 +520,7 @@ public class AdvertisingBoardAgent extends Agent {
                                 AgentHelper.sendMessage(
                                         myAgent,
                                         ((TradeOffer) incomingObject).senderAgent(),
-                                        tradeOfferResponseMessage.getContent(),
+                                        tradeOfferResponseMessage.getConversationId(),
                                         incomingObject,
                                         ACLMessage.AGREE
                                 );
@@ -554,7 +577,7 @@ public class AdvertisingBoardAgent extends Agent {
                 ACLMessage incomingSyncMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.PROPAGATE);
 
                 if (incomingSyncMessage != null) {
-                    if (!incomingSyncMessage.getContent().equals("No Syncing Necessary")) {
+                    if (!incomingSyncMessage.getConversationId().equals("No Syncing Necessary")) {
                         // Make sure the incoming object is readable
                         Serializable incomingObject = null;
 
@@ -570,7 +593,7 @@ public class AdvertisingBoardAgent extends Agent {
                                 AgentHelper.sendMessage(
                                         myAgent,
                                         (AID) incomingObject,
-                                        incomingSyncMessage.getContent(),
+                                        incomingSyncMessage.getConversationId(),
                                         ACLMessage.INFORM_IF
                                 );
                             }
@@ -651,7 +674,7 @@ public class AdvertisingBoardAgent extends Agent {
                             }
                         }
                     } else {
-                        AgentHelper.printAgentError(myAgent.getLocalName(), "Social Learning cannot be started: the received object has an incorrect type.");
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Household contacts cannot be updated: the received object has an incorrect type.");
                     }
                 }
 
@@ -772,7 +795,7 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public void action() {
-            ACLMessage socialLearningOverMessage = AgentHelper.receiveMessage(myAgent, "Social Learning Done", true);
+            ACLMessage socialLearningOverMessage = AgentHelper.receiveMessage(myAgent, "Social Learning Done");
 
             if (socialLearningOverMessage != null) {
                 // Make sure the incoming object is readable

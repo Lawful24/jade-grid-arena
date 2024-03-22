@@ -11,6 +11,9 @@ public record TradeOffer(
         TimeSlot timeSlotOffered,
         TimeSlot timeSlotRequested
 ) implements Serializable {
+    public void acceptTrade() {
+        // TODO: notify the smart contract
+    }
     @Override
     public boolean equals(Object object) {
         if (this == object) return true;

@@ -61,7 +61,7 @@ public class AgentHelper {
             for (DFAgentDescription foundAgent : agentsOfType) {
                 String nickName = foundAgent.getName().getLocalName();
 
-                if (nickName.contains("Household")) {
+                if (nickName.contains("Household") && !foundAgent.getName().equals(agent.getAID())) {
                     agentContacts.add(new AgentContact(foundAgent.getName(), determineAgentType(AgentHelper.getHouseholdAgentNumber(nickName))));
                 } else {
                     agentContacts.add(new AgentContact(foundAgent.getName()));
@@ -76,12 +76,12 @@ public class AgentHelper {
         return agentContacts;
     }
 
-    public static void sendMessage(Agent sender, AID receiver, String content, int performative) {
+    public static void sendMessage(Agent sender, AID receiver, String messageText, int performative) {
         // Check if provided int is a registered ACL performative
         if (isValidACLPerformative(performative)) {
             // Build the message
             ACLMessage message = new ACLMessage(performative);
-            message.setContent(content);
+            message.setConversationId(messageText);
 
             // Assign the receiver
             message.addReceiver(receiver);
@@ -91,12 +91,12 @@ public class AgentHelper {
         }
     }
 
-    public static void sendMessage(Agent sender, ArrayList<AID> receivers, String content, int performative) {
+    public static void sendMessage(Agent sender, ArrayList<AID> receivers, String messageText, int performative) {
         // Check if provided int is a registered ACL performative
         if (isValidACLPerformative(performative)) {
             // Build the message
             ACLMessage message = new ACLMessage(performative);
-            message.setContent(content);
+            message.setConversationId(messageText);
 
             // Assign the receivers
             for (AID receiver : receivers) {
@@ -109,7 +109,6 @@ public class AgentHelper {
     }
 
     public static void sendMessage (Agent sender, AID receiver, String messageText, Serializable object, int performative) {
-        // TODO: this is incorrect. setContentObject() overrides setContent(). we can only send either a string or an object
         if (object != null) {
             // Check if provided int is a registered ACL performative
             if (isValidACLPerformative(performative)) {
@@ -142,19 +141,13 @@ public class AgentHelper {
     }
 
     // TODO: Cite JADE workbook
-    // TODO: rework this
-    public static ACLMessage receiveMessage(Agent agentToReceive, String messageContent) {
-        return agentToReceive.receive(MessageTemplate.MatchContent(messageContent));
+    public static ACLMessage receiveMessage(Agent agentToReceive, String messageText) {
+        return agentToReceive.receive(MessageTemplate.MatchConversationId(messageText));
     }
 
     // TODO: Cite JADE workbook
-    // TODO: rework this
-    public static ACLMessage receiveMessage(Agent agentToReceive, String messageContent, String optionalMessageContent) {
-        return agentToReceive.receive(MessageTemplate.or(MessageTemplate.MatchContent(messageContent), MessageTemplate.MatchContent(optionalMessageContent)));
-    }
-
-    public static ACLMessage receiveMessage(Agent agentToReceive, String messageText, boolean changeThis) {
-        return agentToReceive.receive(MessageTemplate.MatchConversationId(messageText));
+    public static ACLMessage receiveMessage(Agent agentToReceive, String messageText, String optionalMessageText) {
+        return agentToReceive.receive(MessageTemplate.or(MessageTemplate.MatchConversationId(messageText), MessageTemplate.MatchConversationId(optionalMessageText)));
     }
 
     public static ACLMessage receiveMessage(Agent agentToReceive, AID sender, String messageText, int performative) {
