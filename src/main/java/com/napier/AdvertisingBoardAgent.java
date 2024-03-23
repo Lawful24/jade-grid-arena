@@ -484,13 +484,13 @@ public class AdvertisingBoardAgent extends Agent {
                             if (tradeOfferResponseMessage.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
                                 // Handle the accepted trade offer
                                 // Remove the traded timeslots from the adverts
-                                adverts.get(tradeOfferResponseMessage.getSender()).remove(((TradeOffer) incomingObject).getTimeSlotRequested());
-                                adverts.get(((TradeOffer) incomingObject).getRequesterAgent()).remove(((TradeOffer) incomingObject).getTimeSlotOffered());
+                                adverts.get(tradeOfferResponseMessage.getSender()).remove(((TradeOffer) incomingObject).timeSlotRequested());
+                                adverts.get(((TradeOffer) incomingObject).requesterAgent()).remove(((TradeOffer) incomingObject).timeSlotOffered());
 
                                 // Notify the agent who initiated the interest
                                 AgentHelper.sendMessage(
                                         myAgent,
-                                        ((TradeOffer) incomingObject).getRequesterAgent(),
+                                        ((TradeOffer) incomingObject).requesterAgent(),
                                         tradeOfferResponseMessage.getConversationId(),
                                         incomingObject,
                                         ACLMessage.AGREE
@@ -500,7 +500,7 @@ public class AdvertisingBoardAgent extends Agent {
                             } else {
                                 AgentHelper.sendMessage(
                                         myAgent,
-                                        ((TradeOffer) incomingObject).getRequesterAgent(),
+                                        ((TradeOffer) incomingObject).requesterAgent(),
                                         "Trade Rejected",
                                         ACLMessage.CANCEL
                                 );
@@ -864,6 +864,8 @@ public class AdvertisingBoardAgent extends Agent {
                                 " | Successful exchanges: " + numOfSuccessfulExchanges
                 );
             }
+
+            // TODO: find a way to track the number of successful exchanges for SC mode
 
             if (numOfSuccessfulExchanges == 0) {
                 exchangeTimeout++;

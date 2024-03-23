@@ -216,6 +216,8 @@ public class TickerAgent extends Agent {
                     currentSimulationRun++;
                     initialAgentSetup();
 
+                    BlockchainSingleton.getInstance().resetBlockchain();
+
                     myAgent.addBehaviour(new FindHouseholdsBehaviour(myAgent));
                     myAgent.addBehaviour(new DailySyncBehaviour(myAgent));
                 }

@@ -1,12 +1,13 @@
 package com.napier;
 
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
+import jade.core.behaviours.Behaviour;
+import jade.lang.acl.ACLMessage;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-public class SmartContract implements PropertyChangeListener {
+public class SmartContract {
     private static SmartContract instance;
 
     public static SmartContract getInstance() {
@@ -21,8 +22,80 @@ public class SmartContract implements PropertyChangeListener {
 
     }
 
-    public void propertyChange(PropertyChangeEvent evt) {
+    public void triggerSmartContract(HouseholdAgent receiverAgentObject, TradeOffer acceptedTradeOffer) {
         // TODO: execute the contract here
+        Transaction finalisedTransaction = finaliseExchange(receiverAgentObject, acceptedTradeOffer);
+        createNewBlock(finalisedTransaction);
+    }
+
+    private Transaction finaliseExchange(HouseholdAgent receiverAgentObject, TradeOffer acceptedTradeOffer) {
+        final boolean doesRequesterLoseSocialCapita = receiverAgentObject.completeReceivedExchange(acceptedTradeOffer);
+        final boolean[] doesReceiverGainSocialCapita = new boolean[1];
+
+        receiverAgentObject.addBehaviour(new Behaviour() {
+            private int step = 0;
+
+            @Override
+            public void action() {
+                switch (step) {
+                    case 0:
+                        AgentHelper.sendMessage(
+                                myAgent,
+                                acceptedTradeOffer.requesterAgent(),
+                                Boolean.toString(doesRequesterLoseSocialCapita),
+                                acceptedTradeOffer,
+                                ACLMessage.ACCEPT_PROPOSAL
+                        );
+
+                        step++;
+
+                    case 1:
+                        ACLMessage incomingSyncMessage = AgentHelper.receiveMessage(myAgent, acceptedTradeOffer.requesterAgent(), ACLMessage.INFORM_IF);
+
+                        if (incomingSyncMessage != null) {
+                            doesReceiverGainSocialCapita[0] = Boolean.parseBoolean(incomingSyncMessage.getConversationId());
+
+                            step++;
+                        } else {
+                            block();
+                        }
+                }
+            }
+
+            @Override
+            public boolean done() {
+                return step == 2;
+            }
+
+            @Override
+            public int onEnd() {
+                if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+                    AgentHelper.printAgentLog(myAgent.getLocalName(), "finished finalising the exchange");
+                }
+
+                return 0;
+            }
+        });
+
+        if (doesReceiverGainSocialCapita[0]) {
+            receiverAgentObject.incrementTotalSocialCapita();
+        }
+
+        return new Transaction(
+                acceptedTradeOffer.requesterAgent(),
+                acceptedTradeOffer.receiverAgent(),
+                acceptedTradeOffer.timeSlotRequested(),
+                acceptedTradeOffer.timeSlotOffered(),
+                doesReceiverGainSocialCapita[0],
+                doesRequesterLoseSocialCapita
+        );
+    }
+
+    private void removeTimeslotsFromAdverts(HouseholdAgent receiverAgentObject) {
+        // TODO: have a flag in the agent class that says: is trade accepted
+        // TODO: if the flag is true during the exchange round finish behaviour, a text representation of the trade offer should be sent to the advertising agent
+        // TODO: which then takes remove the affected timeslots
+        // TODO: this could be carried out by the requester too but it makes more sense to execute from the smart contract
     }
 
     private void createNewBlock(Transaction transaction) {
@@ -33,22 +106,14 @@ public class SmartContract implements PropertyChangeListener {
             MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
             hashByteArray = messageDigest.digest(transactionString.getBytes(StandardCharsets.UTF_8));
         } catch (NoSuchAlgorithmException e) {
-            System.out.println(e.getMessage());
+            System.err.println(e.getMessage());
         }
 
         if (hashByteArray != null) {
             BlockchainSingleton.getInstance().registerNewTransaction(bytesToHex(hashByteArray));
         } else {
-            System.err.println("The new block was not added to the blockchain.");
+            System.err.println("The new block was not added to the blockchain as it was not encrypted.");
         }
-    }
-
-    private void removeTimeslotsFromAdverts() {
-        // TODO: how
-    }
-
-    private void finaliseExchange(HouseholdAgent requester, HouseholdAgent receiver, Transaction transaction) {
-        // TODO: for each agent
     }
 
     // TODO: Cite https://www.baeldung.com/sha-256-hashing-java#:~:text=The%20SHA%20(Secure%20Hash%20Algorithm,text%20or%20a%20data%20file.
