@@ -1,5 +1,8 @@
-package com.napier;
+package com.napier.agents;
 
+import com.napier.*;
+import com.napier.concepts.*;
+import com.napier.singletons.RunConfigurationSingleton;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;

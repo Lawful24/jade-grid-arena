@@ -1,5 +1,6 @@
-package com.napier;
+package com.napier.concepts;
 
+import com.napier.types.AgentStrategyType;
 import jade.core.AID;
 
 import java.io.Serializable;

@@ -1,5 +1,11 @@
-package com.napier;
+package com.napier.agents;
 
+import com.napier.concepts.AgentContact;
+import com.napier.AgentHelper;
+import com.napier.concepts.SerializableAgentContactList;
+import com.napier.singletons.BlockchainSingleton;
+import com.napier.singletons.RunConfigurationSingleton;
+import com.napier.types.AgentStrategyType;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;

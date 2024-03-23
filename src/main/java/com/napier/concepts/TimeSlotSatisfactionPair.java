@@ -1,4 +1,6 @@
-package com.napier;
+package com.napier.concepts;
+
+import com.napier.concepts.TimeSlot;
 
 // TODO: Cite Arena code
 public class TimeSlotSatisfactionPair {
@@ -14,6 +16,14 @@ public class TimeSlotSatisfactionPair {
     public TimeSlotSatisfactionPair(TimeSlot timeSlot, double satisfaction) {
         this.timeSlot = timeSlot;
         this.satisfaction = satisfaction;
+    }
+
+    public TimeSlot getTimeSlot() {
+        return timeSlot;
+    }
+
+    public double getSatisfaction() {
+        return satisfaction;
     }
 
     @Override

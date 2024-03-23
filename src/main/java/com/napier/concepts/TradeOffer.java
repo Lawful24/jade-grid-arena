@@ -1,10 +1,10 @@
-package com.napier;
+package com.napier.concepts;
 
 import jade.core.AID;
 
 import java.io.Serializable;
 
-public record TradeOffer(
+public record TradeOffer (
         AID requesterAgent,
         AID receiverAgent,
         TimeSlot timeSlotOffered,

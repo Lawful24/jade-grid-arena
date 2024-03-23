@@ -1,8 +1,9 @@
-package com.napier;
+package com.napier.concepts;
 
+import com.napier.concepts.TimeSlot;
 import jade.core.AID;
 
-public record Transaction(
+public record Transaction (
         AID requester,
         AID receiver,
         TimeSlot requested,

@@ -1,5 +1,9 @@
-package com.napier;
+package com.napier.singletons;
 
+import com.napier.AgentHelper;
+import com.napier.agents.HouseholdAgent;
+import com.napier.concepts.TradeOffer;
+import com.napier.concepts.Transaction;
 import jade.core.behaviours.Behaviour;
 import jade.lang.acl.ACLMessage;
 

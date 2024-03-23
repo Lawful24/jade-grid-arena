@@ -1,5 +1,10 @@
 package com.napier;
 
+import com.napier.concepts.AgentContact;
+import com.napier.concepts.TimeSlot;
+import com.napier.concepts.TimeSlotSatisfactionPair;
+import com.napier.singletons.RunConfigurationSingleton;
+import com.napier.types.AgentStrategyType;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.domain.DFService;
@@ -292,9 +297,9 @@ public class AgentHelper {
         for (int i = 1; i < satisfactionCurve.length; i++) {
             for (TimeSlot timeSlot: nonRequestedTimeSlots) {
                 for (TimeSlotSatisfactionPair pair: tempTimeSlotSatisfactions) {
-                    if (pair.timeSlot == timeSlot) {
-                        if (pair.satisfaction == satisfactionCurve[i]) {
-                            satisfaction += pair.satisfaction;
+                    if (pair.getTimeSlot() == timeSlot) {
+                        if (pair.getSatisfaction() == satisfactionCurve[i]) {
+                            satisfaction += pair.getSatisfaction();
                             TimeSlot timeSlotOver = new TimeSlot(timeSlot.getStartHour() + i);
                             TimeSlot timeSlotUnder = new TimeSlot(timeSlot.getStartHour() - i);
 

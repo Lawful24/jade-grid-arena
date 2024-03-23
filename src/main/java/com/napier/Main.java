@@ -1,5 +1,10 @@
 package com.napier;
 
+import com.napier.agents.AdvertisingBoardAgent;
+import com.napier.agents.HouseholdAgent;
+import com.napier.agents.TickerAgent;
+import com.napier.singletons.RunConfigurationSingleton;
+import com.napier.types.ExchangeType;
 import jade.core.Profile;
 import jade.core.ProfileImpl;
 import jade.core.Runtime;

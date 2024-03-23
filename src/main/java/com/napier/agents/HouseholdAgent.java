@@ -1,5 +1,11 @@
-package com.napier;
+package com.napier.agents;
 
+import com.napier.*;
+import com.napier.concepts.*;
+import com.napier.singletons.RunConfigurationSingleton;
+import com.napier.singletons.SmartContract;
+import com.napier.types.AgentStrategyType;
+import com.napier.types.ExchangeType;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
@@ -818,8 +824,6 @@ public class HouseholdAgent extends Agent {
 
             if (proposalReplyMessage != null) {
                 if (proposalReplyMessage.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
-                    System.out.println("performative: " + proposalReplyMessage.getPerformative());
-                    System.out.println("sent by: " + proposalReplyMessage.getSender().getLocalName() + " to: " + myAgent.getLocalName());
                     // Make sure the incoming object is readable
                     Serializable incomingObject = null;
 
