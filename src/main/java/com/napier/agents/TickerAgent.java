@@ -101,6 +101,8 @@ public class TickerAgent extends Agent {
                     }
 
                     if (currentDay == 1) {
+                        AgentHelper.printAgentLog(myAgent.getLocalName(), "Started Run " + currentSimulationRun + "/" + config.getNumOfSimulationRuns() + ", Exchange Type: " + config.getExchangeType());
+
                         AgentHelper.sendMessage(
                                 myAgent,
                                 allAgents,
@@ -183,7 +185,6 @@ public class TickerAgent extends Agent {
             }
 
             if (currentDayAfterTakeover == config.getAdditionalDays()) {
-                AgentHelper.printAgentLog(myAgent.getLocalName(), currentSimulationRun + "/" + config.getNumOfSimulationRuns() + " runs ended.");
                 // TODO: print run stats here (maybe in a method)
                 // - days it took
                 // - what kind of takeover was it
