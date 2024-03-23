@@ -1,6 +1,5 @@
 package com.napier.concepts;
 
-import com.napier.concepts.TimeSlot;
 import jade.core.AID;
 
 public record Transaction (

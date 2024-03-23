@@ -148,7 +148,7 @@ public class RunConfigurationSingleton {
         return this.selectedSingleAgentType;
     }
 
-    public boolean doesUtiliseSocialCapital() {
+    public boolean doesUtiliseSocialCapita() {
         return this.doesUtiliseSocialCapital;
     }
 

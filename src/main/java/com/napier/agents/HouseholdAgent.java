@@ -25,10 +25,9 @@ public class HouseholdAgent extends Agent {
     private ArrayList<TimeSlot> allocatedTimeSlots;
     private ArrayList<TimeSlotSatisfactionPair> timeSlotSatisfactionPairs;
     private HashMap<String, Integer> favours;
-    private boolean isExchangeRequestApproved;
-    private int totalSocialCapital; // TODO: rename these to SocialCapita
-    private int numOfDailyExchangesWithSocialCapital;
-    private int numOfDailyExchangesWithoutSocialCapital;
+    private int totalSocialCapita;
+    private int numOfDailyExchangesWithSocialCapita;
+    private int numOfDailyExchangesWithoutSocialCapita;
     private int numOfDailyRejectedReceivedExchanges;
     private int numOfDailyRejectedRequestedExchanges;
     private int numOfDailyAcceptedRequestedExchanges;
@@ -39,7 +38,6 @@ public class HouseholdAgent extends Agent {
     // Agent contact attributes
     private AID tickerAgent;
     private AID advertisingAgent;
-    private ArrayList<AgentContact> householdAgentContacts;
 
     @Override
     protected void setup() {
@@ -91,8 +89,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public void action() {
-            // Populate the contact collections
-            householdAgentContacts = AgentHelper.saveAgentContacts(myAgent, "Household");
+            AgentHelper.saveAgentContacts(myAgent, "Household");
         }
     }
 
@@ -145,8 +142,8 @@ public class HouseholdAgent extends Agent {
         @Override
         public void reset() {
             super.reset();
-            numOfDailyExchangesWithSocialCapital = 0;
-            numOfDailyExchangesWithoutSocialCapital = 0;
+            numOfDailyExchangesWithSocialCapita = 0;
+            numOfDailyExchangesWithoutSocialCapita = 0;
             numOfDailyRejectedReceivedExchanges = 0;
             numOfDailyRejectedRequestedExchanges = 0;
             numOfDailyAcceptedRequestedExchanges = 0;
@@ -464,7 +461,7 @@ public class HouseholdAgent extends Agent {
                             // The content of the incoming message is a boolean that carries the information whether
                             // the requesting party should lose social capita following the trade.
                             if (Boolean.parseBoolean(interestResultMessage.getConversationId())) {
-                                totalSocialCapital--;
+                                totalSocialCapita--;
                             }
 
                             // Send a message to the Advertising agent to forward to the receiving Household agent
@@ -601,7 +598,7 @@ public class HouseholdAgent extends Agent {
                     boolean doesReceiverAgentGainSocialCapita = Boolean.parseBoolean(incomingSyncMessage.getConversationId());
 
                     if (doesReceiverAgentGainSocialCapita) {
-                        totalSocialCapital++;
+                        totalSocialCapita++;
                     }
                 }
 
@@ -852,7 +849,7 @@ public class HouseholdAgent extends Agent {
                             // The content of the incoming message is a boolean that carries the information whether
                             // the requesting party should lose social capita following the trade.
                             if (Boolean.parseBoolean(proposalReplyMessage.getConversationId())) {
-                                totalSocialCapital--;
+                                totalSocialCapita--;
                             }
 
                             AgentHelper.sendMessage(
@@ -1021,9 +1018,9 @@ public class HouseholdAgent extends Agent {
         this.allocatedTimeSlots = new ArrayList<>();
         this.timeSlotSatisfactionPairs = new ArrayList<>();
         this.favours = new HashMap<>();
-        this.totalSocialCapital = 0;
-        this.numOfDailyExchangesWithSocialCapital = 0;
-        this.numOfDailyExchangesWithoutSocialCapital = 0;
+        this.totalSocialCapita = 0;
+        this.numOfDailyExchangesWithSocialCapita = 0;
+        this.numOfDailyExchangesWithoutSocialCapita = 0;
         this.numOfDailyRejectedReceivedExchanges = 0;
         this.numOfDailyRejectedRequestedExchanges = 0;
         this.numOfDailyAcceptedRequestedExchanges = 0;
@@ -1036,7 +1033,7 @@ public class HouseholdAgent extends Agent {
      * each other Agent.
      */
     private void initializeFavoursStore() {
-        if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapital()) {
+        if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapita()) {
             if (!this.favours.isEmpty()) {
                 this.favours.clear();
             }
@@ -1078,17 +1075,17 @@ public class HouseholdAgent extends Agent {
                 // with the Agent who made the request.
                 if (Double.compare(potentialSatisfaction, currentSatisfaction) > 0) {
                     exchangeRequestApproved = true;
-                    this.numOfDailyExchangesWithoutSocialCapital++;
+                    this.numOfDailyExchangesWithoutSocialCapita++;
                 } else if (Double.compare(potentialSatisfaction, currentSatisfaction) == 0) {
-                    if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapital()) {
+                    if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapita()) {
                         if (favours.get(offer.requesterAgent().getLocalName()) < 0) {
                             exchangeRequestApproved = true;
-                            this.numOfDailyExchangesWithSocialCapital++;
+                            this.numOfDailyExchangesWithSocialCapita++;
                         }
                     } else {
                         // When social capital isn't used, social agents always accept neutral exchanges.
                         exchangeRequestApproved = true;
-                        this.numOfDailyExchangesWithoutSocialCapital++;
+                        this.numOfDailyExchangesWithoutSocialCapita++;
                     }
                 }
             } else {
@@ -1096,7 +1093,7 @@ public class HouseholdAgent extends Agent {
                 // Selfish Agents only accept offers that improve their individual satisfaction.
                 if (Double.compare(potentialSatisfaction, currentSatisfaction) > 0) {
                     exchangeRequestApproved = true;
-                    this.numOfDailyExchangesWithoutSocialCapital++;
+                    this.numOfDailyExchangesWithoutSocialCapita++;
                 }
             }
 
@@ -1127,7 +1124,7 @@ public class HouseholdAgent extends Agent {
         double newSatisfaction = AgentHelper.calculateSatisfaction(this.allocatedTimeSlots, this.requestedTimeSlots);
 
         // Update the Agents relationship with the other Agent involved in the exchange.
-        if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapital()) {
+        if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapita()) {
             if (Double.compare(newSatisfaction, previousSatisfaction) <= 0 && this.agentType == AgentStrategyType.SOCIAL) {
                 int currentNumberOfFavours = this.favours.get(offer.requesterAgent().getLocalName());
 
@@ -1159,7 +1156,7 @@ public class HouseholdAgent extends Agent {
         double newSatisfaction = AgentHelper.calculateSatisfaction(this.allocatedTimeSlots, this.requestedTimeSlots);
 
         // Update the Agents relationship with the other Agent involved in the exchange.
-        if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapital()) {
+        if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapita()) {
             if (Double.compare(newSatisfaction, previousSatisfaction) > 0 && this.agentType == AgentStrategyType.SOCIAL) {
                 int currentNumberOfFavours = this.favours.get(offer.receiverAgent().getLocalName());
 
@@ -1175,6 +1172,6 @@ public class HouseholdAgent extends Agent {
     }
 
     public void incrementTotalSocialCapita() {
-        this.totalSocialCapital++;
+        this.totalSocialCapita++;
     }
 }

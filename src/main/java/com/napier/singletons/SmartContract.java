@@ -57,7 +57,9 @@ public class SmartContract {
                         ACLMessage incomingSyncMessage = AgentHelper.receiveMessage(myAgent, acceptedTradeOffer.requesterAgent(), ACLMessage.INFORM_IF);
 
                         if (incomingSyncMessage != null) {
-                            doesReceiverGainSocialCapita[0] = Boolean.parseBoolean(incomingSyncMessage.getConversationId());
+                            if (Boolean.parseBoolean(incomingSyncMessage.getConversationId())) {
+                                receiverAgentObject.incrementTotalSocialCapita();
+                            }
 
                             step++;
                         } else {
@@ -81,7 +83,7 @@ public class SmartContract {
             }
         });
 
-        if (doesReceiverGainSocialCapita[0]) {
+        if (doesReceiverGainSocialCapita[0]) { // todo: so apparently this never gets overwritten
             receiverAgentObject.incrementTotalSocialCapita();
         }
 
