@@ -6,13 +6,17 @@ import com.napier.concepts.TradeOffer;
 import com.napier.concepts.Transaction;
 import jade.core.behaviours.Behaviour;
 import jade.lang.acl.ACLMessage;
+import jade.lang.acl.UnreadableException;
 
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 
 public class SmartContract {
     private static SmartContract instance;
+    private final ArrayList<TradeOffer> unprocessedTradeOffersQueue;
 
     public static SmartContract getInstance() {
         if (instance == null) {
@@ -23,20 +27,28 @@ public class SmartContract {
     }
 
     private SmartContract() {
-
+        this.unprocessedTradeOffersQueue = new ArrayList<>();
     }
 
     public void triggerSmartContract(HouseholdAgent receiverAgentObject, TradeOffer acceptedTradeOffer) {
-        // TODO: execute the contract here
-        Transaction finalisedTransaction = finaliseExchange(receiverAgentObject, acceptedTradeOffer);
-        createNewBlock(finalisedTransaction);
+        finaliseExchange(receiverAgentObject, acceptedTradeOffer);
     }
 
-    private Transaction finaliseExchange(HouseholdAgent receiverAgentObject, TradeOffer acceptedTradeOffer) {
-        final boolean doesRequesterLoseSocialCapita = receiverAgentObject.completeReceivedExchange(acceptedTradeOffer);
-        final boolean[] doesReceiverGainSocialCapita = new boolean[1];
+    public void finishSmartContract(TradeOffer finalisedTradeOffer, boolean doesReceiverGainSocialCapita, boolean doesRequesterLoseSocialCapita) {
+        createNewBlock(new Transaction(
+                finalisedTradeOffer.requesterAgent(),
+                finalisedTradeOffer.receiverAgent(),
+                finalisedTradeOffer.timeSlotRequested(),
+                finalisedTradeOffer.timeSlotOffered(),
+                doesReceiverGainSocialCapita,
+                doesRequesterLoseSocialCapita
+        ));
+    }
 
-        receiverAgentObject.addBehaviour(new Behaviour() {
+    private void finaliseExchange(HouseholdAgent receiverAgentObject, TradeOffer acceptedTradeOffer) {
+        final boolean doesRequesterLoseSocialCapita = receiverAgentObject.completeReceivedExchange(acceptedTradeOffer);
+
+        Behaviour finaliseTradeSCBehaviour = new Behaviour() {
             private int step = 0;
 
             @Override
@@ -57,8 +69,28 @@ public class SmartContract {
                         ACLMessage incomingSyncMessage = AgentHelper.receiveMessage(myAgent, acceptedTradeOffer.requesterAgent(), ACLMessage.INFORM_IF);
 
                         if (incomingSyncMessage != null) {
-                            if (Boolean.parseBoolean(incomingSyncMessage.getConversationId())) {
-                                receiverAgentObject.incrementTotalSocialCapita();
+                            // Make sure the incoming object is readable
+                            Serializable incomingObject = null;
+
+                            try {
+                                incomingObject = incomingSyncMessage.getContentObject();
+                            } catch (UnreadableException e) {
+                                AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming acknowledged trade offer is unreadable: " + e.getMessage());
+                            }
+
+                            if (incomingObject != null) {
+                                // Make sure the incoming object is of the expected type
+                                if (incomingObject instanceof TradeOffer acknowledgedTradeOffer) {
+                                    boolean doesReceiverGainSocialCapita = Boolean.parseBoolean(incomingSyncMessage.getConversationId());
+
+                                    if (doesReceiverGainSocialCapita) {
+                                        receiverAgentObject.incrementTotalSocialCapita();
+                                    }
+
+                                    SmartContract.getInstance().finishSmartContract(acknowledgedTradeOffer, doesReceiverGainSocialCapita, doesRequesterLoseSocialCapita);
+                                } else {
+                                    AgentHelper.printAgentError(myAgent.getLocalName(), "Acknowledged trade offer cannot be processed: the received object has an incorrect type.");
+                                }
                             }
 
                             step++;
@@ -81,20 +113,9 @@ public class SmartContract {
 
                 return 0;
             }
-        });
+        };
 
-        if (doesReceiverGainSocialCapita[0]) { // todo: so apparently this never gets overwritten
-            receiverAgentObject.incrementTotalSocialCapita();
-        }
-
-        return new Transaction(
-                acceptedTradeOffer.requesterAgent(),
-                acceptedTradeOffer.receiverAgent(),
-                acceptedTradeOffer.timeSlotRequested(),
-                acceptedTradeOffer.timeSlotOffered(),
-                doesReceiverGainSocialCapita[0],
-                doesRequesterLoseSocialCapita
-        );
+        receiverAgentObject.addBehaviour(finaliseTradeSCBehaviour);
     }
 
     private void createNewBlock(Transaction transaction) {

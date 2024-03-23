@@ -101,7 +101,11 @@ public class TickerAgent extends Agent {
                     }
 
                     if (currentDay == 1) {
-                        AgentHelper.printAgentLog(myAgent.getLocalName(), "Started Run " + currentSimulationRun + "/" + config.getNumOfSimulationRuns() + ", Exchange Type: " + config.getExchangeType());
+                        AgentHelper.printAgentLog(
+                                myAgent.getLocalName(),
+                                "Started Run " + currentSimulationRun + "/" + config.getNumOfSimulationRuns()
+                                        + " with " + config.getPopulationCount() + " agents."
+                                        + " Exchange Type: " + config.getExchangeType());
 
                         AgentHelper.sendMessage(
                                 myAgent,

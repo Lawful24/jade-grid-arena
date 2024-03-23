@@ -856,6 +856,7 @@ public class HouseholdAgent extends Agent {
                                     myAgent,
                                     processedTradeOffer.receiverAgent(),
                                     Boolean.toString(doesReceiverGainSocialCapita),
+                                    processedTradeOffer,
                                     ACLMessage.INFORM_IF
                             );
 
