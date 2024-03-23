@@ -629,6 +629,7 @@ public class AdvertisingBoardAgent extends Agent {
 
             exchange.addSubBehaviour(new NewAdvertListenerBehaviour(myAgent));
             exchange.addSubBehaviour(new InterestListenerSCBehaviour(myAgent));
+            exchange.addSubBehaviour(new StartedTradesOutcomeSCListener(myAgent));
             exchange.addSubBehaviour(new ExchangeRoundOverListener(myAgent));
 
             myAgent.addBehaviour(exchange);
@@ -811,6 +812,66 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
+    public class StartedTradesOutcomeSCListener extends Behaviour {
+        private int numOfOutcomesReceived = 0;
+
+        public StartedTradesOutcomeSCListener(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            if (numOfTradesStarted > 0) {
+                ACLMessage tradeOutcomeMessage = AgentHelper.receiveMessage(myAgent, "Trade Outcome");
+
+                if (tradeOutcomeMessage != null) {
+                    // Make sure the incoming object is readable
+                    Serializable incomingObject = null;
+
+                    try {
+                        incomingObject = tradeOutcomeMessage.getContentObject();
+                    } catch (UnreadableException e) {
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming started trade offer is unreadable: " + e.getMessage());
+                    }
+
+                    if (incomingObject != null) {
+                        if (!incomingObject.equals("Rejected")) {
+                            // Make sure the incoming object is of the expected type
+                            if (incomingObject instanceof TradeOffer acceptedTradeOffer) {
+                                // Handle the accepted trade offer
+                                // Remove the traded timeslots from the adverts
+                                adverts.get(tradeOutcomeMessage.getSender()).remove(acceptedTradeOffer.timeSlotOffered());
+                                adverts.get(acceptedTradeOffer.receiverAgent()).remove(acceptedTradeOffer.timeSlotRequested());
+
+                                numOfSuccessfulExchanges++;
+                            } else {
+                                AgentHelper.printAgentError(myAgent.getLocalName(), "Started trade offer cannot be processed: the received object has an incorrect type.");
+                            }
+                        }
+                    }
+
+                    numOfOutcomesReceived++;
+                } else {
+                    block();
+                }
+            }
+        }
+
+        @Override
+        public boolean done() {
+            return numOfOutcomesReceived == numOfTradesStarted;
+        }
+
+        @Override
+        public int onEnd() {
+            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+                AgentHelper.printAgentLog(myAgent.getLocalName(), "done updating adverts based on started trades");
+            }
+
+            return 0;
+        }
+    }
+
     public class ExchangeRoundOverListener extends Behaviour {
         private int numOfHouseholdAgentsFinished = 0;
 
@@ -867,8 +928,6 @@ public class AdvertisingBoardAgent extends Agent {
                                 " | Successful exchanges: " + numOfSuccessfulExchanges
                 );
             }
-
-            // TODO: find a way to track the number of successful exchanges for SC mode
 
             if (numOfSuccessfulExchanges == 0) {
                 exchangeTimeout++;

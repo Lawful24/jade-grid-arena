@@ -34,7 +34,7 @@ public class HouseholdAgent extends Agent {
     private int numOfDailyAcceptedRequestedExchanges;
     private double[] dailyDemandCurve;
     private double dailyDemandValue;
-    private String currentExchangeTradeOfferString;
+    private boolean isTradeStarted;
 
     // Agent contact attributes
     private AID tickerAgent;
@@ -670,7 +670,8 @@ public class HouseholdAgent extends Agent {
         public void reset() {
             super.reset();
 
-            currentExchangeTradeOfferString = "";
+            isTradeStarted = false;
+            // TODO
         }
     }
 
@@ -708,6 +709,7 @@ public class HouseholdAgent extends Agent {
                                     ACLMessage.PROPOSE
                             );
 
+                            isTradeStarted = true;
                             myAgent.addBehaviour(new TradeOfferResponseListenerSCBehaviour(myAgent));
                         } else {
                             AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be handled: the received object has an incorrect type.");
@@ -716,7 +718,9 @@ public class HouseholdAgent extends Agent {
                 } else if (interestResultMessage.getPerformative() == ACLMessage.CANCEL) {
                     numOfDailyRejectedRequestedExchanges++; // TODO: this cannot occur here, find a way so it can
                 } else {
-                    myAgent.addBehaviour(new FinishSCExchangeRoundBehaviour(myAgent));
+                    // Skip to the end of the exchange if did not find any requested slots in the adverts
+                    //myAgent.addBehaviour(new FinishExchangeRoundSCBehaviour(myAgent));
+                    // TODO: wrong. get here if did not find any requested slots OR another agent already triggered the made interaction flag
                 }
 
                 resultReceived = true;
@@ -749,7 +753,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public void action() {
-            ACLMessage tradeOfferMessage = AgentHelper.receiveMessage(myAgent, "New Offer");
+            ACLMessage tradeOfferMessage = AgentHelper.receiveMessage(myAgent, "New Offer", "No Expected Offers This Round");
 
             if (tradeOfferMessage != null) {
                 if (!tradeOfferMessage.getConversationId().equals("No Expected Offers This Round")) {
@@ -776,18 +780,22 @@ public class HouseholdAgent extends Agent {
                                         myAgent,
                                         tradeOfferMessage.getSender(),
                                         "Trade Offer Response",
+                                        observableTradeOffer,
                                         ACLMessage.REJECT_PROPOSAL
                                 );
-
-                                myAgent.addBehaviour(new FinishSCExchangeRoundBehaviour(myAgent));
                             }
+
+                            // Finish the current round of exchange after considering the trade
+                            myAgent.addBehaviour(new FinishExchangeRoundSCBehaviour(myAgent));
                         } else {
                             AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be answered: the received object has an incorrect type.");
                         }
                     }
                 } else {
-                    System.out.println("notified");
-                    myAgent.addBehaviour(new FinishSCExchangeRoundBehaviour(myAgent));
+                    // This happens when the agent receives no trade requests
+                    if (!isTradeStarted) {
+                        myAgent.addBehaviour(new FinishExchangeRoundSCBehaviour(myAgent));
+                    }
                 }
 
                 proposalProcessed = true;
@@ -823,6 +831,8 @@ public class HouseholdAgent extends Agent {
             ACLMessage proposalReplyMessage = AgentHelper.receiveProposalReply(myAgent);
 
             if (proposalReplyMessage != null) {
+                Serializable processedTradeOfferObject = "Rejected";
+
                 if (proposalReplyMessage.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
                     // Make sure the incoming object is readable
                     Serializable incomingObject = null;
@@ -835,8 +845,8 @@ public class HouseholdAgent extends Agent {
 
                     if (incomingObject != null) {
                         // Make sure the incoming object is of the expected type
-                        if (incomingObject instanceof TradeOffer acceptedTradeOffer) {
-                            boolean doesReceiverGainSocialCapita = completeRequestedExchange(acceptedTradeOffer);
+                        if (incomingObject instanceof TradeOffer processedTradeOffer) {
+                            boolean doesReceiverGainSocialCapita = completeRequestedExchange(processedTradeOffer);
 
                             // Adjust the agent's properties based on the trade offer
                             // The content of the incoming message is a boolean that carries the information whether
@@ -847,17 +857,27 @@ public class HouseholdAgent extends Agent {
 
                             AgentHelper.sendMessage(
                                     myAgent,
-                                    acceptedTradeOffer.receiverAgent(),
+                                    processedTradeOffer.receiverAgent(),
                                     Boolean.toString(doesReceiverGainSocialCapita),
                                     ACLMessage.INFORM_IF
                             );
+
+                            processedTradeOfferObject = processedTradeOffer;
                         } else {
                             AgentHelper.printAgentError(myAgent.getLocalName(), "Accepted trade offer cannot be processed: the received object has an incorrect type.");
                         }
                     }
                 }
 
-                myAgent.addBehaviour(new FinishSCExchangeRoundBehaviour(myAgent));
+                AgentHelper.sendMessage(
+                        myAgent,
+                        advertisingAgent,
+                        "Trade Outcome",
+                        processedTradeOfferObject,
+                        ACLMessage.INFORM
+                );
+
+                myAgent.addBehaviour(new FinishExchangeRoundSCBehaviour(myAgent));
 
                 proposalReplyReceived = true;
             } else {
@@ -880,8 +900,8 @@ public class HouseholdAgent extends Agent {
         }
     }
 
-    public class FinishSCExchangeRoundBehaviour extends OneShotBehaviour {
-        public FinishSCExchangeRoundBehaviour(Agent a) {
+    public class FinishExchangeRoundSCBehaviour extends OneShotBehaviour {
+        public FinishExchangeRoundSCBehaviour(Agent a) {
             super(a);
         }
 

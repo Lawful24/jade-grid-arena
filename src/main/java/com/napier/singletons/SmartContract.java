@@ -95,13 +95,6 @@ public class SmartContract {
         );
     }
 
-    private void removeTimeslotsFromAdverts(HouseholdAgent receiverAgentObject) {
-        // TODO: have a flag in the agent class that says: is trade accepted
-        // TODO: if the flag is true during the exchange round finish behaviour, a text representation of the trade offer should be sent to the advertising agent
-        // TODO: which then takes remove the affected timeslots
-        // TODO: this could be carried out by the requester too but it makes more sense to execute from the smart contract
-    }
-
     private void createNewBlock(Transaction transaction) {
         String transactionString = transaction.toString();
         byte[] hashByteArray = null;
