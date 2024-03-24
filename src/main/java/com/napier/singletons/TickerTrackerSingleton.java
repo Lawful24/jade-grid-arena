@@ -26,6 +26,15 @@ public class TickerTrackerSingleton {
         return currentDay;
     }
 
+    public void resetDayTracking() {
+        this.currentDay = 0;
+    }
+
+    public void resetTracking() {
+        this.currentSimulationRun = 0;
+        this.currentDay = 0;
+    }
+
     public void incrementCurrentSimulationRun() {
         this.currentSimulationRun++;
     }

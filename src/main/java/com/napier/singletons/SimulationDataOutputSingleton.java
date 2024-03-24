@@ -1,7 +1,6 @@
 package com.napier.singletons;
 
-import com.napier.concepts.AgentStatisticalValues;
-import com.napier.concepts.TimeSlot;
+import com.napier.concepts.AgentStatisticalValuesPerStrategyType;
 import com.napier.types.AgentStrategyType;
 
 import java.io.File;
@@ -237,10 +236,10 @@ public class SimulationDataOutputSingleton {
             double averageSelfishSatisfaction,
             double averageSocialSatisfactionStandardDeviation,
             double averageSelfishSatisfactionStandardDeviation,
-            AgentStatisticalValues socialStatisticalValues,
-            AgentStatisticalValues selfishStatisticalValues,
+            AgentStatisticalValuesPerStrategyType socialStatisticalValues,
+            AgentStatisticalValuesPerStrategyType selfishStatisticalValues,
             double initialRandomAllocationAverageSatisfaction,
-            double optimumAverageSatisfactionPossible
+            double optimumAveragePossibleSatisfaction
     ) {
         try {
             // TODO: Cite Arena code
@@ -252,20 +251,20 @@ public class SimulationDataOutputSingleton {
             this.dailyDataCSVWriter.append(String.valueOf(averageSelfishSatisfaction)).append(",");
             this.dailyDataCSVWriter.append(String.valueOf(averageSocialSatisfactionStandardDeviation)).append(",");
             this.dailyDataCSVWriter.append(String.valueOf(averageSelfishSatisfactionStandardDeviation)).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.uq())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.uq())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.lq())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.lq())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.ninetyfifth())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.ninetyfifth())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.max())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.max())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.min())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.min())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.median())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.median())).append(",");
+            this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.getUpperQuarter())).append(",");
+            this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.getUpperQuarter())).append(",");
+            this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.getLowerQuarter())).append(",");
+            this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.getLowerQuarter())).append(",");
+            this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.getNinetyFifthPercentile())).append(",");
+            this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.getNinetyFifthPercentile())).append(",");
+            this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.getMax())).append(",");
+            this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.getMax())).append(",");
+            this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.getMin())).append(",");
+            this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.getMin())).append(",");
+            this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.getMedian())).append(",");
+            this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.getMedian())).append(",");
             this.dailyDataCSVWriter.append(String.valueOf(initialRandomAllocationAverageSatisfaction)).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(optimumAverageSatisfactionPossible)).append("\n");
+            this.dailyDataCSVWriter.append(String.valueOf(optimumAveragePossibleSatisfaction)).append("\n");
         } catch (IOException e) {
             System.err.println("Error while trying to append data to the day data file.");
         }

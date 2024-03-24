@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static java.lang.Math.sqrt;
+
 public class AgentHelper {
     // TODO: Cite JADE workbook or JADE documentation
     public static void registerAgent(Agent a, String agentClass) {
@@ -322,6 +324,52 @@ public class AgentHelper {
     }
 
     // TODO: Cite Arena code
+    /**
+     * Takes all Agents individual satisfactions and calculates the average satisfaction of all Agents in the
+     * simulation.
+     *
+     * @param householdAgentContacts Array List of all the agents that exist in the current simulation.
+     * @return Double Returns the average satisfaction between 0 and 1 of all agents in the simulation.
+     */
+    public static double calculateCurrentAverageAgentSatisfaction(ArrayList<AgentContact> householdAgentContacts) {
+        ArrayList<Double> agentSatisfactions = new ArrayList<>();
+
+        for (AgentContact householdAgentContact : householdAgentContacts) {
+            agentSatisfactions.add(householdAgentContact.getCurrentSatisfaction());
+        }
+
+        return agentSatisfactions.stream().mapToDouble(val -> val).average().orElse(0.0);
+    }
+
+    // TODO: Cite Arena code
+    /**
+     * Returns the optimum average satisfaction possible for all agents given the current requests and allocations in
+     * the simulation.
+     *
+     * @param householdAgentContacts Array List of all the agents that exist in the current simulation.
+     * @return Double Returns the highest possible average satisfaction between 0 and 1 of all agents in the simulation.
+     */
+    public static double calculateOptimumPossibleSatisfaction(ArrayList<TimeSlot> allAllocatedTimeSlots, ArrayList<TimeSlot> allRequestedTimeSlots) {
+        // Stores the number of slots that could potentially be fulfilled with perfect trading.
+        double satisfiedSlots = 0;
+
+        // Stores the total number of slots requested by all Agents.
+        double totalSlots = allRequestedTimeSlots.size();
+
+        for (TimeSlot timeSlot : allRequestedTimeSlots) {
+            if (allAllocatedTimeSlots.contains(timeSlot)) {
+                // For each request, if it has been allocated to any agent, increase the number of satisfied slots.
+                satisfiedSlots++;
+
+                // Remove the slot from the list of all allocated slots so no slots can be allocated twice.
+                allAllocatedTimeSlots.remove(timeSlot);
+            }
+        }
+
+        return satisfiedSlots / totalSlots;
+    }
+
+    // TODO: Cite Arena code
     public static ArrayList<TimeSlotSatisfactionPair> calculateSatisfactionPerSlot(ArrayList<TimeSlot> requestedTimeSlots) {
         ArrayList<TimeSlotSatisfactionPair> timeSlotSatisfactionPairs = new ArrayList<>();
         double[] satisfactionCurve = RunConfigurationSingleton.getInstance().getSatisfactionCurve();
@@ -352,5 +400,35 @@ public class AgentHelper {
         }
 
         return timeSlotSatisfactionPairs;
+    }
+
+    // TODO: Cite Arena code
+    /**
+     * Takes all Agents of a given types individual satisfactions and calculates the variance between the average
+     * satisfaction of the Agents of that type.
+     *
+     * @param agentContacts Array List of all the agents that exist in the current simulation.
+     * @param agentType The type for which to calculate the variance between the average satisfactions of all Agents of
+     *                  that type.
+     * @return Double Returns the variance between the average satisfactions of all agents of the given type.
+     */
+    public static double averageSatisfactionStandardDeviation(ArrayList<AgentContact> agentContacts, AgentStrategyType agentType, double averageOverallSatisfaction) {
+        double sumDiffsSquared = 0.0;
+        int groupSize = 0;
+
+        for (AgentContact agentContact : agentContacts) {
+            if (agentContact.getType() == agentType) {
+                double diff = agentContact.getCurrentSatisfaction() - averageOverallSatisfaction;
+                diff *= diff;
+                sumDiffsSquared += diff;
+                groupSize++;
+            }
+        }
+
+        if (groupSize == 0) {
+            return 0.0;
+        }
+
+        return sqrt(sumDiffsSquared / (double)(groupSize));
     }
 }

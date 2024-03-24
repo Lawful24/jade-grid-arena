@@ -3,6 +3,9 @@ package com.napier.agents;
 import com.napier.*;
 import com.napier.concepts.*;
 import com.napier.singletons.RunConfigurationSingleton;
+import com.napier.singletons.SimulationDataOutputSingleton;
+import com.napier.singletons.TickerTrackerSingleton;
+import com.napier.types.AgentStrategyType;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
@@ -17,10 +20,15 @@ import java.util.*; // TODO: get rid of the wildcard import
 
 public class AdvertisingBoardAgent extends Agent {
     private ArrayList<TimeSlot> availableTimeSlots;
+    private HashMap<AID, ArrayList<TimeSlot>> initialRandomAllocatedTimeSlots;
+    private HashMap<AID, ArrayList<TimeSlot>> requestedTimeSlots;
+    private double initialRandomAllocationAverageSatisfaction;
+    private double optimumAveragePossibleSatisfaction;
     private HashMap<AID, ArrayList<TimeSlot>> adverts;
     private int numOfTradesStarted;
     private int numOfSuccessfulExchanges;
     private ArrayList<AID> agentsToNotify;
+    private int exchangeRound;
     private int exchangeTimeout;
 
     // Agent contact attributes
@@ -115,8 +123,14 @@ public class AdvertisingBoardAgent extends Agent {
         @Override
         public void reset() {
             super.reset();
+
             availableTimeSlots.clear();
+            initialRandomAllocatedTimeSlots.clear();
+            requestedTimeSlots.clear();
+            initialRandomAllocationAverageSatisfaction = 0;
+            optimumAveragePossibleSatisfaction = 0;
             adverts.clear();
+            exchangeRound = 1;
             exchangeTimeout = 0;
         }
     }
@@ -190,6 +204,8 @@ public class AdvertisingBoardAgent extends Agent {
                         new SerializableTimeSlotArray(initialTimeSlots),
                         ACLMessage.INFORM
                 );
+
+                initialRandomAllocatedTimeSlots.put(contact.getAgentIdentifier(), new ArrayList<>(Arrays.asList(initialTimeSlots)));
             }
         }
     }
@@ -341,6 +357,8 @@ public class AdvertisingBoardAgent extends Agent {
                                 TimeSlot targetTimeSlot = null;
                                 AID targetOwner = null;
 
+                                requestedTimeSlots.put(interestMessage.getSender(), new ArrayList<>(Arrays.asList(desiredTimeSlots)));
+
                                 // TODO: Cite Arena code
                                 ArrayList<AID> shuffledAdvertPosters = new ArrayList<>(adverts.keySet());
 
@@ -451,6 +469,30 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public int onEnd() {
+            if (exchangeRound == 1) {
+                // TODO: Cite Arena code
+                ArrayList<TimeSlot> allAllocatedTimeSlots = new ArrayList<>();
+                ArrayList<TimeSlot> allRequestedTimeSlots = new ArrayList<>();
+
+                for (AgentContact householdAgentContact : householdAgentContacts) {
+                    ArrayList<TimeSlot> householdInitialRandomAllocatedTimeSlots = initialRandomAllocatedTimeSlots.get(householdAgentContact.getAgentIdentifier());
+                    ArrayList<TimeSlot> householdRequestedTimeSlots = requestedTimeSlots.get(householdAgentContact.getAgentIdentifier());
+
+                    householdAgentContact.setCurrentSatisfaction(AgentHelper.calculateSatisfaction
+                            (
+                                    householdInitialRandomAllocatedTimeSlots,
+                                    householdRequestedTimeSlots
+                            )
+                    );
+
+                    allAllocatedTimeSlots.addAll(householdInitialRandomAllocatedTimeSlots);
+                    allRequestedTimeSlots.addAll(householdRequestedTimeSlots);
+                }
+
+                initialRandomAllocationAverageSatisfaction = AgentHelper.calculateCurrentAverageAgentSatisfaction(householdAgentContacts);
+                optimumAveragePossibleSatisfaction = AgentHelper.calculateOptimumPossibleSatisfaction(allAllocatedTimeSlots, allRequestedTimeSlots);
+            }
+
             if (RunConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "done processing cfps");
             }
@@ -693,6 +735,8 @@ public class AdvertisingBoardAgent extends Agent {
                                 TimeSlot targetTimeSlot = null;
                                 AID targetOwner = null;
 
+                                requestedTimeSlots.put(interestMessage.getSender(), new ArrayList<>(Arrays.asList(desiredTimeSlots)));
+
                                 // TODO: Cite Arena code
                                 ArrayList<AID> shuffledAdvertPosters = new ArrayList<>(adverts.keySet());
 
@@ -923,7 +967,7 @@ public class AdvertisingBoardAgent extends Agent {
             if (RunConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(
                         myAgent.getLocalName(),
-                        "Exchange round over." +
+                        "Exchange round " + exchangeRound +  " over." +
                                 " | Trades started: " + numOfTradesStarted +
                                 " | Successful exchanges: " + numOfSuccessfulExchanges
                 );
@@ -944,11 +988,12 @@ public class AdvertisingBoardAgent extends Agent {
 
                 myAgent.addBehaviour(endOfDaySequence);
             } else {
+                exchangeRound++;
+
                 switch (RunConfigurationSingleton.getInstance().getExchangeType()) {
                     case MessagePassing -> myAgent.addBehaviour(new InitiateExchangeBehaviour(myAgent));
                     case SmartContract -> myAgent.addBehaviour(new InitiateSCExchangeBehaviour(myAgent));
                 }
-
             }
 
             return 0;
@@ -1083,6 +1128,8 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public void action() {
+            RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+
             AgentHelper.sendMessage(
                     myAgent,
                     tickerAgent,
@@ -1090,19 +1137,55 @@ public class AdvertisingBoardAgent extends Agent {
                     new SerializableAgentContactList(new ArrayList<>(householdAgentContacts)),
                     ACLMessage.INFORM
             );
+
+            double overallRunSatisfactionSum = 0;
+            double socialAgentsRunSatisfactionSum = 0;
+            int numOfSocialAgents = 0;
+
+            for (AgentContact householdAgentContact : householdAgentContacts) {
+                if (householdAgentContact.getType() == AgentStrategyType.SOCIAL) {
+                    socialAgentsRunSatisfactionSum += householdAgentContact.getCurrentSatisfaction();
+                    numOfSocialAgents++;
+                }
+
+                overallRunSatisfactionSum += householdAgentContact.getCurrentSatisfaction();
+            }
+
+            SimulationDataOutputSingleton.getInstance().appendDailyData(
+                    TickerTrackerSingleton.getInstance().getCurrentSimulationRun(),
+                    TickerTrackerSingleton.getInstance().getCurrentDay(),
+                    numOfSocialAgents,
+                    config.getPopulationCount() - numOfSocialAgents,
+                    socialAgentsRunSatisfactionSum / (double)config.getPopulationCount(),
+                    (overallRunSatisfactionSum - socialAgentsRunSatisfactionSum) / (double)config.getPopulationCount(), // TODO: is this correct?,
+                    AgentHelper.averageSatisfactionStandardDeviation(householdAgentContacts, AgentStrategyType.SOCIAL, overallRunSatisfactionSum / (double)config.getPopulationCount()),
+                    AgentHelper.averageSatisfactionStandardDeviation(householdAgentContacts, AgentStrategyType.SELFISH, overallRunSatisfactionSum / (double)config.getPopulationCount()),
+                    new AgentStatisticalValuesPerStrategyType(
+                            householdAgentContacts,
+                            AgentStrategyType.SOCIAL
+                    ),
+                    new AgentStatisticalValuesPerStrategyType(
+                            householdAgentContacts,
+                            AgentStrategyType.SELFISH
+                    ),
+                    initialRandomAllocationAverageSatisfaction,
+                    optimumAveragePossibleSatisfaction
+            );
         }
     }
 
     private void initialAgentSetup() {
-        availableTimeSlots = new ArrayList<>();
-        adverts = new HashMap<>();
-        numOfTradesStarted = 0;
-        numOfSuccessfulExchanges = 0;
-        agentsToNotify = new ArrayList<>();
-        exchangeTimeout = 0;
+        this.availableTimeSlots = new ArrayList<>();
+        this.initialRandomAllocatedTimeSlots = new HashMap<>();
+        this.adverts = new HashMap<>();
+        this.requestedTimeSlots = new HashMap<>();
+        this.numOfTradesStarted = 0;
+        this.numOfSuccessfulExchanges = 0;
+        this.agentsToNotify = new ArrayList<>();
+        this.exchangeTimeout = 0;
 
-        householdAgentContacts = new ArrayList<>();
-        householdAgentsInteractions = new HashMap<>();
+        this.householdAgentContacts = new ArrayList<>();
+        this.householdAgentsInteractions = new HashMap<>();
     }
 
     private ArrayList<AID> getHouseholdAgentAIDList() {

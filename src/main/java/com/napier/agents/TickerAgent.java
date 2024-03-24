@@ -2,9 +2,11 @@ package com.napier.agents;
 
 import com.napier.concepts.AgentContact;
 import com.napier.AgentHelper;
+import com.napier.concepts.AgentStatisticalValuesPerStrategyType;
 import com.napier.concepts.SerializableAgentContactList;
 import com.napier.singletons.BlockchainSingleton;
 import com.napier.singletons.RunConfigurationSingleton;
+import com.napier.singletons.SimulationDataOutputSingleton;
 import com.napier.singletons.TickerTrackerSingleton;
 import com.napier.types.AgentStrategyType;
 import jade.core.AID;
@@ -116,6 +118,7 @@ public class TickerAgent extends Agent {
                         );
 
                         TickerTrackerSingleton.getInstance().incrementCurrentSimulationRun();
+                        TickerTrackerSingleton.getInstance().resetDayTracking();
                     } else {
                         // Broadcast the start of the new day to other agents
                         AgentHelper.sendMessage(
@@ -199,12 +202,12 @@ public class TickerAgent extends Agent {
                 // - what kind of takeover was it
                 // - average satisfaction?
                 AgentStrategyType takeoverType;
-                double runSatisfactionSum = 0;
+                double overallRunSatisfactionSum = 0;
 
                 takeoverType = householdAgentContacts.getFirst().getType();
 
                 for (AgentContact householdAgentContact : householdAgentContacts) {
-                    runSatisfactionSum += householdAgentContact.getCurrentSatisfaction();
+                    overallRunSatisfactionSum += householdAgentContact.getCurrentSatisfaction();
                 }
 
                 AgentHelper.printAgentLog(
@@ -214,7 +217,7 @@ public class TickerAgent extends Agent {
                                 + ", Takeover: "
                                 + takeoverType
                                 + ", Average satisfaction: "
-                                + runSatisfactionSum / config.getPopulationCount()
+                                + overallRunSatisfactionSum / (double)config.getPopulationCount()
                 );
 
                 if (currentSimulationRun == config.getNumOfSimulationRuns()) {
