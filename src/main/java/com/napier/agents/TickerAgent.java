@@ -5,6 +5,7 @@ import com.napier.AgentHelper;
 import com.napier.concepts.SerializableAgentContactList;
 import com.napier.singletons.BlockchainSingleton;
 import com.napier.singletons.RunConfigurationSingleton;
+import com.napier.singletons.TickerTrackerSingleton;
 import com.napier.types.AgentStrategyType;
 import jade.core.AID;
 import jade.core.Agent;
@@ -113,6 +114,8 @@ public class TickerAgent extends Agent {
                                 "New Run",
                                 ACLMessage.INFORM
                         );
+
+                        TickerTrackerSingleton.getInstance().incrementCurrentSimulationRun();
                     } else {
                         // Broadcast the start of the new day to other agents
                         AgentHelper.sendMessage(
@@ -122,6 +125,8 @@ public class TickerAgent extends Agent {
                                 ACLMessage.INFORM
                         );
                     }
+
+                    TickerTrackerSingleton.getInstance().incrementCurrentDay();
 
                     // Progress the agent state
                     step++;

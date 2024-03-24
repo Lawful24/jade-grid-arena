@@ -84,9 +84,9 @@ public class SimulationDataOutputSingleton {
                 agentDataCSVWriter.append("Accepted Received Exchanges,");
                 agentDataCSVWriter.append("Rejected Requested Exchanges,");
                 agentDataCSVWriter.append("Accepted Requested Exchanges,");
-                agentDataCSVWriter.append("Social Capital Exchanges,");
-                agentDataCSVWriter.append("No Social Capital Exchanges,");
-                agentDataCSVWriter.append("Unspent Social Capital");
+                agentDataCSVWriter.append("Social Capita Exchanges,");
+                agentDataCSVWriter.append("No Social Capita Exchanges,");
+                agentDataCSVWriter.append("Unspent Social Capita");
                 agentDataCSVWriter.append("\n");
             } catch (IOException e) {
                 System.err.println("Could not write in agent data output file.");
@@ -174,7 +174,7 @@ public class SimulationDataOutputSingleton {
                     this.simulationDataTXTWriter.append("Agent type: ").append(String.valueOf(selectedSingleAgentType)).append("\n");
                 }
 
-                this.simulationDataTXTWriter.append("Use social capital: ").append(String.valueOf(doesUtiliseSocialCapita)).append("\n");
+                this.simulationDataTXTWriter.append("Use social capita: ").append(String.valueOf(doesUtiliseSocialCapita)).append("\n");
                 this.simulationDataTXTWriter.append("Simulation runs: ").append(String.valueOf(config.getNumOfSimulationRuns())).append("\n");
                 this.simulationDataTXTWriter.append("Days after strategy takeover: ").append(String.valueOf(config.getNumOfAdditionalDaysAfterTakeover())).append("\n");
                 this.simulationDataTXTWriter.append("Population size: ").append(String.valueOf(config.getPopulationCount())).append("\n");
@@ -203,12 +203,12 @@ public class SimulationDataOutputSingleton {
             int currentDay,
             AgentStrategyType agentStrategyType,
             double currentSatisfaction,
-            int numOfRejectedReceivedExchanges,
-            int numOfRejectedRequestedExchanges,
-            int numOfAcceptedRequestedExchanges,
-            int numOfSocialCapitaExchanges,
-            int numOfExchangesWithoutSocialCapita,
-            int unspentSocialCapita
+            int numOfDailyRejectedReceivedExchanges,
+            int numOfDailyRejectedRequestedExchanges,
+            int numOfDailyAcceptedRequestedExchanges,
+            int numOfDailyAcceptedReceivedSocialCapitaExchanges,
+            int numOfDailyAcceptedReceivedExchangesWithoutSocialCapita,
+            int currentSocialCapitaBalance
     ) {
         try {
             // TODO: Cite Arena code
@@ -216,13 +216,13 @@ public class SimulationDataOutputSingleton {
             this.agentDataCSVWriter.append(String.valueOf(currentDay)).append(",");
             this.agentDataCSVWriter.append(String.valueOf(agentStrategyType)).append(","); // TODO: could be an issue with the scripts expecting an int
             this.agentDataCSVWriter.append(String.valueOf(currentSatisfaction)).append(",");
-            this.agentDataCSVWriter.append(String.valueOf(numOfRejectedReceivedExchanges)).append(",");
-            this.agentDataCSVWriter.append(String.valueOf(numOfSocialCapitaExchanges + numOfExchangesWithoutSocialCapita)).append(",");
-            this.agentDataCSVWriter.append(String.valueOf(numOfRejectedRequestedExchanges)).append(",");
-            this.agentDataCSVWriter.append(String.valueOf(numOfAcceptedRequestedExchanges)).append(",");
-            this.agentDataCSVWriter.append(String.valueOf(numOfSocialCapitaExchanges)).append(",");
-            this.agentDataCSVWriter.append(String.valueOf(numOfExchangesWithoutSocialCapita)).append(",");
-            this.agentDataCSVWriter.append(String.valueOf(unspentSocialCapita)).append(",").append("\n");
+            this.agentDataCSVWriter.append(String.valueOf(numOfDailyRejectedReceivedExchanges)).append(",");
+            this.agentDataCSVWriter.append(String.valueOf(numOfDailyAcceptedReceivedSocialCapitaExchanges + numOfDailyAcceptedReceivedExchangesWithoutSocialCapita)).append(",");
+            this.agentDataCSVWriter.append(String.valueOf(numOfDailyRejectedRequestedExchanges)).append(",");
+            this.agentDataCSVWriter.append(String.valueOf(numOfDailyAcceptedRequestedExchanges)).append(",");
+            this.agentDataCSVWriter.append(String.valueOf(numOfDailyAcceptedReceivedSocialCapitaExchanges)).append(",");
+            this.agentDataCSVWriter.append(String.valueOf(numOfDailyAcceptedReceivedExchangesWithoutSocialCapita)).append(",");
+            this.agentDataCSVWriter.append(String.valueOf(currentSocialCapitaBalance)).append("\n");
         } catch (IOException e) {
             System.err.println("Error while trying to append data to the agent data file.");
         }
@@ -239,8 +239,8 @@ public class SimulationDataOutputSingleton {
             double averageSelfishSatisfactionStandardDeviation,
             AgentStatisticalValues socialStatisticalValues,
             AgentStatisticalValues selfishStatisticalValues,
-            ArrayList<TimeSlot[]> initialRandomTimeSlotAllocations,
-            ArrayList<TimeSlot[]> optimumTimeSlotAllocations
+            double initialRandomAllocationAverageSatisfaction,
+            double optimumAverageSatisfactionPossible
     ) {
         try {
             // TODO: Cite Arena code
@@ -264,8 +264,8 @@ public class SimulationDataOutputSingleton {
             this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.min())).append(",");
             this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.median())).append(",");
             this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.median())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(initialRandomTimeSlotAllocations)).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(optimumTimeSlotAllocations)).append("\n");
+            this.dailyDataCSVWriter.append(String.valueOf(initialRandomAllocationAverageSatisfaction)).append(",");
+            this.dailyDataCSVWriter.append(String.valueOf(optimumAverageSatisfactionPossible)).append("\n");
         } catch (IOException e) {
             System.err.println("Error while trying to append data to the day data file.");
         }

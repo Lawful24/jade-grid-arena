@@ -3,7 +3,9 @@ package com.napier.agents;
 import com.napier.*;
 import com.napier.concepts.*;
 import com.napier.singletons.RunConfigurationSingleton;
+import com.napier.singletons.SimulationDataOutputSingleton;
 import com.napier.singletons.SmartContract;
+import com.napier.singletons.TickerTrackerSingleton;
 import com.napier.types.AgentStrategyType;
 import com.napier.types.ExchangeType;
 import jade.core.AID;
@@ -25,15 +27,18 @@ public class HouseholdAgent extends Agent {
     private ArrayList<TimeSlot> allocatedTimeSlots;
     private ArrayList<TimeSlotSatisfactionPair> timeSlotSatisfactionPairs;
     private HashMap<String, Integer> favours;
-    private int totalSocialCapita;
-    private int numOfDailyExchangesWithSocialCapita;
-    private int numOfDailyExchangesWithoutSocialCapita;
+    private double[] dailyDemandCurve;
+    private double dailyDemandValue;
     private int numOfDailyRejectedReceivedExchanges;
     private int numOfDailyRejectedRequestedExchanges;
     private int numOfDailyAcceptedRequestedExchanges;
-    private double[] dailyDemandCurve;
-    private double dailyDemandValue;
+    private int totalSocialCapita;
+    private int numOfDailyAcceptedReceivedSocialCapitaExchanges;
+    private int numOfDailyAcceptedReceivedExchangesWithoutSocialCapita;
+
+    // Updated properties
     private boolean isTradeStarted;
+    private double currentSatisfaction;
 
     // Agent contact attributes
     private AID tickerAgent;
@@ -142,11 +147,11 @@ public class HouseholdAgent extends Agent {
         @Override
         public void reset() {
             super.reset();
-            numOfDailyExchangesWithSocialCapita = 0;
-            numOfDailyExchangesWithoutSocialCapita = 0;
             numOfDailyRejectedReceivedExchanges = 0;
             numOfDailyRejectedRequestedExchanges = 0;
             numOfDailyAcceptedRequestedExchanges = 0;
+            numOfDailyAcceptedReceivedSocialCapitaExchanges = 0;
+            numOfDailyAcceptedReceivedExchangesWithoutSocialCapita = 0;
             requestedTimeSlots.clear();
             allocatedTimeSlots.clear();
             timeSlotSatisfactionPairs.clear();
@@ -314,6 +319,8 @@ public class HouseholdAgent extends Agent {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "household finished");
             }
 
+            currentSatisfaction = AgentHelper.calculateSatisfaction(allocatedTimeSlots, requestedTimeSlots);
+
             AgentHelper.sendMessage(
                     myAgent,
                     advertisingAgent,
@@ -321,7 +328,7 @@ public class HouseholdAgent extends Agent {
                     new AgentContact(
                             myAgent.getAID(),
                             agentType,
-                            AgentHelper.calculateSatisfaction(allocatedTimeSlots, requestedTimeSlots)
+                            currentSatisfaction
                     ),
                     ACLMessage.INFORM
             );
@@ -476,6 +483,8 @@ public class HouseholdAgent extends Agent {
                             AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be handled: the received object has an incorrect type.");
                         }
                     }
+
+                    numOfDailyAcceptedRequestedExchanges++;
                 } else if (interestResultMessage.getPerformative() == ACLMessage.CANCEL) {
                     numOfDailyRejectedRequestedExchanges++;
                 } else {
@@ -713,7 +722,7 @@ public class HouseholdAgent extends Agent {
                         }
                     }
                 } else if (interestResultMessage.getPerformative() == ACLMessage.CANCEL) {
-                    numOfDailyRejectedRequestedExchanges++; // TODO: this cannot occur here, find a way so it can
+
                 } else {
                     // Skip to the end of the exchange if did not find any requested slots in the adverts
                     //myAgent.addBehaviour(new FinishExchangeRoundSCBehaviour(myAgent));
@@ -865,6 +874,10 @@ public class HouseholdAgent extends Agent {
                             AgentHelper.printAgentError(myAgent.getLocalName(), "Accepted trade offer cannot be processed: the received object has an incorrect type.");
                         }
                     }
+
+                    numOfDailyAcceptedRequestedExchanges++;
+                } else if (proposalReplyMessage.getPerformative() == ACLMessage.REJECT_PROPOSAL) {
+                    numOfDailyRejectedRequestedExchanges++;
                 }
 
                 AgentHelper.sendMessage(
@@ -909,6 +922,8 @@ public class HouseholdAgent extends Agent {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "household finished");
             }
 
+            currentSatisfaction = AgentHelper.calculateSatisfaction(allocatedTimeSlots, requestedTimeSlots);
+
             AgentHelper.sendMessage(
                     myAgent,
                     advertisingAgent,
@@ -916,7 +931,7 @@ public class HouseholdAgent extends Agent {
                     new AgentContact(
                             myAgent.getAID(),
                             agentType,
-                            AgentHelper.calculateSatisfaction(allocatedTimeSlots, requestedTimeSlots)
+                            currentSatisfaction
                     ),
                     ACLMessage.INFORM
             );
@@ -937,7 +952,6 @@ public class HouseholdAgent extends Agent {
             ACLMessage socialLearningMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, ACLMessage.QUERY_IF);
 
             if (socialLearningMessage != null) {
-                double learningCurrentSatisfaction = AgentHelper.calculateSatisfaction(allocatedTimeSlots, requestedTimeSlots);
 
                 if (socialLearningMessage.getConversationId().equals("Selected for Social Learning")) {
                     // Make sure the incoming object is readable
@@ -949,8 +963,6 @@ public class HouseholdAgent extends Agent {
                         AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming agent contact is unreadable: " + e.getMessage());
                     }
 
-                    double learningAgentSatisfaction = AgentHelper.calculateSatisfaction(allocatedTimeSlots, requestedTimeSlots);
-
                     if (incomingObject != null) {
                         // Make sure the incoming object is of the expected type
                         if (incomingObject instanceof AgentContact) {
@@ -961,8 +973,8 @@ public class HouseholdAgent extends Agent {
                             // difference between the agents satisfaction and the observed satisfaction.
                             double observedAgentSatisfaction = ((AgentContact)incomingObject).getCurrentSatisfaction();
 
-                            if (Math.round(learningAgentSatisfaction * config.getNumOfSlotsPerAgent()) < Math.round(observedAgentSatisfaction * config.getNumOfSlotsPerAgent())) {
-                                double difference = observedAgentSatisfaction - learningAgentSatisfaction;
+                            if (Math.round(currentSatisfaction * config.getNumOfSlotsPerAgent()) < Math.round(observedAgentSatisfaction * config.getNumOfSlotsPerAgent())) {
+                                double difference = observedAgentSatisfaction - currentSatisfaction;
 
                                 if (difference >= 0) {
                                     double learningChance = 1 / (1 + (Math.exp(-config.getBeta() * difference)));
@@ -982,14 +994,6 @@ public class HouseholdAgent extends Agent {
                 }
 
                 processedSocialLearningMessage = true;
-
-                AgentHelper.sendMessage(
-                        myAgent,
-                        advertisingAgent,
-                        "Social Learning Done",
-                        new AgentContact(myAgent.getAID(), agentType, learningCurrentSatisfaction),
-                        ACLMessage.INFORM
-                );
             } else {
                 block();
             }
@@ -1006,7 +1010,40 @@ public class HouseholdAgent extends Agent {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "finished with social learning");
             }
 
+            AgentHelper.sendMessage(
+                    myAgent,
+                    advertisingAgent,
+                    "Social Learning Done",
+                    new AgentContact(myAgent.getAID(), agentType, currentSatisfaction),
+                    ACLMessage.INFORM
+            );
+
+            myAgent.addBehaviour(new CallItADayBehaviour(myAgent));
+
             return 0;
+        }
+    }
+
+    public class CallItADayBehaviour extends OneShotBehaviour {
+        public CallItADayBehaviour(Agent a) {
+            super(a);
+        }
+
+        @Override
+        public void action() {
+            // TODO: if this doesn't execute at the right time, place it in the onEnd of the previous behaviour
+            SimulationDataOutputSingleton.getInstance().appendAgentData(
+                    TickerTrackerSingleton.getInstance().getCurrentSimulationRun(),
+                    TickerTrackerSingleton.getInstance().getCurrentDay(),
+                    agentType,
+                    currentSatisfaction,
+                    numOfDailyRejectedReceivedExchanges,
+                    numOfDailyRejectedRequestedExchanges,
+                    numOfDailyAcceptedRequestedExchanges,
+                    numOfDailyAcceptedReceivedSocialCapitaExchanges,
+                    numOfDailyAcceptedReceivedExchangesWithoutSocialCapita,
+                    totalSocialCapita
+            );
         }
     }
 
@@ -1019,12 +1056,12 @@ public class HouseholdAgent extends Agent {
         this.allocatedTimeSlots = new ArrayList<>();
         this.timeSlotSatisfactionPairs = new ArrayList<>();
         this.favours = new HashMap<>();
-        this.totalSocialCapita = 0;
-        this.numOfDailyExchangesWithSocialCapita = 0;
-        this.numOfDailyExchangesWithoutSocialCapita = 0;
         this.numOfDailyRejectedReceivedExchanges = 0;
         this.numOfDailyRejectedRequestedExchanges = 0;
         this.numOfDailyAcceptedRequestedExchanges = 0;
+        this.totalSocialCapita = 0;
+        this.numOfDailyAcceptedReceivedSocialCapitaExchanges = 0;
+        this.numOfDailyAcceptedReceivedExchangesWithoutSocialCapita = 0;
         initializeFavoursStore();
     }
 
@@ -1076,17 +1113,17 @@ public class HouseholdAgent extends Agent {
                 // with the Agent who made the request.
                 if (Double.compare(potentialSatisfaction, currentSatisfaction) > 0) {
                     exchangeRequestApproved = true;
-                    this.numOfDailyExchangesWithoutSocialCapita++;
+                    this.numOfDailyAcceptedReceivedExchangesWithoutSocialCapita++;
                 } else if (Double.compare(potentialSatisfaction, currentSatisfaction) == 0) {
                     if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapita()) {
                         if (favours.get(offer.requesterAgent().getLocalName()) < 0) {
                             exchangeRequestApproved = true;
-                            this.numOfDailyExchangesWithSocialCapita++;
+                            this.numOfDailyAcceptedReceivedSocialCapitaExchanges++;
                         }
                     } else {
                         // When social capital isn't used, social agents always accept neutral exchanges.
                         exchangeRequestApproved = true;
-                        this.numOfDailyExchangesWithoutSocialCapita++;
+                        this.numOfDailyAcceptedReceivedExchangesWithoutSocialCapita++;
                     }
                 }
             } else {
@@ -1094,7 +1131,7 @@ public class HouseholdAgent extends Agent {
                 // Selfish Agents only accept offers that improve their individual satisfaction.
                 if (Double.compare(potentialSatisfaction, currentSatisfaction) > 0) {
                     exchangeRequestApproved = true;
-                    this.numOfDailyExchangesWithoutSocialCapita++;
+                    this.numOfDailyAcceptedReceivedExchangesWithoutSocialCapita++;
                 }
             }
 
