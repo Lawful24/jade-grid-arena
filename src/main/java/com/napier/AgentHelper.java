@@ -343,6 +343,27 @@ public class AgentHelper {
 
     // TODO: Cite Arena code
     /**
+     * Takes all Agents of a given types individual satisfactions and calculates the average satisfaction of the Agents
+     * of that type.
+     *
+     * @param householdAgentContacts Array List of all the agents that exist in the current simulation.
+     * @param agentStrategyType The type for which to calculate the average satisfaction of all Agents of that type.
+     * @return Double Returns the average satisfaction between 0 and 1 of all agents of the given type.
+     */
+    public static double averageAgentSatisfaction(ArrayList<AgentContact> householdAgentContacts, AgentStrategyType agentStrategyType) {
+        ArrayList<Double> agentSatisfactions = new ArrayList<>();
+
+        for (AgentContact householdAgentContact : householdAgentContacts) {
+            if (householdAgentContact.getType() == agentStrategyType) {
+                agentSatisfactions.add(householdAgentContact.getCurrentSatisfaction());
+            }
+        }
+
+        return agentSatisfactions.stream().mapToDouble(val -> val).average().orElse(0.0);
+    }
+
+    // TODO: Cite Arena code
+    /**
      * Returns the optimum average satisfaction possible for all agents given the current requests and allocations in
      * the simulation.
      *

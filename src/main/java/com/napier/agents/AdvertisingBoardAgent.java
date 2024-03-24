@@ -28,7 +28,7 @@ public class AdvertisingBoardAgent extends Agent {
     private int numOfTradesStarted;
     private int numOfSuccessfulExchanges;
     private ArrayList<AID> agentsToNotify;
-    private int exchangeRound;
+    private int currentExchangeRound;
     private int exchangeTimeout;
 
     // Agent contact attributes
@@ -130,7 +130,7 @@ public class AdvertisingBoardAgent extends Agent {
             initialRandomAllocationAverageSatisfaction = 0;
             optimumAveragePossibleSatisfaction = 0;
             adverts.clear();
-            exchangeRound = 1;
+            currentExchangeRound = 1;
             exchangeTimeout = 0;
         }
     }
@@ -469,7 +469,7 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public int onEnd() {
-            if (exchangeRound == 1) {
+            if (currentExchangeRound == 1) {
                 // TODO: Cite Arena code
                 ArrayList<TimeSlot> allAllocatedTimeSlots = new ArrayList<>();
                 ArrayList<TimeSlot> allRequestedTimeSlots = new ArrayList<>();
@@ -967,7 +967,7 @@ public class AdvertisingBoardAgent extends Agent {
             if (RunConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(
                         myAgent.getLocalName(),
-                        "Exchange round " + exchangeRound +  " over." +
+                        "Exchange round " + currentExchangeRound +  " over." +
                                 " | Trades started: " + numOfTradesStarted +
                                 " | Successful exchanges: " + numOfSuccessfulExchanges
                 );
@@ -979,6 +979,16 @@ public class AdvertisingBoardAgent extends Agent {
                 exchangeTimeout = 0;
             }
 
+            for (AgentStrategyType agentStrategyType : AgentStrategyType.values()) {
+                SimulationDataOutputSingleton.getInstance().appendExchangeData(
+                        TickerTrackerSingleton.getInstance().getCurrentSimulationRun(),
+                        TickerTrackerSingleton.getInstance().getCurrentDay(),
+                        currentExchangeRound,
+                        agentStrategyType,
+                        AgentHelper.averageAgentSatisfaction(householdAgentContacts, agentStrategyType)
+                );
+            }
+
             if (exchangeTimeout == 10) {
                 SequentialBehaviour endOfDaySequence = new SequentialBehaviour();
 
@@ -988,7 +998,7 @@ public class AdvertisingBoardAgent extends Agent {
 
                 myAgent.addBehaviour(endOfDaySequence);
             } else {
-                exchangeRound++;
+                currentExchangeRound++;
 
                 switch (RunConfigurationSingleton.getInstance().getExchangeType()) {
                     case MessagePassing -> myAgent.addBehaviour(new InitiateExchangeBehaviour(myAgent));
