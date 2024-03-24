@@ -23,9 +23,9 @@ public class RunConfigurationSingleton {
     private final int populationCount; // population.size (populationSize)
     private final int numOfSlotsPerAgent; // agent.time-slots (slotsPerAgent)
     private final int numOfUniqueTimeSlots; // simulation.uniqueTime-slots (uniqueTimeSlots)
-    private final int additionalDays; // simulation.additionalDays (days)
+    private final int numOfAdditionalDaysAfterTakeover; // simulation.additionalDays (days)
     private final int numOfSimulationRuns; // simulation.runs (simulationRuns)
-    private final boolean isSingleAgentTypeUsed; // agent.singleType (singleAgentType)
+    private final boolean doesUtiliseSingleAgentType; // agent.singleType (singleAgentType)
     private final AgentStrategyType selectedSingleAgentType; // agent.selectedSingleType (selectedSingleType)
     private final boolean doesUtiliseSocialCapital; // agent.useSocialCapital (socialCapital)
     private final double beta; // agent.beta (β)
@@ -68,9 +68,9 @@ public class RunConfigurationSingleton {
         this.populationCount = Integer.parseInt(properties.getProperty("population.size"));
         this.numOfSlotsPerAgent = Integer.parseInt(properties.getProperty("agent.time-slots"));
         this.numOfUniqueTimeSlots = Integer.parseInt(properties.getProperty("simulation.uniqueTime-slots"));
-        this.additionalDays = Integer.parseInt(properties.getProperty("simulation.additionalDays"));
+        this.numOfAdditionalDaysAfterTakeover = Integer.parseInt(properties.getProperty("simulation.additionalDays"));
         this.numOfSimulationRuns = Integer.parseInt(properties.getProperty("simulation.runs"));
-        this.isSingleAgentTypeUsed = Boolean.parseBoolean(properties.getProperty("agent.singleType"));
+        this.doesUtiliseSingleAgentType = Boolean.parseBoolean(properties.getProperty("agent.singleType"));
         this.selectedSingleAgentType = inputToStrategyEnum(properties.getProperty("agent.selectedSingleType"));
         this.doesUtiliseSocialCapital = Boolean.parseBoolean(properties.getProperty("agent.useSocialCapital"));
         this.beta = Integer.parseInt(properties.getProperty("agent.beta"));
@@ -132,16 +132,16 @@ public class RunConfigurationSingleton {
         return this.numOfUniqueTimeSlots;
     }
 
-    public int getAdditionalDays() {
-        return this.additionalDays;
+    public int getNumOfAdditionalDaysAfterTakeover() {
+        return this.numOfAdditionalDaysAfterTakeover;
     }
 
     public int getNumOfSimulationRuns() {
         return this.numOfSimulationRuns;
     }
 
-    public boolean isSingleAgentTypeUsed() {
-        return this.isSingleAgentTypeUsed;
+    public boolean isDoesUtiliseSingleAgentType() {
+        return this.doesUtiliseSingleAgentType;
     }
 
     public AgentStrategyType getSelectedSingleAgentType() {

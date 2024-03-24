@@ -242,7 +242,7 @@ public class AgentHelper {
         AgentStrategyType agentType;
 
         // Check if only one agent type is supposed to be used
-        if (config.isSingleAgentTypeUsed()) {
+        if (config.isDoesUtiliseSingleAgentType()) {
             agentType = config.getSelectedSingleAgentType();
         } else {
             // Set the agent type to a specific value based on the ratio provided in the configuration

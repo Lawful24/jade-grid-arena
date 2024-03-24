@@ -188,7 +188,7 @@ public class TickerAgent extends Agent {
                 }
             }
 
-            if (currentDayAfterTakeover == config.getAdditionalDays()) {
+            if (currentDayAfterTakeover == config.getNumOfAdditionalDaysAfterTakeover()) {
                 // TODO: print run stats here (maybe in a method)
                 // - days it took
                 // - what kind of takeover was it
