@@ -140,7 +140,7 @@ public class RunConfigurationSingleton {
         return this.numOfSimulationRuns;
     }
 
-    public boolean isDoesUtiliseSingleAgentType() {
+    public boolean doesUtiliseSingleAgentType() {
         return this.doesUtiliseSingleAgentType;
     }
 

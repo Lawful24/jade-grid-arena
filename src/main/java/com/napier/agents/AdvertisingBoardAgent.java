@@ -1131,22 +1131,72 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
-    public class CallItADayBehaviour extends OneShotBehaviour {
+    public class CallItADayBehaviour extends Behaviour {
+        private int householdDoneMessagesReceived = 0;
+
         public CallItADayBehaviour(Agent a) {
             super(a);
         }
 
         @Override
         public void action() {
-            RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+            ACLMessage householdDoneMessage = AgentHelper.receiveMessage(myAgent, "Done");
 
-            AgentHelper.sendMessage(
-                    myAgent,
-                    tickerAgent,
-                    "Done",
-                    new SerializableAgentContactList(new ArrayList<>(householdAgentContacts)),
-                    ACLMessage.INFORM
-            );
+            if (householdDoneMessage != null) {
+                // Make sure the incoming object is readable
+                Serializable incomingObject = null;
+
+                try {
+                    incomingObject = householdDoneMessage.getContentObject();
+                } catch (UnreadableException e) {
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming agent data holder is unreadable: " + e.getMessage());
+                }
+
+                if (incomingObject != null) {
+                    if (incomingObject instanceof EndOfDayHouseholdAgentDataHolder householdAgentDataHolder) {
+                        AgentContact doneHouseholdContact = null;
+
+                        for (AgentContact householdAgentContact : householdAgentContacts) {
+                            if (householdAgentContact.getAgentIdentifier().equals(householdDoneMessage.getSender())) {
+                                doneHouseholdContact = householdAgentContact;
+                            }
+                        }
+
+                        if (doneHouseholdContact != null) {
+                            SimulationDataOutputSingleton.getInstance().appendAgentData(
+                                    TickerTrackerSingleton.getInstance().getCurrentSimulationRun(),
+                                    TickerTrackerSingleton.getInstance().getCurrentDay(),
+                                    doneHouseholdContact.getType(),
+                                    doneHouseholdContact.getCurrentSatisfaction(),
+                                    householdAgentDataHolder.numOfDailyRejectedReceivedExchanges(),
+                                    householdAgentDataHolder.numOfDailyRejectedRequestedExchanges(),
+                                    householdAgentDataHolder.numOfDailyAcceptedRequestedExchanges(),
+                                    householdAgentDataHolder.numOfDailyAcceptedReceivedExchangesWithSocialCapita(),
+                                    householdAgentDataHolder.numOfDailyAcceptedReceivedExchangesWithoutSocialCapita(),
+                                    householdAgentDataHolder.totalSocialCapita()
+                            );
+                        } else {
+                            AgentHelper.printAgentError(myAgent.getLocalName(), "Could not append household agent data to the data file: household agent was not found in the contacts.");
+                        }
+                    } else {
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "The end of day household agent data cannot be processed: the received object has an incorrect type.");
+                    }
+                }
+
+                householdDoneMessagesReceived++;
+            } else {
+                block();
+            }
+        }
+
+        @Override
+        public boolean done() {
+            return householdDoneMessagesReceived == RunConfigurationSingleton.getInstance().getPopulationCount();
+        }
+
+        @Override
+        public int onEnd() {
+            RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
 
             double overallRunSatisfactionSum = 0;
             double socialAgentsRunSatisfactionSum = 0;
@@ -1181,6 +1231,16 @@ public class AdvertisingBoardAgent extends Agent {
                     initialRandomAllocationAverageSatisfaction,
                     optimumAveragePossibleSatisfaction
             );
+
+            AgentHelper.sendMessage(
+                    myAgent,
+                    tickerAgent,
+                    "Done",
+                    new SerializableAgentContactList(new ArrayList<>(householdAgentContacts)),
+                    ACLMessage.INFORM
+            );
+
+            return 0;
         }
     }
 

@@ -32,7 +32,7 @@ public class SimulationDataOutputSingleton {
     }
 
     public SimulationDataOutputSingleton() {
-
+        // no-op
     }
 
     public void prepareSimulationDataOutput(boolean doesUtiliseSocialCapita, boolean doesUtiliseSingleAgentType, AgentStrategyType selectedSingleAgentType) {
@@ -48,7 +48,7 @@ public class SimulationDataOutputSingleton {
 
         // TODO: Cite Arena code
         // Create a directory to store the data output by all simulations being run.
-        this.simulationDataOutputParentFolder = config.getResultsFolderPath() + config.getSeed() + "/useSC_" + doesUtiliseSocialCapita + "_AType_";
+        this.simulationDataOutputParentFolder = config.getResultsFolderPath() + "/" + config.getSeed() + "/useSC_" + doesUtiliseSocialCapita + "_AType_";
 
         if (!doesUtiliseSingleAgentType) {
             this.simulationDataOutputParentFolder += "mixed";
@@ -205,25 +205,29 @@ public class SimulationDataOutputSingleton {
             int numOfDailyRejectedReceivedExchanges,
             int numOfDailyRejectedRequestedExchanges,
             int numOfDailyAcceptedRequestedExchanges,
-            int numOfDailyAcceptedReceivedSocialCapitaExchanges,
+            int numOfDailyAcceptedReceivedExchangesWithSocialCapita,
             int numOfDailyAcceptedReceivedExchangesWithoutSocialCapita,
             int currentSocialCapitaBalance
     ) {
-        try {
-            // TODO: Cite Arena code
-            this.agentDataCSVWriter.append(String.valueOf(currentSimulationRun)).append(",");
-            this.agentDataCSVWriter.append(String.valueOf(currentDay)).append(",");
-            this.agentDataCSVWriter.append(String.valueOf(agentStrategyType)).append(","); // TODO: could be an issue with the scripts expecting an int
-            this.agentDataCSVWriter.append(String.valueOf(currentSatisfaction)).append(",");
-            this.agentDataCSVWriter.append(String.valueOf(numOfDailyRejectedReceivedExchanges)).append(",");
-            this.agentDataCSVWriter.append(String.valueOf(numOfDailyAcceptedReceivedSocialCapitaExchanges + numOfDailyAcceptedReceivedExchangesWithoutSocialCapita)).append(",");
-            this.agentDataCSVWriter.append(String.valueOf(numOfDailyRejectedRequestedExchanges)).append(",");
-            this.agentDataCSVWriter.append(String.valueOf(numOfDailyAcceptedRequestedExchanges)).append(",");
-            this.agentDataCSVWriter.append(String.valueOf(numOfDailyAcceptedReceivedSocialCapitaExchanges)).append(",");
-            this.agentDataCSVWriter.append(String.valueOf(numOfDailyAcceptedReceivedExchangesWithoutSocialCapita)).append(",");
-            this.agentDataCSVWriter.append(String.valueOf(currentSocialCapitaBalance)).append("\n");
-        } catch (IOException e) {
-            System.err.println("Error while trying to append data to the agent data file.");
+        if (agentDataCSVWriter != null) {
+            try {
+                // TODO: Cite Arena code
+                this.agentDataCSVWriter.append(String.valueOf(currentSimulationRun)).append(",");
+                this.agentDataCSVWriter.append(String.valueOf(currentDay)).append(",");
+                this.agentDataCSVWriter.append(String.valueOf(agentStrategyType)).append(","); // TODO: could be an issue with the scripts expecting an int
+                this.agentDataCSVWriter.append(String.valueOf(currentSatisfaction)).append(",");
+                this.agentDataCSVWriter.append(String.valueOf(numOfDailyRejectedReceivedExchanges)).append(",");
+                this.agentDataCSVWriter.append(String.valueOf(numOfDailyAcceptedReceivedExchangesWithSocialCapita + numOfDailyAcceptedReceivedExchangesWithoutSocialCapita)).append(",");
+                this.agentDataCSVWriter.append(String.valueOf(numOfDailyRejectedRequestedExchanges)).append(",");
+                this.agentDataCSVWriter.append(String.valueOf(numOfDailyAcceptedRequestedExchanges)).append(",");
+                this.agentDataCSVWriter.append(String.valueOf(numOfDailyAcceptedReceivedExchangesWithSocialCapita)).append(",");
+                this.agentDataCSVWriter.append(String.valueOf(numOfDailyAcceptedReceivedExchangesWithoutSocialCapita)).append(",");
+                this.agentDataCSVWriter.append(String.valueOf(currentSocialCapitaBalance)).append("\n");
+            } catch (IOException e) {
+                System.err.println("Error while trying to append data to the agent data file.");
+            }
+        } else {
+            System.err.println("Tried to write data output file but the FileWriter was null.");
         }
     }
 
@@ -241,32 +245,36 @@ public class SimulationDataOutputSingleton {
             double initialRandomAllocationAverageSatisfaction,
             double optimumAveragePossibleSatisfaction
     ) {
-        try {
-            // TODO: Cite Arena code
-            this.dailyDataCSVWriter.append(String.valueOf(currentSimulationRun)).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(currentDay)).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(socialPopulationCount)).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(selfishPopulationCount)).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(averageSocialSatisfaction)).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(averageSelfishSatisfaction)).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(averageSocialSatisfactionStandardDeviation)).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(averageSelfishSatisfactionStandardDeviation)).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.getUpperQuarter())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.getUpperQuarter())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.getLowerQuarter())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.getLowerQuarter())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.getNinetyFifthPercentile())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.getNinetyFifthPercentile())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.getMax())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.getMax())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.getMin())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.getMin())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.getMedian())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.getMedian())).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(initialRandomAllocationAverageSatisfaction)).append(",");
-            this.dailyDataCSVWriter.append(String.valueOf(optimumAveragePossibleSatisfaction)).append("\n");
-        } catch (IOException e) {
-            System.err.println("Error while trying to append data to the day data file.");
+        if (this.dailyDataCSVWriter != null) {
+            try {
+                // TODO: Cite Arena code
+                this.dailyDataCSVWriter.append(String.valueOf(currentSimulationRun)).append(",");
+                this.dailyDataCSVWriter.append(String.valueOf(currentDay)).append(",");
+                this.dailyDataCSVWriter.append(String.valueOf(socialPopulationCount)).append(",");
+                this.dailyDataCSVWriter.append(String.valueOf(selfishPopulationCount)).append(",");
+                this.dailyDataCSVWriter.append(String.valueOf(averageSocialSatisfaction)).append(",");
+                this.dailyDataCSVWriter.append(String.valueOf(averageSelfishSatisfaction)).append(",");
+                this.dailyDataCSVWriter.append(String.valueOf(averageSocialSatisfactionStandardDeviation)).append(",");
+                this.dailyDataCSVWriter.append(String.valueOf(averageSelfishSatisfactionStandardDeviation)).append(",");
+                this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.getUpperQuarter())).append(",");
+                this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.getUpperQuarter())).append(",");
+                this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.getLowerQuarter())).append(",");
+                this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.getLowerQuarter())).append(",");
+                this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.getNinetyFifthPercentile())).append(",");
+                this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.getNinetyFifthPercentile())).append(",");
+                this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.getMax())).append(",");
+                this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.getMax())).append(",");
+                this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.getMin())).append(",");
+                this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.getMin())).append(",");
+                this.dailyDataCSVWriter.append(String.valueOf(socialStatisticalValues.getMedian())).append(",");
+                this.dailyDataCSVWriter.append(String.valueOf(selfishStatisticalValues.getMedian())).append(",");
+                this.dailyDataCSVWriter.append(String.valueOf(initialRandomAllocationAverageSatisfaction)).append(",");
+                this.dailyDataCSVWriter.append(String.valueOf(optimumAveragePossibleSatisfaction)).append("\n");
+            } catch (IOException e) {
+                System.err.println("Error while trying to append data to the day data file.");
+            }
+        } else {
+            System.err.println("Tried to write data output file but the FileWriter was null.");
         }
     }
 
@@ -278,15 +286,19 @@ public class SimulationDataOutputSingleton {
             AgentStrategyType agentStrategyType,
             double averageSatisfactionForType
     ) {
-        try {
-            // TODO: Cite Arena code
-            this.exchangeDataCSVWriter.append(String.valueOf(currentSimulationRun)).append(",");
-            this.exchangeDataCSVWriter.append(String.valueOf(currentDay)).append(",");
-            this.exchangeDataCSVWriter.append(String.valueOf(currentExchangeRound)).append(","); // TODO: this starts at 0 in the original code
-            this.exchangeDataCSVWriter.append(String.valueOf(agentStrategyType)).append(","); // TODO: this might fail in the scripts due to expecting a numeric value
-            this.exchangeDataCSVWriter.append(String.valueOf(averageSatisfactionForType)).append("\n");
-        } catch (IOException e) {
-            System.err.println("Error while trying to append data to the exchange data file.");
+        if (this.exchangeDataCSVWriter != null) {
+            try {
+                // TODO: Cite Arena code
+                this.exchangeDataCSVWriter.append(String.valueOf(currentSimulationRun)).append(",");
+                this.exchangeDataCSVWriter.append(String.valueOf(currentDay)).append(",");
+                this.exchangeDataCSVWriter.append(String.valueOf(currentExchangeRound)).append(","); // TODO: this starts at 0 in the original code
+                this.exchangeDataCSVWriter.append(String.valueOf(agentStrategyType)).append(","); // TODO: this might fail in the scripts due to expecting a numeric value
+                this.exchangeDataCSVWriter.append(String.valueOf(averageSatisfactionForType)).append("\n");
+            } catch (IOException e) {
+                System.err.println("Error while trying to append data to the exchange data file.");
+            }
+        } else {
+            System.err.println("Tried to write data output file but the FileWriter was null.");
         }
     }
 
@@ -301,19 +313,23 @@ public class SimulationDataOutputSingleton {
             double averageSocialTakeoverSatisfaction,
             double averageSocialTakeoverSatisfactionStandardDeviation
     ) {
-        try {
-            // TODO: Cite Arena code
-            this.simulationDataTXTWriter.append("Social Takeovers: ").append(String.valueOf(numOfSocialTakeovers)).append("\n");
-            this.simulationDataTXTWriter.append("Fastest Social: Run ").append(String.valueOf(fastestSocialTakeoverRun)).append("\n");
-            this.simulationDataTXTWriter.append("Slowest Social: Run ").append(String.valueOf(slowestSocialTakeoverRun)).append("\n");
-            this.simulationDataTXTWriter.append("Typical Social: Run ").append(String.valueOf(medianSocialTakeoverRun)).append("\n");
-            this.simulationDataTXTWriter.append("Average Takeover Days (social): ").append(String.valueOf(averageNumOfSocialTakeoverDays / socialTakeoverDays.size())).append("\n");
-            this.simulationDataTXTWriter.append("Average Takeover Satisfaction (social): ").append(String.valueOf(averageSocialTakeoverSatisfaction / socialTakeoverDays.size())).append("\n");
-            this.simulationDataTXTWriter.append("Average Takeover SD (social): ").append(String.valueOf(averageSocialTakeoverSatisfactionStandardDeviation / socialTakeoverDays.size())).append("\n");
-            this.simulationDataTXTWriter.append("Average Final Satisfaction (social): ").append(String.valueOf(averageSocialTakeoverSatisfaction / socialFinalDays.size())).append("\n");
-            this.simulationDataTXTWriter.append("Average Final SD (social): ").append(String.valueOf(averageSocialTakeoverSatisfactionStandardDeviation / socialFinalDays.size())).append("\n\n");
-        } catch (IOException e) {
-            System.err.println("Error while trying to append social run data to the simulation data file.");
+        if (this.simulationDataTXTWriter != null) {
+            try {
+                // TODO: Cite Arena code
+                this.simulationDataTXTWriter.append("Social Takeovers: ").append(String.valueOf(numOfSocialTakeovers)).append("\n");
+                this.simulationDataTXTWriter.append("Fastest Social: Run ").append(String.valueOf(fastestSocialTakeoverRun)).append("\n");
+                this.simulationDataTXTWriter.append("Slowest Social: Run ").append(String.valueOf(slowestSocialTakeoverRun)).append("\n");
+                this.simulationDataTXTWriter.append("Typical Social: Run ").append(String.valueOf(medianSocialTakeoverRun)).append("\n");
+                this.simulationDataTXTWriter.append("Average Takeover Days (social): ").append(String.valueOf(averageNumOfSocialTakeoverDays / socialTakeoverDays.size())).append("\n");
+                this.simulationDataTXTWriter.append("Average Takeover Satisfaction (social): ").append(String.valueOf(averageSocialTakeoverSatisfaction / socialTakeoverDays.size())).append("\n");
+                this.simulationDataTXTWriter.append("Average Takeover SD (social): ").append(String.valueOf(averageSocialTakeoverSatisfactionStandardDeviation / socialTakeoverDays.size())).append("\n");
+                this.simulationDataTXTWriter.append("Average Final Satisfaction (social): ").append(String.valueOf(averageSocialTakeoverSatisfaction / socialFinalDays.size())).append("\n");
+                this.simulationDataTXTWriter.append("Average Final SD (social): ").append(String.valueOf(averageSocialTakeoverSatisfactionStandardDeviation / socialFinalDays.size())).append("\n\n");
+            } catch (IOException e) {
+                System.err.println("Error while trying to append social run data to the simulation data file.");
+            }
+        } else {
+            System.err.println("Tried to write data output file but the FileWriter was null.");
         }
     }
 
@@ -328,19 +344,23 @@ public class SimulationDataOutputSingleton {
             double averageSelfishTakeoverSatisfaction,
             double averageSelfishTakeoverSatisfactionStandardDeviation
     ) {
-        try {
-            // TODO: Cite Arena code
-            this.simulationDataTXTWriter.append("Selfish Takeovers: ").append(String.valueOf(numOfSelfishTakeovers)).append("\n");
-            this.simulationDataTXTWriter.append("Fastest selfish: Run ").append(String.valueOf(fastestSelfishTakeoverRun)).append("\n");
-            this.simulationDataTXTWriter.append("Slowest selfish: Run ").append(String.valueOf(slowestSelfishTakeoverRun)).append("\n");
-            this.simulationDataTXTWriter.append("Typical selfish: Run ").append(String.valueOf(medianSelfishTakeoverRun)).append("\n");
-            this.simulationDataTXTWriter.append("Average Takeover Days (selfish): ").append(String.valueOf(averageNumOfSelfishTakeoverDays / selfishTakeoverDays.size())).append("\n");
-            this.simulationDataTXTWriter.append("Average Takeover Satisfaction (selfish): ").append(String.valueOf(averageSelfishTakeoverSatisfaction / selfishTakeoverDays.size())).append("\n");
-            this.simulationDataTXTWriter.append("Average Takeover SD (selfish): ").append(String.valueOf(averageSelfishTakeoverSatisfactionStandardDeviation / selfishTakeoverDays.size())).append("\n");
-            this.simulationDataTXTWriter.append("Average Final Satisfaction (selfish): ").append(String.valueOf(averageSelfishTakeoverSatisfaction / selfishFinalDays.size())).append("\n");
-            this.simulationDataTXTWriter.append("Average Final SD (selfish): ").append(String.valueOf(averageSelfishTakeoverSatisfactionStandardDeviation / selfishFinalDays.size()));
-        } catch (IOException e) {
-            System.err.println("Error while trying to append selfish run data to the simulation data file.");
+        if (this.simulationDataTXTWriter != null) {
+            try {
+                // TODO: Cite Arena code
+                this.simulationDataTXTWriter.append("Selfish Takeovers: ").append(String.valueOf(numOfSelfishTakeovers)).append("\n");
+                this.simulationDataTXTWriter.append("Fastest selfish: Run ").append(String.valueOf(fastestSelfishTakeoverRun)).append("\n");
+                this.simulationDataTXTWriter.append("Slowest selfish: Run ").append(String.valueOf(slowestSelfishTakeoverRun)).append("\n");
+                this.simulationDataTXTWriter.append("Typical selfish: Run ").append(String.valueOf(medianSelfishTakeoverRun)).append("\n");
+                this.simulationDataTXTWriter.append("Average Takeover Days (selfish): ").append(String.valueOf(averageNumOfSelfishTakeoverDays / selfishTakeoverDays.size())).append("\n");
+                this.simulationDataTXTWriter.append("Average Takeover Satisfaction (selfish): ").append(String.valueOf(averageSelfishTakeoverSatisfaction / selfishTakeoverDays.size())).append("\n");
+                this.simulationDataTXTWriter.append("Average Takeover SD (selfish): ").append(String.valueOf(averageSelfishTakeoverSatisfactionStandardDeviation / selfishTakeoverDays.size())).append("\n");
+                this.simulationDataTXTWriter.append("Average Final Satisfaction (selfish): ").append(String.valueOf(averageSelfishTakeoverSatisfaction / selfishFinalDays.size())).append("\n");
+                this.simulationDataTXTWriter.append("Average Final SD (selfish): ").append(String.valueOf(averageSelfishTakeoverSatisfactionStandardDeviation / selfishFinalDays.size()));
+            } catch (IOException e) {
+                System.err.println("Error while trying to append selfish run data to the simulation data file.");
+            }
+        } else {
+            System.err.println("Tried to write data output file but the FileWriter was null.");
         }
     }
 

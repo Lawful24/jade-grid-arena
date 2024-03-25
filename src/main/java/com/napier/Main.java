@@ -4,6 +4,7 @@ import com.napier.agents.AdvertisingBoardAgent;
 import com.napier.agents.HouseholdAgent;
 import com.napier.agents.TickerAgent;
 import com.napier.singletons.RunConfigurationSingleton;
+import com.napier.singletons.SimulationDataOutputSingleton;
 import com.napier.types.ExchangeType;
 import jade.core.Profile;
 import jade.core.ProfileImpl;
@@ -31,6 +32,7 @@ public class Main {
             }
 
             if (exchangeType != null) {
+                initDataOutput();
                 initEnvironment();
             }
         } else {
@@ -57,6 +59,14 @@ public class Main {
         System.err.println("Invalid exchange type. The available flags are: \"--MessagePassing\" and \"--SmartContract\".");
 
         return null;
+    }
+
+    private static void initDataOutput() {
+        SimulationDataOutputSingleton.getInstance().prepareSimulationDataOutput(
+                RunConfigurationSingleton.getInstance().doesUtiliseSocialCapita(),
+                RunConfigurationSingleton.getInstance().doesUtiliseSingleAgentType(),
+                RunConfigurationSingleton.getInstance().getSelectedSingleAgentType()
+        ); // TODO: needs to change with the implementation of simulation sets
     }
 
     private static void initEnvironment() {

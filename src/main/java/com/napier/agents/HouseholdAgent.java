@@ -33,7 +33,7 @@ public class HouseholdAgent extends Agent {
     private int numOfDailyRejectedRequestedExchanges;
     private int numOfDailyAcceptedRequestedExchanges;
     private int totalSocialCapita;
-    private int numOfDailyAcceptedReceivedSocialCapitaExchanges;
+    private int numOfDailyAcceptedReceivedExchangesWithSocialCapita;
     private int numOfDailyAcceptedReceivedExchangesWithoutSocialCapita;
 
     // Updated properties
@@ -150,7 +150,7 @@ public class HouseholdAgent extends Agent {
             numOfDailyRejectedReceivedExchanges = 0;
             numOfDailyRejectedRequestedExchanges = 0;
             numOfDailyAcceptedRequestedExchanges = 0;
-            numOfDailyAcceptedReceivedSocialCapitaExchanges = 0;
+            numOfDailyAcceptedReceivedExchangesWithSocialCapita = 0;
             numOfDailyAcceptedReceivedExchangesWithoutSocialCapita = 0;
             requestedTimeSlots.clear();
             allocatedTimeSlots.clear();
@@ -1040,9 +1040,24 @@ public class HouseholdAgent extends Agent {
                     numOfDailyRejectedReceivedExchanges,
                     numOfDailyRejectedRequestedExchanges,
                     numOfDailyAcceptedRequestedExchanges,
-                    numOfDailyAcceptedReceivedSocialCapitaExchanges,
+                    numOfDailyAcceptedReceivedExchangesWithSocialCapita,
                     numOfDailyAcceptedReceivedExchangesWithoutSocialCapita,
                     totalSocialCapita
+            );
+
+            AgentHelper.sendMessage(
+                    myAgent,
+                    advertisingAgent,
+                    "Done",
+                    new EndOfDayHouseholdAgentDataHolder(
+                            numOfDailyRejectedReceivedExchanges,
+                            numOfDailyRejectedRequestedExchanges,
+                            numOfDailyAcceptedRequestedExchanges,
+                            numOfDailyAcceptedReceivedExchangesWithSocialCapita,
+                            numOfDailyAcceptedReceivedExchangesWithoutSocialCapita,
+                            totalSocialCapita
+                    ),
+                    ACLMessage.INFORM
             );
         }
     }
@@ -1060,7 +1075,7 @@ public class HouseholdAgent extends Agent {
         this.numOfDailyRejectedRequestedExchanges = 0;
         this.numOfDailyAcceptedRequestedExchanges = 0;
         this.totalSocialCapita = 0;
-        this.numOfDailyAcceptedReceivedSocialCapitaExchanges = 0;
+        this.numOfDailyAcceptedReceivedExchangesWithSocialCapita = 0;
         this.numOfDailyAcceptedReceivedExchangesWithoutSocialCapita = 0;
         initializeFavoursStore();
     }
@@ -1118,7 +1133,7 @@ public class HouseholdAgent extends Agent {
                     if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapita()) {
                         if (favours.get(offer.requesterAgent().getLocalName()) < 0) {
                             exchangeRequestApproved = true;
-                            this.numOfDailyAcceptedReceivedSocialCapitaExchanges++;
+                            this.numOfDailyAcceptedReceivedExchangesWithSocialCapita++;
                         }
                     } else {
                         // When social capital isn't used, social agents always accept neutral exchanges.
