@@ -1031,20 +1031,6 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public void action() {
-            // TODO: if this doesn't execute at the right time, place it in the onEnd of the previous behaviour
-            SimulationDataOutputSingleton.getInstance().appendAgentData(
-                    TickerTrackerSingleton.getInstance().getCurrentSimulationRun(),
-                    TickerTrackerSingleton.getInstance().getCurrentDay(),
-                    agentType,
-                    currentSatisfaction,
-                    numOfDailyRejectedReceivedExchanges,
-                    numOfDailyRejectedRequestedExchanges,
-                    numOfDailyAcceptedRequestedExchanges,
-                    numOfDailyAcceptedReceivedExchangesWithSocialCapita,
-                    numOfDailyAcceptedReceivedExchangesWithoutSocialCapita,
-                    totalSocialCapita
-            );
-
             AgentHelper.sendMessage(
                     myAgent,
                     advertisingAgent,

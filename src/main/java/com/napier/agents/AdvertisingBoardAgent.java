@@ -1132,7 +1132,7 @@ public class AdvertisingBoardAgent extends Agent {
     }
 
     public class CallItADayBehaviour extends Behaviour {
-        private int householdDoneMessagesReceived = 0;
+        private final HashMap<AgentContact, EndOfDayHouseholdAgentDataHolder> householdAgentsEndOfDayData = new HashMap<>();
 
         public CallItADayBehaviour(Agent a) {
             super(a);
@@ -1163,18 +1163,7 @@ public class AdvertisingBoardAgent extends Agent {
                         }
 
                         if (doneHouseholdContact != null) {
-                            SimulationDataOutputSingleton.getInstance().appendAgentData(
-                                    TickerTrackerSingleton.getInstance().getCurrentSimulationRun(),
-                                    TickerTrackerSingleton.getInstance().getCurrentDay(),
-                                    doneHouseholdContact.getType(),
-                                    doneHouseholdContact.getCurrentSatisfaction(),
-                                    householdAgentDataHolder.numOfDailyRejectedReceivedExchanges(),
-                                    householdAgentDataHolder.numOfDailyRejectedRequestedExchanges(),
-                                    householdAgentDataHolder.numOfDailyAcceptedRequestedExchanges(),
-                                    householdAgentDataHolder.numOfDailyAcceptedReceivedExchangesWithSocialCapita(),
-                                    householdAgentDataHolder.numOfDailyAcceptedReceivedExchangesWithoutSocialCapita(),
-                                    householdAgentDataHolder.totalSocialCapita()
-                            );
+                            householdAgentsEndOfDayData.put(doneHouseholdContact, householdAgentDataHolder);
                         } else {
                             AgentHelper.printAgentError(myAgent.getLocalName(), "Could not append household agent data to the data file: household agent was not found in the contacts.");
                         }
@@ -1182,8 +1171,6 @@ public class AdvertisingBoardAgent extends Agent {
                         AgentHelper.printAgentError(myAgent.getLocalName(), "The end of day household agent data cannot be processed: the received object has an incorrect type.");
                     }
                 }
-
-                householdDoneMessagesReceived++;
             } else {
                 block();
             }
@@ -1191,7 +1178,7 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public boolean done() {
-            return householdDoneMessagesReceived == RunConfigurationSingleton.getInstance().getPopulationCount();
+            return householdAgentsEndOfDayData.size() == RunConfigurationSingleton.getInstance().getPopulationCount();
         }
 
         @Override
@@ -1231,6 +1218,21 @@ public class AdvertisingBoardAgent extends Agent {
                     initialRandomAllocationAverageSatisfaction,
                     optimumAveragePossibleSatisfaction
             );
+
+            for (AgentContact householdAgentContact : householdAgentContacts) {
+                SimulationDataOutputSingleton.getInstance().appendAgentData(
+                        TickerTrackerSingleton.getInstance().getCurrentSimulationRun(),
+                        TickerTrackerSingleton.getInstance().getCurrentDay(),
+                        householdAgentContact.getType(),
+                        householdAgentContact.getCurrentSatisfaction(),
+                        householdAgentsEndOfDayData.get(householdAgentContact).numOfDailyRejectedReceivedExchanges(),
+                        householdAgentsEndOfDayData.get(householdAgentContact).numOfDailyRejectedRequestedExchanges(),
+                        householdAgentsEndOfDayData.get(householdAgentContact).numOfDailyAcceptedRequestedExchanges(),
+                        householdAgentsEndOfDayData.get(householdAgentContact).numOfDailyAcceptedReceivedExchangesWithSocialCapita(),
+                        householdAgentsEndOfDayData.get(householdAgentContact).numOfDailyAcceptedReceivedExchangesWithoutSocialCapita(),
+                        householdAgentsEndOfDayData.get(householdAgentContact).totalSocialCapita()
+                );
+            }
 
             AgentHelper.sendMessage(
                     myAgent,
