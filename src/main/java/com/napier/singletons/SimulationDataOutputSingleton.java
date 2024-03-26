@@ -36,6 +36,7 @@ public class SimulationDataOutputSingleton {
     }
 
     public void prepareSimulationDataOutput(boolean doesUtiliseSocialCapita, boolean doesUtiliseSingleAgentType, AgentStrategyType selectedSingleAgentType) {
+        // TODO: take the exchange type into account for the folder creation
         this.createSimulationResultsFolderTree(doesUtiliseSocialCapita, doesUtiliseSingleAgentType, selectedSingleAgentType);
         this.createAgentDataOutputFile();
         this.createExchangeDataOutputFile();
@@ -101,7 +102,7 @@ public class SimulationDataOutputSingleton {
             this.dailyDataFile = new File(this.simulationDataOutputFolder, "dailyData.csv");
 
             try {
-                this.dailyDataCSVWriter = new FileWriter(dailyDataFile);
+                this.dailyDataCSVWriter = new FileWriter(this.dailyDataFile);
 
                 dailyDataCSVWriter.append("Simulation Run,");
                 dailyDataCSVWriter.append("Day,");
@@ -139,7 +140,7 @@ public class SimulationDataOutputSingleton {
             this.exchangeDataFile = new File(this.simulationDataOutputFolder, "exchangeData.csv");
 
             try {
-                this.exchangeDataCSVWriter = new FileWriter(exchangeDataFile);
+                this.exchangeDataCSVWriter = new FileWriter(this.exchangeDataFile);
 
                 exchangeDataCSVWriter.append("Simulation Run,");
                 exchangeDataCSVWriter.append("Day,");
@@ -364,8 +365,15 @@ public class SimulationDataOutputSingleton {
         }
     }
 
-    private void closeAllDataWriters() {
-        // TODO
+    public void closeAllDataWriters() {
+        try {
+            this.simulationDataTXTWriter.close();
+            this.agentDataCSVWriter.close();
+            this.dailyDataCSVWriter.close();
+            this.exchangeDataCSVWriter.close();
+        } catch (IOException e) {
+            System.err.println("Error while trying to close the data writers.");
+        }
     }
 
     private String getAgentStrategyTypeCapString(AgentStrategyType agentStrategyType) {

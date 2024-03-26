@@ -5,6 +5,7 @@ import com.napier.AgentHelper;
 import com.napier.concepts.SerializableAgentContactList;
 import com.napier.singletons.BlockchainSingleton;
 import com.napier.singletons.RunConfigurationSingleton;
+import com.napier.singletons.SimulationDataOutputSingleton;
 import com.napier.singletons.TickerTrackerSingleton;
 import com.napier.types.AgentStrategyType;
 import jade.core.AID;
@@ -219,6 +220,8 @@ public class TickerAgent extends Agent {
                 );
 
                 if (currentSimulationRun == config.getNumOfSimulationRuns()) {
+                    SimulationDataOutputSingleton.getInstance().closeAllDataWriters();
+
                     // Broadcast the Terminate message to all other agents
                     AgentHelper.sendMessage(
                             myAgent,
