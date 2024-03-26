@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 
 public class TickerAgent extends Agent {
+    private int currentSimulationSet;
     private int currentSimulationRun;
     private int currentDay;
     private int currentDayAfterTakeover;
@@ -111,6 +112,10 @@ public class TickerAgent extends Agent {
 
                     if (currentDay == 1) {
                         runReset();
+
+                        if (currentSimulationRun == 1) {
+                            setupSimulationSet();
+                        }
 
                         AgentHelper.printAgentLog(
                                 myAgent.getLocalName(),
@@ -220,16 +225,28 @@ public class TickerAgent extends Agent {
                     if (currentSimulationRun == config.getNumOfSimulationRuns()) {
                         writeSimulationData();
 
-                        // Broadcast the Terminate message to all other agents
-                        AgentHelper.sendMessage(
-                                myAgent,
-                                allAgents,
-                                "Terminate",
-                                ACLMessage.INFORM
-                        );
+                        if (shouldShutEnvironmentDown()) {
+                            // Broadcast the Terminate message to all other agents
+                            AgentHelper.sendMessage(
+                                    myAgent,
+                                    allAgents,
+                                    "Terminate",
+                                    ACLMessage.INFORM
+                            );
 
-                        // Terminate the ticker agent itself
-                        myAgent.doDelete();
+                            SimulationDataOutputSingleton.getInstance().closeAllDataWriters();
+
+                            // Terminate the ticker agent itself
+                            myAgent.doDelete();
+                        } else {
+                            simulationReset();
+                            currentSimulationSet++;
+
+                            BlockchainSingleton.getInstance().resetBlockchain();
+
+                            myAgent.addBehaviour(new FindHouseholdsBehaviour(myAgent));
+                            myAgent.addBehaviour(new DailySyncBehaviour(myAgent));
+                        }
                     } else {
                         currentSimulationRun++;
                         runReset();
@@ -259,10 +276,93 @@ public class TickerAgent extends Agent {
     }
 
     private void initialAgentSetup() {
+        this.currentSimulationSet = 1;
         this.allAgents = new ArrayList<>();
 
         this.simulationReset();
         this.runReset();
+    }
+
+    private void setupSimulationSet() {
+        this.simulationReset();
+
+        RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+
+        switch (config.getComparisonLevel()) {
+            case 1:
+                switch (this.currentSimulationSet) {
+                    case 1:
+                        config.setDoesUtiliseSocialCapita(true);
+                        config.setSingleAgentTypeUsed(false);
+
+                        AgentHelper.printAgentLog(getLocalName(), "Starting new simulation set: with social capita\n");
+
+                        break;
+                    case 2:
+                        config.setDoesUtiliseSocialCapita(false);
+                        config.setSingleAgentTypeUsed(false);
+
+                        AgentHelper.printAgentLog(getLocalName(), "Starting new simulation set: without social capita\n");
+
+                        break;
+                }
+
+                break;
+            case 2:
+                switch (this.currentSimulationSet) {
+                    case 1:
+                        config.setDoesUtiliseSocialCapita(false);
+                        config.setSingleAgentTypeUsed(true, AgentStrategyType.SELFISH);
+
+                        AgentHelper.printAgentLog(getLocalName(), "Starting new simulation set: without social capita, only selfish agents\n");
+
+                        break;
+                    case 2:
+                        config.setDoesUtiliseSocialCapita(false);
+                        config.setSingleAgentTypeUsed(true, AgentStrategyType.SOCIAL);
+
+                        AgentHelper.printAgentLog(getLocalName(), "Starting new simulation set: without social capita, only social agents\n");
+
+                        break;
+                    case 3:
+                        config.setDoesUtiliseSocialCapita(true);
+                        config.setSingleAgentTypeUsed(true, AgentStrategyType.SOCIAL);
+
+                        AgentHelper.printAgentLog(getLocalName(), "Starting new simulation set: with social capita, only social agents\n");
+
+                        break;
+                    case 4:
+                        config.setDoesUtiliseSocialCapita(false);
+                        config.setSingleAgentTypeUsed(false);
+
+                        AgentHelper.printAgentLog(getLocalName(), "Starting new simulation set: without social capita, no agent type restrictions\n");
+
+                        break;
+                    case 5:
+                        config.setDoesUtiliseSocialCapita(true);
+                        config.setSingleAgentTypeUsed(false);
+
+                        AgentHelper.printAgentLog(getLocalName(), "Starting new simulation set: without social capita, no agent type restrictions\n");
+
+                        break;
+                }
+
+                break;
+            default:
+                AgentHelper.printAgentLog(getLocalName(), "Starting new simulation set: only user determined configuration settings\n");
+
+                break;
+        }
+
+        initDataOutput();
+    }
+
+    private void initDataOutput() {
+        SimulationDataOutputSingleton.getInstance().prepareSimulationDataOutput(
+                RunConfigurationSingleton.getInstance().doesUtiliseSocialCapita(),
+                RunConfigurationSingleton.getInstance().doesUtiliseSingleAgentType(),
+                RunConfigurationSingleton.getInstance().getSelectedSingleAgentType()
+        );
     }
 
     private void simulationReset() {
@@ -340,8 +440,18 @@ public class TickerAgent extends Agent {
         } else {
             // TODO
         }
+    }
 
-        SimulationDataOutputSingleton.getInstance().closeAllDataWriters();
+    private boolean shouldShutEnvironmentDown() {
+        boolean shutdown;
+
+        switch (RunConfigurationSingleton.getInstance().getComparisonLevel()) {
+            case 1 -> shutdown = this.currentSimulationSet == 2;
+            case 2 -> shutdown = this.currentSimulationSet == 5;
+            default -> shutdown = true;
+        }
+
+        return shutdown;
     }
 
     private int processTakeoverDataByType(AgentStrategyType agentStrategyType) {

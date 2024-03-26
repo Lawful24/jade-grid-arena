@@ -17,24 +17,24 @@ public class RunConfigurationSingleton {
 
     /* Configuration Properties */
     private final long seed; // seed
-    private final String resultsFolderPath; // results.folder (folderName)
-    private final String pythonExePath; // python.executable (pythonExe)
-    private final String pythonScriptsPath; // python.scripts (pythonPath)
-    private final int populationCount; // population.size (populationSize)
-    private final int numOfSlotsPerAgent; // agent.time-slots (slotsPerAgent)
-    private final int numOfUniqueTimeSlots; // simulation.uniqueTime-slots (uniqueTimeSlots)
-    private final int numOfAdditionalDaysAfterTakeover; // simulation.additionalDays (days)
-    private final int numOfSimulationRuns; // simulation.runs (simulationRuns)
-    private final boolean doesUtiliseSingleAgentType; // agent.singleType (singleAgentType)
-    private final AgentStrategyType selectedSingleAgentType; // agent.selectedSingleType (selectedSingleType)
-    private final boolean doesUtiliseSocialCapital; // agent.useSocialCapital (socialCapital)
-    private final double beta; // agent.beta (β)
-    private final int comparisonLevel; // simulation.comparisonLevel (COMPARISON_LEVEL)
-    private final double[][] demandCurves; // demand.curves (demandCurves)
-    private final int[] availabilityCurve; // availability.curve (availabilityCurves)
-    private final double evolutionPercentage; // agents.evolvePercentage (numberOfAgentsToEvolve)
-    private final int selfishPopulationCount; // based on agent.typeRatio (agentTypes)
-    private final double[] satisfactionCurve; // agent.satisfactionCurve (satisfactionCurve)
+    private final String resultsFolderPath; // results.folder
+    private final String pythonExePath; // python.executable
+    private final String pythonScriptsPath; // python.scripts
+    private final int populationCount; // population.size
+    private final int numOfSlotsPerAgent; // agent.time-slots
+    private final int numOfUniqueTimeSlots; // simulation.uniqueTime-slots
+    private final int numOfAdditionalDaysAfterTakeover; // simulation.additionalDays
+    private final int numOfSimulationRuns; // simulation.runs
+    private boolean doesUtiliseSingleAgentType; // agent.singleType
+    private AgentStrategyType selectedSingleAgentType; // agent.selectedSingleType
+    private boolean doesUtiliseSocialCapita; // agent.useSocialCapital
+    private final double beta; // agent.beta
+    private final int comparisonLevel; // simulation.comparisonLevel
+    private final double[][] demandCurves; // demand.curves
+    private final int[] availabilityCurve; // availability.curve
+    private final double evolutionPercentage; // agents.evolvePercentage
+    private String agentTypeRatioInputString; // agent.typeRatio
+    private final double[] satisfactionCurve; // agent.satisfactionCurve
 
     /* Calculated Values */
     private final double[][] bucketedDemandCurves;
@@ -43,6 +43,7 @@ public class RunConfigurationSingleton {
     private final int[] bucketedAvailabilityCurve;
     private final int totalAvailableEnergy;
     private final int numOfAgentsToEvolve;
+    private int selfishPopulationCount;
 
     public static RunConfigurationSingleton getInstance() {
         if (instance == null) {
@@ -72,13 +73,13 @@ public class RunConfigurationSingleton {
         this.numOfSimulationRuns = Integer.parseInt(properties.getProperty("simulation.runs"));
         this.doesUtiliseSingleAgentType = Boolean.parseBoolean(properties.getProperty("agent.singleType"));
         this.selectedSingleAgentType = inputToStrategyEnum(properties.getProperty("agent.selectedSingleType"));
-        this.doesUtiliseSocialCapital = Boolean.parseBoolean(properties.getProperty("agent.useSocialCapital"));
+        this.doesUtiliseSocialCapita = Boolean.parseBoolean(properties.getProperty("agent.useSocialCapital"));
         this.beta = Integer.parseInt(properties.getProperty("agent.beta"));
         this.comparisonLevel = Integer.parseInt(properties.getProperty("simulation.comparisonLevel"));
         this.demandCurves = inputToDouble2DArray(properties.getProperty("demand.curves"));
         this.availabilityCurve = inputToIntArray(properties.getProperty("availability.curve"));
         this.evolutionPercentage = Double.parseDouble(properties.getProperty("agents.evolvePercentage"));
-        this.selfishPopulationCount = ratioToSelfishPopulationCount(properties.getProperty("agent.typeRatio"));
+        this.agentTypeRatioInputString = properties.getProperty("agent.typeRatio");
         this.satisfactionCurve = inputToDoubleArray(properties.getProperty("agent.satisfactionCurve"));
 
         // Calculate values based on the configuration properties
@@ -89,6 +90,7 @@ public class RunConfigurationSingleton {
         this.bucketedAvailabilityCurve = this.bucketSortAvailabilityCurve();
         this.totalAvailableEnergy = this.calculateTotalAvailableEnergy();
         this.numOfAgentsToEvolve = this.calculateNumberOfAgentsToEvolve();
+        this.selfishPopulationCount = ratioToSelfishPopulationCount();
     }
 
     /* Accessors */
@@ -149,7 +151,7 @@ public class RunConfigurationSingleton {
     }
 
     public boolean doesUtiliseSocialCapita() {
-        return this.doesUtiliseSocialCapital;
+        return this.doesUtiliseSocialCapita;
     }
 
     public double getBeta() {
@@ -201,6 +203,26 @@ public class RunConfigurationSingleton {
     }
 
     /* Mutators */
+
+    public void setSingleAgentTypeUsed(boolean doesUtiliseSingleAgentType) {
+        this.doesUtiliseSingleAgentType = doesUtiliseSingleAgentType;
+        this.selfishPopulationCount = this.ratioToSelfishPopulationCount();
+    }
+
+    public void setSingleAgentTypeUsed(boolean doesUtiliseSingleAgentType, AgentStrategyType selectedSingleAgentType) {
+        this.doesUtiliseSingleAgentType = doesUtiliseSingleAgentType;
+        this.selectedSingleAgentType = selectedSingleAgentType;
+
+        if (this.selectedSingleAgentType == AgentStrategyType.SOCIAL) {
+            this.selfishPopulationCount = 0;
+        } else {
+            this.selfishPopulationCount = this.populationCount;
+        }
+    }
+
+    public void setDoesUtiliseSocialCapita(boolean doesUtiliseSocialCapital) {
+        this.doesUtiliseSocialCapita = doesUtiliseSocialCapital;
+    }
 
     public Integer popFirstDemandCurveIndex() {
         return this.demandCurveIndices.removeFirst();
@@ -264,9 +286,9 @@ public class RunConfigurationSingleton {
         return input.equals("social") ? AgentStrategyType.SOCIAL : input.equals("selfish") ? AgentStrategyType.SELFISH : null;
     }
 
-    private int ratioToSelfishPopulationCount(String input) {
+    private int ratioToSelfishPopulationCount() {
         // Split the input string by colon
-        String[] ratioParts = input.split(":");
+        String[] ratioParts = this.agentTypeRatioInputString.split(":");
 
         // Store the ratio of selfish:social agents provided in the input
         float selfishRatio = Float.parseFloat(ratioParts[0]);
