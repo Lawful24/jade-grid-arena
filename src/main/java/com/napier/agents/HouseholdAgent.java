@@ -3,9 +3,7 @@ package com.napier.agents;
 import com.napier.*;
 import com.napier.concepts.*;
 import com.napier.singletons.RunConfigurationSingleton;
-import com.napier.singletons.SimulationDataOutputSingleton;
 import com.napier.singletons.SmartContract;
-import com.napier.singletons.TickerTrackerSingleton;
 import com.napier.types.AgentStrategyType;
 import com.napier.types.ExchangeType;
 import jade.core.AID;
@@ -46,7 +44,7 @@ public class HouseholdAgent extends Agent {
 
     @Override
     protected void setup() {
-        initialAgentSetup();
+        this.initialAgentSetup();
 
         AgentHelper.registerAgent(this, "Household");
 
@@ -120,7 +118,7 @@ public class HouseholdAgent extends Agent {
                     }
 
                     // Set the daily tracking data to their initial values at the start of the day
-                    reset();
+                    this.reset();
 
                     // Define the daily sub-behaviours
                     SequentialBehaviour dailyTasks = new SequentialBehaviour();
@@ -147,6 +145,7 @@ public class HouseholdAgent extends Agent {
         @Override
         public void reset() {
             super.reset();
+
             numOfDailyRejectedReceivedExchanges = 0;
             numOfDailyRejectedRequestedExchanges = 0;
             numOfDailyAcceptedRequestedExchanges = 0;
@@ -290,7 +289,7 @@ public class HouseholdAgent extends Agent {
                         AgentHelper.printAgentLog(myAgent.getLocalName(), "joining the exchange");
                     }
 
-                    reset();
+                    this.reset();
 
                     // Define the behaviours of the exchange
                     exchange.addSubBehaviour(new AdvertiseUnwantedTimeSlotsBehaviour(myAgent));
@@ -650,7 +649,7 @@ public class HouseholdAgent extends Agent {
                         AgentHelper.printAgentLog(myAgent.getLocalName(), "joining the exchange");
                     }
 
-                    reset();
+                    this.reset();
 
                     // Define the behaviours of the exchange
                     exchange.addSubBehaviour(new AdvertiseUnwantedTimeSlotsBehaviour(myAgent));
@@ -722,7 +721,7 @@ public class HouseholdAgent extends Agent {
                         }
                     }
                 } else if (interestResultMessage.getPerformative() == ACLMessage.CANCEL) {
-
+                    // TODO
                 } else {
                     // Skip to the end of the exchange if did not find any requested slots in the adverts
                     //myAgent.addBehaviour(new FinishExchangeRoundSCBehaviour(myAgent));

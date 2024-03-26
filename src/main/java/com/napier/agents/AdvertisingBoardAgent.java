@@ -38,7 +38,7 @@ public class AdvertisingBoardAgent extends Agent {
 
     @Override
     protected void setup() {
-        initialAgentSetup();
+        this.initialAgentSetup();
 
         AgentHelper.registerAgent(this, "Advertising-board");
 
@@ -99,7 +99,7 @@ public class AdvertisingBoardAgent extends Agent {
                     }
 
                     // Set the daily resources and adverts to their initial values
-                    reset();
+                    this.reset();
 
                     // Define the daily sub-behaviours
                     SequentialBehaviour dailyTasks = new SequentialBehaviour();
@@ -219,7 +219,7 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public void action() {
-            reset();
+            this.reset();
 
             exchange.addSubBehaviour(new NewAdvertListenerBehaviour(myAgent));
             exchange.addSubBehaviour(new InterestListenerBehaviour(myAgent));
@@ -667,7 +667,7 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public void action() {
-            reset();
+            this.reset();
 
             exchange.addSubBehaviour(new NewAdvertListenerBehaviour(myAgent));
             exchange.addSubBehaviour(new InterestListenerSCBehaviour(myAgent));
@@ -1198,23 +1198,24 @@ public class AdvertisingBoardAgent extends Agent {
                 overallRunSatisfactionSum += householdAgentContact.getCurrentSatisfaction();
             }
 
+            double averageSocialSatisfaction = socialAgentsRunSatisfactionSum / (double)config.getPopulationCount();
+            double averageSelfishSatisfaction = (overallRunSatisfactionSum - socialAgentsRunSatisfactionSum) / (double)config.getPopulationCount(); // TODO: is this correct?
+            double averageSocialSatisfactionStandardDeviation = AgentHelper.averageSatisfactionStandardDeviation(householdAgentContacts, AgentStrategyType.SOCIAL, overallRunSatisfactionSum / (double)config.getPopulationCount());
+            double averageSelfishSatisfactionStandardDeviation = AgentHelper.averageSatisfactionStandardDeviation(householdAgentContacts, AgentStrategyType.SELFISH, overallRunSatisfactionSum / (double)config.getPopulationCount());
+            AgentStatisticalValuesPerStrategyType socialStatisticalValues = new AgentStatisticalValuesPerStrategyType(householdAgentContacts, AgentStrategyType.SOCIAL);
+            AgentStatisticalValuesPerStrategyType selfishStatisticalValues = new AgentStatisticalValuesPerStrategyType(householdAgentContacts, AgentStrategyType.SELFISH);
+
             SimulationDataOutputSingleton.getInstance().appendDailyData(
                     TickerTrackerSingleton.getInstance().getCurrentSimulationRun(),
                     TickerTrackerSingleton.getInstance().getCurrentDay(),
                     numOfSocialAgents,
                     config.getPopulationCount() - numOfSocialAgents,
-                    socialAgentsRunSatisfactionSum / (double)config.getPopulationCount(),
-                    (overallRunSatisfactionSum - socialAgentsRunSatisfactionSum) / (double)config.getPopulationCount(), // TODO: is this correct?,
-                    AgentHelper.averageSatisfactionStandardDeviation(householdAgentContacts, AgentStrategyType.SOCIAL, overallRunSatisfactionSum / (double)config.getPopulationCount()),
-                    AgentHelper.averageSatisfactionStandardDeviation(householdAgentContacts, AgentStrategyType.SELFISH, overallRunSatisfactionSum / (double)config.getPopulationCount()),
-                    new AgentStatisticalValuesPerStrategyType(
-                            householdAgentContacts,
-                            AgentStrategyType.SOCIAL
-                    ),
-                    new AgentStatisticalValuesPerStrategyType(
-                            householdAgentContacts,
-                            AgentStrategyType.SELFISH
-                    ),
+                    averageSocialSatisfaction,
+                    averageSelfishSatisfaction,
+                    averageSocialSatisfactionStandardDeviation,
+                    averageSelfishSatisfactionStandardDeviation,
+                    socialStatisticalValues,
+                    selfishStatisticalValues,
                     initialRandomAllocationAverageSatisfaction,
                     optimumAveragePossibleSatisfaction
             );
@@ -1234,11 +1235,25 @@ public class AdvertisingBoardAgent extends Agent {
                 );
             }
 
+            SerializableEndOfDayData endOfDayData = new SerializableEndOfDayData(
+                    householdAgentContacts,
+                    numOfSocialAgents,
+                    config.getPopulationCount() - numOfSocialAgents,
+                    averageSocialSatisfaction,
+                    averageSelfishSatisfaction,
+                    averageSocialSatisfactionStandardDeviation,
+                    averageSelfishSatisfactionStandardDeviation,
+                    socialStatisticalValues,
+                    selfishStatisticalValues,
+                    initialRandomAllocationAverageSatisfaction,
+                    optimumAveragePossibleSatisfaction
+            );
+
             AgentHelper.sendMessage(
                     myAgent,
                     tickerAgent,
                     "Done",
-                    new SerializableAgentContactList(new ArrayList<>(householdAgentContacts)),
+                    endOfDayData,
                     ACLMessage.INFORM
             );
 

@@ -2,11 +2,12 @@ package com.napier.concepts;
 
 import com.napier.types.AgentStrategyType;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 
-public class AgentStatisticalValuesPerStrategyType {
+public class AgentStatisticalValuesPerStrategyType implements Serializable {
     private final double upperQuarter;
     private final double lowerQuarter;
     private final double ninetyFifthPercentile;

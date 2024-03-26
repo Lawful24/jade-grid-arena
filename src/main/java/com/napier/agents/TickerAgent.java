@@ -2,7 +2,8 @@ package com.napier.agents;
 
 import com.napier.concepts.AgentContact;
 import com.napier.AgentHelper;
-import com.napier.concepts.SerializableAgentContactList;
+import com.napier.concepts.SerializableEndOfDayData;
+import com.napier.concepts.TakeoverDayDataHolder;
 import com.napier.singletons.BlockchainSingleton;
 import com.napier.singletons.RunConfigurationSingleton;
 import com.napier.singletons.SimulationDataOutputSingleton;
@@ -17,12 +18,19 @@ import jade.lang.acl.UnreadableException;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Comparator;
 
 public class TickerAgent extends Agent {
-    private int currentSimulationRun = 1;
-    private int currentDay = 1;
-    private int currentDayAfterTakeover = 0;
-    private boolean takeover = false;
+    private int currentSimulationRun;
+    private int currentDay;
+    private int currentDayAfterTakeover;
+    private boolean takeover;
+    private ArrayList<TakeoverDayDataHolder> socialTakeoverDayDataHolders;
+    private ArrayList<TakeoverDayDataHolder> selfishTakeoverDayDataHolders;
+    private ArrayList<TakeoverDayDataHolder> socialFinalDayDataHolders;
+    private ArrayList<TakeoverDayDataHolder> selfishFinalDayDataHolders;
+    private int numOfSocialTakeoverRuns;
+    private int numOfSelfishTakeoverRuns;
 
     // Agent contact attributes
     private ArrayList<AID> allAgents;
@@ -31,9 +39,9 @@ public class TickerAgent extends Agent {
 
     @Override
     protected void setup() {
-        AgentHelper.registerAgent(this, "Ticker");
+        this.initialAgentSetup();
 
-        allAgents = new ArrayList<>();
+        AgentHelper.registerAgent(this, "Ticker");
 
         doWait(1500);
         addBehaviour(new FindHouseholdsBehaviour(this));
@@ -74,8 +82,7 @@ public class TickerAgent extends Agent {
 
     public class DailySyncBehaviour extends Behaviour {
         private int step = 0;
-        private int numOfSocialAgents = 0;
-        private int numOfSelfishAgents = 0;
+        SerializableEndOfDayData endOfDayData = null;
 
         public DailySyncBehaviour(Agent a) {
             super(a);
@@ -103,6 +110,8 @@ public class TickerAgent extends Agent {
                     }
 
                     if (currentDay == 1) {
+                        runReset();
+
                         AgentHelper.printAgentLog(
                                 myAgent.getLocalName(),
                                 "Started Run " + currentSimulationRun + "/" + config.getNumOfSimulationRuns()
@@ -149,9 +158,11 @@ public class TickerAgent extends Agent {
 
                         if (incomingObject != null) {
                             // Make sure the incoming object is of the expected type
-                            if (incomingObject instanceof SerializableAgentContactList) {
+                            if (incomingObject instanceof SerializableEndOfDayData) {
+                                endOfDayData = (SerializableEndOfDayData)incomingObject;
+
                                 // Overwrite the existing list of contacts with the updated list
-                                householdAgentContacts = ((SerializableAgentContactList)incomingObject).contacts();
+                                householdAgentContacts = ((SerializableEndOfDayData)incomingObject).contacts();
                             }
                         } else {
                             AgentHelper.printAgentError(myAgent.getLocalName(), "Agent contact list was not updated: the received object has an incorrect type.");
@@ -177,80 +188,70 @@ public class TickerAgent extends Agent {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "End of day " + currentDay);
             }
 
-            // TODO: Cite Arena code
-            for (AgentContact householdAgentContact : householdAgentContacts) {
-                if (householdAgentContact.getType() == AgentStrategyType.SOCIAL) {
-                    numOfSocialAgents++;
-                } else if (householdAgentContact.getType() == AgentStrategyType.SELFISH) {
-                    numOfSelfishAgents++;
-                }
-            }
+            if (endOfDayData != null) {
+                // TODO: Cite Arena code
+                if (((endOfDayData.numOfSelfishAgents() == 0 || endOfDayData.numOfSocialAgents() == 0) || config.getNumOfAgentsToEvolve() == 0) && !takeover) {
+                    takeover = true;
 
-            // TODO: Cite Arena code
-            if (((numOfSelfishAgents == 0 || numOfSocialAgents == 0) || config.getNumOfAgentsToEvolve() == 0) && !takeover) {
-                takeover = true;
+                    if (config.isDebugMode()) {
+                        AgentHelper.printAgentLog(myAgent.getLocalName(), "takeover! social agents: " + endOfDayData.numOfSocialAgents() + " selfish agents: " + endOfDayData.numOfSelfishAgents());
+                    }
 
-                if (config.isDebugMode()) {
-                    AgentHelper.printAgentLog(myAgent.getLocalName(), "takeover! social agents: " + numOfSocialAgents + " selfish agents: " + numOfSelfishAgents);
-                }
-            }
-
-            if (currentDayAfterTakeover == config.getNumOfAdditionalDaysAfterTakeover()) {
-                // TODO: print run stats here (maybe in a method)
-                // - days it took
-                // - what kind of takeover was it
-                // - average satisfaction?
-                AgentStrategyType takeoverType;
-                double overallRunSatisfactionSum = 0;
-
-                takeoverType = householdAgentContacts.getFirst().getType();
-
-                for (AgentContact householdAgentContact : householdAgentContacts) {
-                    overallRunSatisfactionSum += householdAgentContact.getCurrentSatisfaction();
+                    extractTakeoverData(endOfDayData, false);
                 }
 
-                AgentHelper.printAgentLog(
-                        myAgent.getLocalName(),
-                        "Days: "
-                                + currentDay
-                                + ", Takeover: "
-                                + takeoverType
-                                + ", Average satisfaction: "
-                                + overallRunSatisfactionSum / (double)config.getPopulationCount()
-                );
+                if (currentDayAfterTakeover == config.getNumOfAdditionalDaysAfterTakeover()) {
+                    extractTakeoverData(endOfDayData, true);
 
-                if (currentSimulationRun == config.getNumOfSimulationRuns()) {
-                    SimulationDataOutputSingleton.getInstance().closeAllDataWriters();
-
-                    // Broadcast the Terminate message to all other agents
-                    AgentHelper.sendMessage(
-                            myAgent,
-                            allAgents,
-                            "Terminate",
-                            ACLMessage.INFORM
+                    // TODO: print run stats here (maybe in a method)
+                    // - days it took
+                    // - what kind of takeover was it
+                    // - average satisfaction?
+                    AgentHelper.printAgentLog(
+                            myAgent.getLocalName(),
+                            "Days: "
+                                    + currentDay
+                                    + ", Takeover: "
+                                    + householdAgentContacts.getFirst().getType()
+                                    + ", Average satisfaction: "
+                                    + (endOfDayData.averageSocialSatisfaction() + endOfDayData.averageSelfishSatisfaction())
                     );
 
-                    // Terminate the ticker agent itself
-                    myAgent.doDelete();
+                    if (currentSimulationRun == config.getNumOfSimulationRuns()) {
+                        writeSimulationData();
+
+                        // Broadcast the Terminate message to all other agents
+                        AgentHelper.sendMessage(
+                                myAgent,
+                                allAgents,
+                                "Terminate",
+                                ACLMessage.INFORM
+                        );
+
+                        // Terminate the ticker agent itself
+                        myAgent.doDelete();
+                    } else {
+                        currentSimulationRun++;
+                        runReset();
+
+                        BlockchainSingleton.getInstance().resetBlockchain();
+
+                        myAgent.addBehaviour(new FindHouseholdsBehaviour(myAgent));
+                        myAgent.addBehaviour(new DailySyncBehaviour(myAgent));
+                    }
                 } else {
-                    currentSimulationRun++;
-                    initialAgentSetup();
+                    currentDay++;
 
-                    BlockchainSingleton.getInstance().resetBlockchain();
+                    if (takeover) {
+                        currentDayAfterTakeover++;
+                    }
 
+                    // Recreate the sync behaviour and add it to the ticker's behaviour queue
                     myAgent.addBehaviour(new FindHouseholdsBehaviour(myAgent));
                     myAgent.addBehaviour(new DailySyncBehaviour(myAgent));
                 }
             } else {
-                currentDay++;
-
-                if (takeover) {
-                    currentDayAfterTakeover++;
-                }
-
-                // Recreate the sync behaviour and add it to the ticker's behaviour queue
-                myAgent.addBehaviour(new FindHouseholdsBehaviour(myAgent));
-                myAgent.addBehaviour(new DailySyncBehaviour(myAgent));
+                // TODO
             }
 
             return 0;
@@ -258,8 +259,147 @@ public class TickerAgent extends Agent {
     }
 
     private void initialAgentSetup() {
+        this.allAgents = new ArrayList<>();
+
+        this.simulationReset();
+        this.runReset();
+    }
+
+    private void simulationReset() {
+        this.runReset();
+
+        this.currentSimulationRun = 1;
+        this.socialTakeoverDayDataHolders = new ArrayList<>();
+        this.selfishTakeoverDayDataHolders = new ArrayList<>();
+        this.socialFinalDayDataHolders = new ArrayList<>();
+        this.selfishFinalDayDataHolders = new ArrayList<>();
+        this.numOfSocialTakeoverRuns = 0;
+        this.numOfSelfishTakeoverRuns = 0;
+    }
+
+    private void runReset() {
         this.currentDay = 1;
         this.currentDayAfterTakeover = 0;
         this.takeover = false;
+    }
+
+    private void extractTakeoverData(SerializableEndOfDayData endOfDayData, boolean isFinalDayOfRun) {
+        // TODO: Cite Arena code
+        if (isFinalDayOfRun) {
+            if (endOfDayData.numOfSelfishAgents() == 0.0) {
+                this.socialTakeoverDayDataHolders.add(new TakeoverDayDataHolder(
+                        this.currentSimulationRun,
+                        this.currentDay,
+                        endOfDayData.averageSocialSatisfaction(),
+                        endOfDayData.averageSocialSatisfactionStandardDeviation()
+                ));
+
+                this.numOfSocialTakeoverRuns++;
+            } else {
+                this.selfishTakeoverDayDataHolders.add(new TakeoverDayDataHolder(
+                        this.currentSimulationRun,
+                        this.currentDay,
+                        endOfDayData.averageSelfishSatisfaction(),
+                        endOfDayData.averageSelfishSatisfactionStandardDeviation()
+                ));
+
+                this.numOfSelfishTakeoverRuns++;
+            }
+        } else {
+            if (endOfDayData.numOfSelfishAgents() == 0.0) {
+                this.socialFinalDayDataHolders.add(new TakeoverDayDataHolder(
+                        this.currentSimulationRun,
+                        this.currentDay,
+                        endOfDayData.averageSocialSatisfaction(),
+                        endOfDayData.averageSocialSatisfactionStandardDeviation()
+                ));
+            } else {
+                this.selfishFinalDayDataHolders.add(new TakeoverDayDataHolder(
+                        this.currentSimulationRun,
+                        this.currentDay,
+                        endOfDayData.averageSelfishSatisfaction(),
+                        endOfDayData.averageSelfishSatisfactionStandardDeviation()
+                ));
+            }
+        }
+    }
+
+    private void writeSimulationData() {
+        if (this.numOfSocialTakeoverRuns > 0 || this.numOfSelfishTakeoverRuns > 0) {
+            // TODO: Cite Arena code
+            int middleSocialRun = 0;
+            int middleSelfishRun = 0;
+
+            if (this.numOfSocialTakeoverRuns > 0) {
+                middleSocialRun = processTakeoverDataByType(AgentStrategyType.SOCIAL);
+            }
+
+            if (this.numOfSelfishTakeoverRuns > 0) {
+                middleSelfishRun = processTakeoverDataByType(AgentStrategyType.SELFISH);
+            }
+        } else {
+            // TODO
+        }
+
+        SimulationDataOutputSingleton.getInstance().closeAllDataWriters();
+    }
+
+    private int processTakeoverDataByType(AgentStrategyType agentStrategyType) {
+        double takeoverDaysSum = 0;
+        double averageSatisfactionsSum = 0;
+        double averageSatisfactionStandardDeviationsSum = 0;
+        ArrayList<TakeoverDayDataHolder> takeoverDayDataHolders;
+        ArrayList<TakeoverDayDataHolder> finalDayDataHolders;
+        int numOfTypeTakeoverRuns;
+
+        if (agentStrategyType == AgentStrategyType.SOCIAL) {
+            takeoverDayDataHolders = this.socialTakeoverDayDataHolders;
+            finalDayDataHolders = this.socialFinalDayDataHolders;
+            numOfTypeTakeoverRuns = this.numOfSocialTakeoverRuns;
+        } else {
+            takeoverDayDataHolders = this.selfishTakeoverDayDataHolders;
+            finalDayDataHolders = this.selfishFinalDayDataHolders;
+            numOfTypeTakeoverRuns = this.numOfSelfishTakeoverRuns;
+        }
+
+        // TODO: Cite Arena code
+        Comparator<TakeoverDayDataHolder> takeoverDataHolderComparator = Comparator.comparing(TakeoverDayDataHolder::takeoverDay);
+
+        takeoverDayDataHolders.sort(takeoverDataHolderComparator);
+        finalDayDataHolders.sort(takeoverDataHolderComparator);
+
+        for(TakeoverDayDataHolder run: takeoverDayDataHolders) {
+            takeoverDaysSum += run.takeoverDay();
+            averageSatisfactionsSum += run.averageSatisfaction();
+            averageSatisfactionStandardDeviationsSum += run.averageSatisfactionStandardDeviation();
+        }
+
+        takeoverDaysSum = 0;
+        averageSatisfactionsSum = 0;
+        averageSatisfactionStandardDeviationsSum = 0;
+
+        for(TakeoverDayDataHolder run: finalDayDataHolders) {
+            takeoverDaysSum += run.takeoverDay();
+            averageSatisfactionsSum += run.averageSatisfaction();
+            averageSatisfactionStandardDeviationsSum += run.averageSatisfactionStandardDeviation();
+        }
+
+        TakeoverDayDataHolder middleTakeover = takeoverDayDataHolders.get((int) Math.floor(numOfTypeTakeoverRuns / 2.0f));
+        TakeoverDayDataHolder slowestTakeover = takeoverDayDataHolders.get(numOfTypeTakeoverRuns - 1);
+        TakeoverDayDataHolder fastestTakeover = takeoverDayDataHolders.getFirst();
+
+        SimulationDataOutputSingleton.getInstance().appendSimulationDataForSocialRuns(
+                agentStrategyType,
+                numOfTypeTakeoverRuns,
+                fastestTakeover.simulationRun(),
+                slowestTakeover.simulationRun(),
+                middleTakeover.simulationRun(),
+                finalDayDataHolders.size(),
+                takeoverDaysSum,
+                averageSatisfactionsSum,
+                averageSatisfactionStandardDeviationsSum
+        );
+
+        return middleTakeover.simulationRun();
     }
 }

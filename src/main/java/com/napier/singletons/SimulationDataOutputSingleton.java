@@ -304,61 +304,51 @@ public class SimulationDataOutputSingleton {
     }
 
     public void appendSimulationDataForSocialRuns(
-            int numOfSocialTakeovers,
-            int fastestSocialTakeoverRun,
-            int slowestSocialTakeoverRun,
-            int medianSocialTakeoverRun,
-            ArrayList<ArrayList<Double>> socialTakeoverDays,
-            ArrayList<ArrayList<Double>> socialFinalDays, // TODO: rename accordingly
-            double averageNumOfSocialTakeoverDays,
-            double averageSocialTakeoverSatisfaction,
-            double averageSocialTakeoverSatisfactionStandardDeviation
+            AgentStrategyType agentStrategyType,
+            int numOfTypeTakeovers,
+            int fastestTakeoverRun,
+            int slowestTakeoverRun,
+            int medianTakeoverRun,
+            int numOfTypeFinalDayDataHolders,
+            double takeoverDaysSum,
+            double averageTakeoverSatisfactionsSum,
+            double averageTakeoverSatisfactionStandardDeviationsSum
     ) {
         if (this.simulationDataTXTWriter != null) {
             try {
-                // TODO: Cite Arena code
-                this.simulationDataTXTWriter.append("Social Takeovers: ").append(String.valueOf(numOfSocialTakeovers)).append("\n");
-                this.simulationDataTXTWriter.append("Fastest Social: Run ").append(String.valueOf(fastestSocialTakeoverRun)).append("\n");
-                this.simulationDataTXTWriter.append("Slowest Social: Run ").append(String.valueOf(slowestSocialTakeoverRun)).append("\n");
-                this.simulationDataTXTWriter.append("Typical Social: Run ").append(String.valueOf(medianSocialTakeoverRun)).append("\n");
-                this.simulationDataTXTWriter.append("Average Takeover Days (social): ").append(String.valueOf(averageNumOfSocialTakeoverDays / socialTakeoverDays.size())).append("\n");
-                this.simulationDataTXTWriter.append("Average Takeover Satisfaction (social): ").append(String.valueOf(averageSocialTakeoverSatisfaction / socialTakeoverDays.size())).append("\n");
-                this.simulationDataTXTWriter.append("Average Takeover SD (social): ").append(String.valueOf(averageSocialTakeoverSatisfactionStandardDeviation / socialTakeoverDays.size())).append("\n");
-                this.simulationDataTXTWriter.append("Average Final Satisfaction (social): ").append(String.valueOf(averageSocialTakeoverSatisfaction / socialFinalDays.size())).append("\n");
-                this.simulationDataTXTWriter.append("Average Final SD (social): ").append(String.valueOf(averageSocialTakeoverSatisfactionStandardDeviation / socialFinalDays.size())).append("\n\n");
+                switch (agentStrategyType) {
+                    case SOCIAL:
+                        // TODO: Cite Arena code
+                        this.simulationDataTXTWriter.append("Social Takeovers: ").append(String.valueOf(numOfTypeTakeovers)).append("\n");
+                        this.simulationDataTXTWriter.append("Fastest Social: Run ").append(String.valueOf(fastestTakeoverRun)).append("\n");
+                        this.simulationDataTXTWriter.append("Slowest Social: Run ").append(String.valueOf(slowestTakeoverRun)).append("\n");
+                        this.simulationDataTXTWriter.append("Typical Social: Run ").append(String.valueOf(medianTakeoverRun)).append("\n");
+                        this.simulationDataTXTWriter.append("Average Takeover Days (social): ").append(String.valueOf(takeoverDaysSum / numOfTypeTakeovers)).append("\n");
+                        this.simulationDataTXTWriter.append("Average Takeover Satisfaction (social): ").append(String.valueOf(averageTakeoverSatisfactionsSum / numOfTypeTakeovers)).append("\n");
+                        this.simulationDataTXTWriter.append("Average Takeover SD (social): ").append(String.valueOf(averageTakeoverSatisfactionStandardDeviationsSum / numOfTypeTakeovers)).append("\n");
+                        this.simulationDataTXTWriter.append("Average Final Satisfaction (social): ").append(String.valueOf(averageTakeoverSatisfactionsSum / numOfTypeFinalDayDataHolders)).append("\n");
+                        this.simulationDataTXTWriter.append("Average Final SD (social): ").append(String.valueOf(averageTakeoverSatisfactionStandardDeviationsSum / numOfTypeFinalDayDataHolders)).append("\n\n");
+
+                        break;
+                    case SELFISH:
+                        // TODO: Cite Arena code
+                        this.simulationDataTXTWriter.append("Selfish Takeovers: ").append(String.valueOf(numOfTypeTakeovers)).append("\n");
+                        this.simulationDataTXTWriter.append("Fastest selfish: Run ").append(String.valueOf(fastestTakeoverRun)).append("\n");
+                        this.simulationDataTXTWriter.append("Slowest selfish: Run ").append(String.valueOf(slowestTakeoverRun)).append("\n");
+                        this.simulationDataTXTWriter.append("Typical selfish: Run ").append(String.valueOf(medianTakeoverRun)).append("\n");
+                        this.simulationDataTXTWriter.append("Average Takeover Days (selfish): ").append(String.valueOf(takeoverDaysSum / numOfTypeTakeovers)).append("\n");
+                        this.simulationDataTXTWriter.append("Average Takeover Satisfaction (selfish): ").append(String.valueOf(averageTakeoverSatisfactionsSum / numOfTypeTakeovers)).append("\n");
+                        this.simulationDataTXTWriter.append("Average Takeover SD (selfish): ").append(String.valueOf(averageTakeoverSatisfactionStandardDeviationsSum / numOfTypeTakeovers)).append("\n");
+                        this.simulationDataTXTWriter.append("Average Final Satisfaction (selfish): ").append(String.valueOf(averageTakeoverSatisfactionsSum / numOfTypeFinalDayDataHolders)).append("\n");
+                        this.simulationDataTXTWriter.append("Average Final SD (selfish): ").append(String.valueOf(averageTakeoverSatisfactionStandardDeviationsSum / numOfTypeFinalDayDataHolders));
+
+                        break;
+                    default:
+                        // TODO
+                        break;
+                }
             } catch (IOException e) {
                 System.err.println("Error while trying to append social run data to the simulation data file.");
-            }
-        } else {
-            System.err.println("Tried to write data output file but the FileWriter was null.");
-        }
-    }
-
-    public void appendSimulationDataForSelfishRuns(
-            int numOfSelfishTakeovers,
-            int fastestSelfishTakeoverRun,
-            int slowestSelfishTakeoverRun,
-            int medianSelfishTakeoverRun,
-            ArrayList<ArrayList<Double>> selfishTakeoverDays,
-            ArrayList<ArrayList<Double>> selfishFinalDays, // TODO: rename accordingly
-            double averageNumOfSelfishTakeoverDays,
-            double averageSelfishTakeoverSatisfaction,
-            double averageSelfishTakeoverSatisfactionStandardDeviation
-    ) {
-        if (this.simulationDataTXTWriter != null) {
-            try {
-                // TODO: Cite Arena code
-                this.simulationDataTXTWriter.append("Selfish Takeovers: ").append(String.valueOf(numOfSelfishTakeovers)).append("\n");
-                this.simulationDataTXTWriter.append("Fastest selfish: Run ").append(String.valueOf(fastestSelfishTakeoverRun)).append("\n");
-                this.simulationDataTXTWriter.append("Slowest selfish: Run ").append(String.valueOf(slowestSelfishTakeoverRun)).append("\n");
-                this.simulationDataTXTWriter.append("Typical selfish: Run ").append(String.valueOf(medianSelfishTakeoverRun)).append("\n");
-                this.simulationDataTXTWriter.append("Average Takeover Days (selfish): ").append(String.valueOf(averageNumOfSelfishTakeoverDays / selfishTakeoverDays.size())).append("\n");
-                this.simulationDataTXTWriter.append("Average Takeover Satisfaction (selfish): ").append(String.valueOf(averageSelfishTakeoverSatisfaction / selfishTakeoverDays.size())).append("\n");
-                this.simulationDataTXTWriter.append("Average Takeover SD (selfish): ").append(String.valueOf(averageSelfishTakeoverSatisfactionStandardDeviation / selfishTakeoverDays.size())).append("\n");
-                this.simulationDataTXTWriter.append("Average Final Satisfaction (selfish): ").append(String.valueOf(averageSelfishTakeoverSatisfaction / selfishFinalDays.size())).append("\n");
-                this.simulationDataTXTWriter.append("Average Final SD (selfish): ").append(String.valueOf(averageSelfishTakeoverSatisfactionStandardDeviation / selfishFinalDays.size()));
-            } catch (IOException e) {
-                System.err.println("Error while trying to append selfish run data to the simulation data file.");
             }
         } else {
             System.err.println("Tried to write data output file but the FileWriter was null.");
