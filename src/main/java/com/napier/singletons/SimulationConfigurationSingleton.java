@@ -33,7 +33,7 @@ public class SimulationConfigurationSingleton {
     private final double[][] demandCurves; // demand.curves
     private final int[] availabilityCurve; // availability.curve
     private final double evolutionPercentage; // agents.evolvePercentage
-    private String agentTypeRatioInputString; // agent.typeRatio
+    private final String agentTypeRatioInputString; // agent.typeRatio
     private final double[] satisfactionCurve; // agent.satisfactionCurve
 
     /* Calculated Values */

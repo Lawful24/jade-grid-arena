@@ -1048,7 +1048,7 @@ public class HouseholdAgent extends Agent {
     }
 
     private void initialAgentSetup() {
-        this.agentType = AgentHelper.determineAgentType(Integer.parseInt(getLocalName().substring(getLocalName().length() - 1)));
+        this.agentType = AgentHelper.determineAgentType(this.getLocalName());
 
         // Initialise local attributes
         this.requestedTimeSlots = new ArrayList<>();

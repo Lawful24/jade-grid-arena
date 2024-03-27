@@ -66,15 +66,13 @@ public class AgentHelper {
             DFAgentDescription[] agentsOfType = DFService.search(agent, agentDescription);
 
             for (DFAgentDescription foundAgent : agentsOfType) {
-                String nickName = foundAgent.getName().getLocalName();
+                String nickname = foundAgent.getName().getLocalName();
 
-                if (nickName.contains("Household") && !foundAgent.getName().equals(agent.getAID())) {
-                    agentContacts.add(new AgentContact(foundAgent.getName(), determineAgentType(AgentHelper.getHouseholdAgentNumber(nickName))));
+                if (nickname.contains("Household") && !foundAgent.getName().equals(agent.getAID())) {
+                    agentContacts.add(new AgentContact(foundAgent.getName(), determineAgentType(nickname)));
                 } else {
                     agentContacts.add(new AgentContact(foundAgent.getName()));
                 }
-
-                //AgentHelper.printAgentLog(agent.getLocalName(), "Registered: " + foundAgent.getName());
             }
         } catch (FIPAException e) {
             System.err.println(e.toString());
@@ -239,7 +237,7 @@ public class AgentHelper {
         System.err.println(agentNickname + " error: " + errorMessage);
     }
 
-    public static AgentStrategyType determineAgentType(int householdAgentNumber) {
+    public static AgentStrategyType determineAgentType(String householdNickname) {
         SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
         AgentStrategyType agentType;
 
@@ -251,7 +249,7 @@ public class AgentHelper {
             // Check if the agent falls into the selfish or social group of the population
             // e.g. with a population of 6 agents and a 2:1 selfish:social ratio, the number of selfish agents would be 4
             // Therefore, agents 1-4 are selfish and 5-6 are social.
-            if (householdAgentNumber <= config.getSelfishPopulationCount()) {
+            if (getHouseholdAgentNumber(householdNickname) <= config.getSelfishPopulationCount()) {
                 agentType = AgentStrategyType.SELFISH;
             } else {
                 agentType = AgentStrategyType.SOCIAL;
@@ -261,7 +259,7 @@ public class AgentHelper {
         return agentType;
     }
 
-    public static int getHouseholdAgentNumber(String agentNickname) {
+    private static int getHouseholdAgentNumber(String agentNickname) {
         return Integer.parseInt(agentNickname.substring(agentNickname.length() - 1));
     }
 
