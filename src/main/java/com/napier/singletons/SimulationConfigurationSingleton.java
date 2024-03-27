@@ -12,11 +12,11 @@ import java.util.*;
 public class SimulationConfigurationSingleton {
     private static SimulationConfigurationSingleton instance;
     private final boolean debugMode;
-    private final ExchangeType exchangeType;
+    private ExchangeType exchangeType;
     private static final Random random = new Random();
 
     /* Configuration Properties */
-    private final long originalSeed; // seed
+    private final long startingSeed; // seed
     private final String resultsFolderPath; // results.folder
     private final String pythonExePath; // python.executable
     private final String pythonScriptsPath; // python.scripts
@@ -63,7 +63,7 @@ public class SimulationConfigurationSingleton {
         loadPropertiesFromFile(properties, this.debugMode);
 
         // Read the configuration variables from the config properties and store them in the attributes
-        this.originalSeed = Long.parseLong(properties.getProperty("seed"));
+        this.startingSeed = Long.parseLong(properties.getProperty("seed"));
         this.resultsFolderPath = properties.getProperty("results.folder");
         this.pythonExePath = properties.getProperty("python.executable");
         this.pythonScriptsPath = properties.getProperty("python.scripts");
@@ -84,7 +84,7 @@ public class SimulationConfigurationSingleton {
         this.satisfactionCurve = inputToDoubleArray(properties.getProperty("agent.satisfactionCurve"));
 
         // Calculate values based on the configuration properties
-        this.currentSeed = originalSeed;
+        this.currentSeed = startingSeed;
         this.bucketedDemandCurves = this.bucketSortDemandCurves();
         this.totalDemandValues = this.calculateTotalDemandValues();
         this.demandCurveIndices = this.createDemandCurveIndices();
@@ -109,9 +109,8 @@ public class SimulationConfigurationSingleton {
     public Random getRandom() {
         return random;
     }
-
-    public long getCurrentSeed() {
-        return this.currentSeed;
+    public long getStartingSeed() {
+        return this.startingSeed;
     }
 
     public String getResultsFolderPath() {
@@ -190,6 +189,10 @@ public class SimulationConfigurationSingleton {
         return this.demandCurveIndices;
     }
 
+    public long getCurrentSeed() {
+        return this.currentSeed;
+    }
+
     public double[][] getBucketedDemandCurves() {
         return this.bucketedDemandCurves;
     }
@@ -214,8 +217,14 @@ public class SimulationConfigurationSingleton {
     }
 
     public void resetRandomSeed() {
-        this.currentSeed = this.originalSeed;
+        this.currentSeed = this.startingSeed;
         random.setSeed(this.currentSeed);
+    }
+
+    // TODO: create a configureSimulation method
+
+    public void setExchangeType(ExchangeType exchangeType) {
+        this.exchangeType = exchangeType;
     }
 
     public void setSingleAgentTypeUsed(boolean doesUtiliseSingleAgentType) {

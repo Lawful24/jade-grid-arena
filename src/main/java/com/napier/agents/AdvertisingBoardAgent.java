@@ -769,13 +769,13 @@ public class AdvertisingBoardAgent extends Agent {
                                 numOfTradesStarted++;
                                 refuseRequest = false;
                             }
+                        } else {
+                            // TODO: let the requesting agent know that it has already made interaction therefore cannot make any more requests
+                            // TODO: this means that this agent could be a receiver
                         }
                     } else {
                         AgentHelper.printAgentError(myAgent.getLocalName(), "Interest for timeslots cannot be processed: the received object has an incorrect type.");
                     }
-                } else {
-                    // TODO: let the requesting agent know that it has already made interaction therefore cannot make any more requests
-                    // TODO: this means that this agent could be a receiver
                 }
 
                 numOfRequestsProcessed++;

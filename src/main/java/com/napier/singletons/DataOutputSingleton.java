@@ -48,7 +48,7 @@ public class DataOutputSingleton {
 
         // TODO: Cite Arena code
         // Create a directory to store the data output by all simulations being run.
-        this.simulationDataOutputParentFolder = config.getResultsFolderPath() + "/" + config.getCurrentSeed() + "/useSC_" + doesUtiliseSocialCapita + "_AType_";
+        this.simulationDataOutputParentFolder = config.getResultsFolderPath() + "/" + config.getStartingSeed() + "/useSC_" + doesUtiliseSocialCapita + "_AType_";
 
         if (!doesUtiliseSingleAgentType) {
             this.simulationDataOutputParentFolder += "mixed";

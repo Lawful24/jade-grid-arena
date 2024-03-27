@@ -16,17 +16,16 @@ public class Main {
 
     public static void main(String[] args) {
         debugMode = false;
+        exchangeType = ExchangeType.MessagePassing;
 
-        if (args.length == 1 || args.length == 2) {
-            exchangeType = parseType(args[0]);
-
-            if (args.length == 2) {
-                if (args[1].equals("--debug")) {
+        if (args.length == 0 || args.length == 1) {
+            if (args.length == 1) {
+                if (args[0].equals("--debug")) {
                     debugMode = true;
                 } else {
                     exchangeType = null;
 
-                    System.err.println("The second argument can only be \"--debug\".");
+                    System.err.println("The first argument can only be \"--debug\".");
                 }
             }
 
@@ -34,8 +33,7 @@ public class Main {
                 initEnvironment();
             }
         } else {
-            System.err.println("Incorrect list of arguments. Please try providing an exchange type.");
-            System.err.println("The available flags are: \"--MessagePassing\" and \"--SmartContract\".");
+            System.err.println("Incorrect list of arguments. The only permitted optional command line argument is \"--debug\"");
         }
     }
 

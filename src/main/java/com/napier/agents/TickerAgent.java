@@ -9,6 +9,7 @@ import com.napier.singletons.SimulationConfigurationSingleton;
 import com.napier.singletons.DataOutputSingleton;
 import com.napier.singletons.TickerTrackerSingleton;
 import com.napier.types.AgentStrategyType;
+import com.napier.types.ExchangeType;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
@@ -354,8 +355,25 @@ public class TickerAgent extends Agent {
                 }
 
                 break;
+            case 3:
+                switch (this.currentSimulationSet) {
+                    case 1:
+                        config.setExchangeType(ExchangeType.MessagePassing);
+
+                        AgentHelper.printAgentLog(getLocalName(), "Starting new simulation set: user determined settings, Message Passing exchange type\n");
+
+                        break;
+                    case 2:
+                        config.setExchangeType(ExchangeType.SmartContract);
+
+                        AgentHelper.printAgentLog(getLocalName(), "Starting new simulation set: user determined settings, Smart Contract exchange type\n");
+
+                        break;
+                }
+
+                break;
             default:
-                AgentHelper.printAgentLog(getLocalName(), "Starting new simulation set: only user determined configuration settings\n");
+                AgentHelper.printAgentLog(getLocalName(), "Starting new simulation set: only user determined settings\n");
 
                 break;
         }
@@ -454,7 +472,7 @@ public class TickerAgent extends Agent {
         boolean shutdown;
 
         switch (SimulationConfigurationSingleton.getInstance().getComparisonLevel()) {
-            case 1 -> shutdown = this.currentSimulationSet == 2;
+            case 1, 3 -> shutdown = this.currentSimulationSet == 2;
             case 2 -> shutdown = this.currentSimulationSet == 5;
             default -> shutdown = true;
         }
