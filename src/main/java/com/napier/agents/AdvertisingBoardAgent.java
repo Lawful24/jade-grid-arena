@@ -3,7 +3,7 @@ package com.napier.agents;
 import com.napier.*;
 import com.napier.concepts.*;
 import com.napier.singletons.SimulationConfigurationSingleton;
-import com.napier.singletons.SimulationDataOutputSingleton;
+import com.napier.singletons.DataOutputSingleton;
 import com.napier.singletons.TickerTrackerSingleton;
 import com.napier.types.AgentStrategyType;
 import jade.core.AID;
@@ -43,7 +43,6 @@ public class AdvertisingBoardAgent extends Agent {
         AgentHelper.registerAgent(this, "Advertising-board");
 
         addBehaviour(new FindTickerBehaviour(this));
-        addBehaviour(new FindHouseholdsBehaviour(this));
         addBehaviour(new TickerDailyBehaviour(this));
     }
 
@@ -150,7 +149,7 @@ public class AdvertisingBoardAgent extends Agent {
 
             for (int i = 1; i <= numOfRequiredTimeSlots; i++) {
                 // Selects a time-slot based on the demand curve.
-                int wheelSelector = SimulationConfigurationSingleton.getInstance().getRandom().nextInt(config.getTotalAvailableEnergy());
+                int wheelSelector = config.getRandom().nextInt(config.getTotalAvailableEnergy());
                 int wheelCalculator = 1; // if we start at 0, there will be 25 potential time slots in a day instead of 24
                 int timeSlotStart = 0;
 
@@ -960,7 +959,7 @@ public class AdvertisingBoardAgent extends Agent {
             }
 
             for (AgentStrategyType agentStrategyType : AgentStrategyType.values()) {
-                SimulationDataOutputSingleton.getInstance().appendExchangeData(
+                DataOutputSingleton.getInstance().appendExchangeData(
                         TickerTrackerSingleton.getInstance().getCurrentSimulationRun(),
                         TickerTrackerSingleton.getInstance().getCurrentDay(),
                         currentExchangeRound,
@@ -1185,7 +1184,7 @@ public class AdvertisingBoardAgent extends Agent {
             AgentStatisticalValuesPerStrategyType socialStatisticalValues = new AgentStatisticalValuesPerStrategyType(householdAgentContacts, AgentStrategyType.SOCIAL);
             AgentStatisticalValuesPerStrategyType selfishStatisticalValues = new AgentStatisticalValuesPerStrategyType(householdAgentContacts, AgentStrategyType.SELFISH);
 
-            SimulationDataOutputSingleton.getInstance().appendDailyData(
+            DataOutputSingleton.getInstance().appendDailyData(
                     TickerTrackerSingleton.getInstance().getCurrentSimulationRun(),
                     TickerTrackerSingleton.getInstance().getCurrentDay(),
                     numOfSocialAgents,
@@ -1201,7 +1200,7 @@ public class AdvertisingBoardAgent extends Agent {
             );
 
             for (AgentContact householdAgentContact : householdAgentContacts) {
-                SimulationDataOutputSingleton.getInstance().appendAgentData(
+                DataOutputSingleton.getInstance().appendAgentData(
                         TickerTrackerSingleton.getInstance().getCurrentSimulationRun(),
                         TickerTrackerSingleton.getInstance().getCurrentDay(),
                         householdAgentContact.getType(),

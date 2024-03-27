@@ -6,7 +6,7 @@ import com.napier.concepts.SerializableEndOfDayData;
 import com.napier.concepts.TakeoverDayDataHolder;
 import com.napier.singletons.BlockchainSingleton;
 import com.napier.singletons.SimulationConfigurationSingleton;
-import com.napier.singletons.SimulationDataOutputSingleton;
+import com.napier.singletons.DataOutputSingleton;
 import com.napier.singletons.TickerTrackerSingleton;
 import com.napier.types.AgentStrategyType;
 import jade.core.AID;
@@ -236,7 +236,7 @@ public class TickerAgent extends Agent {
                                     ACLMessage.INFORM
                             );
 
-                            SimulationDataOutputSingleton.getInstance().closeAllDataWriters();
+                            DataOutputSingleton.getInstance().closeAllDataWriters();
 
                             // Terminate the ticker agent itself
                             myAgent.doDelete();
@@ -360,7 +360,7 @@ public class TickerAgent extends Agent {
     }
 
     private void initDataOutput() {
-        SimulationDataOutputSingleton.getInstance().prepareSimulationDataOutput(
+        DataOutputSingleton.getInstance().prepareSimulationDataOutput(
                 SimulationConfigurationSingleton.getInstance().doesUtiliseSocialCapita(),
                 SimulationConfigurationSingleton.getInstance().doesUtiliseSingleAgentType(),
                 SimulationConfigurationSingleton.getInstance().getSelectedSingleAgentType()
@@ -443,7 +443,7 @@ public class TickerAgent extends Agent {
             // TODO
         }
 
-        SimulationDataOutputSingleton.getInstance().flushAllDataWriters();
+        DataOutputSingleton.getInstance().flushAllDataWriters();
     }
 
     private boolean shouldShutEnvironmentDown() {
@@ -502,7 +502,7 @@ public class TickerAgent extends Agent {
         TakeoverDayDataHolder slowestTakeover = takeoverDayDataHolders.get(numOfTypeTakeoverRuns - 1);
         TakeoverDayDataHolder fastestTakeover = takeoverDayDataHolders.getFirst();
 
-        SimulationDataOutputSingleton.getInstance().appendSimulationDataForSocialRuns(
+        DataOutputSingleton.getInstance().appendSimulationDataForSocialRuns(
                 agentStrategyType,
                 numOfTypeTakeoverRuns,
                 fastestTakeover.simulationRun(),

@@ -16,7 +16,7 @@ public class SimulationConfigurationSingleton {
     private static final Random random = new Random();
 
     /* Configuration Properties */
-    private final long seed; // seed
+    private final long originalSeed; // seed
     private final String resultsFolderPath; // results.folder
     private final String pythonExePath; // python.executable
     private final String pythonScriptsPath; // python.scripts
@@ -37,6 +37,7 @@ public class SimulationConfigurationSingleton {
     private final double[] satisfactionCurve; // agent.satisfactionCurve
 
     /* Calculated Values */
+    private long currentSeed; // seed
     private final double[][] bucketedDemandCurves;
     private final double[] totalDemandValues;
     private ArrayList<Integer> demandCurveIndices;
@@ -62,7 +63,7 @@ public class SimulationConfigurationSingleton {
         loadPropertiesFromFile(properties, this.debugMode);
 
         // Read the configuration variables from the config properties and store them in the attributes
-        this.seed = Long.parseLong(properties.getProperty("seed"));
+        this.originalSeed = Long.parseLong(properties.getProperty("seed"));
         this.resultsFolderPath = properties.getProperty("results.folder");
         this.pythonExePath = properties.getProperty("python.executable");
         this.pythonScriptsPath = properties.getProperty("python.scripts");
@@ -83,7 +84,7 @@ public class SimulationConfigurationSingleton {
         this.satisfactionCurve = inputToDoubleArray(properties.getProperty("agent.satisfactionCurve"));
 
         // Calculate values based on the configuration properties
-        random.setSeed(this.seed);
+        this.currentSeed = originalSeed;
         this.bucketedDemandCurves = this.bucketSortDemandCurves();
         this.totalDemandValues = this.calculateTotalDemandValues();
         this.demandCurveIndices = this.createDemandCurveIndices();
@@ -91,6 +92,8 @@ public class SimulationConfigurationSingleton {
         this.totalAvailableEnergy = this.calculateTotalAvailableEnergy();
         this.numOfAgentsToEvolve = this.calculateNumberOfAgentsToEvolve();
         this.selfishPopulationCount = ratioToSelfishPopulationCount();
+
+        random.setSeed(this.currentSeed);
     }
 
     /* Accessors */
@@ -107,8 +110,8 @@ public class SimulationConfigurationSingleton {
         return random;
     }
 
-    public long getSeed() {
-        return this.seed;
+    public long getCurrentSeed() {
+        return this.currentSeed;
     }
 
     public String getResultsFolderPath() {
@@ -204,6 +207,11 @@ public class SimulationConfigurationSingleton {
     }
 
     /* Mutators */
+
+    public void incrementRandomSeed() {
+        this.currentSeed++;
+        random.setSeed(this.currentSeed);
+    }
 
     public void setSingleAgentTypeUsed(boolean doesUtiliseSingleAgentType) {
         this.doesUtiliseSingleAgentType = doesUtiliseSingleAgentType;

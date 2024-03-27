@@ -4,6 +4,7 @@ import com.napier.*;
 import com.napier.concepts.*;
 import com.napier.singletons.SimulationConfigurationSingleton;
 import com.napier.singletons.SmartContract;
+import com.napier.singletons.TickerTrackerSingleton;
 import com.napier.types.AgentStrategyType;
 import com.napier.types.ExchangeType;
 import jade.core.AID;

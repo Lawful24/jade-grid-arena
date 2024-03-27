@@ -9,8 +9,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public class SimulationDataOutputSingleton {
-    private static SimulationDataOutputSingleton instance;
+public class DataOutputSingleton {
+    private static DataOutputSingleton instance;
     String simulationDataOutputParentFolder;
     String simulationDataOutputFolder;
     File simulationDataFile;
@@ -22,15 +22,15 @@ public class SimulationDataOutputSingleton {
     FileWriter dailyDataCSVWriter;
     FileWriter exchangeDataCSVWriter;
 
-    public static SimulationDataOutputSingleton getInstance() {
+    public static DataOutputSingleton getInstance() {
         if (instance == null) {
-            instance = new SimulationDataOutputSingleton();
+            instance = new DataOutputSingleton();
         }
 
         return instance;
     }
 
-    public SimulationDataOutputSingleton() {
+    public DataOutputSingleton() {
         // no-op
     }
 
@@ -48,7 +48,7 @@ public class SimulationDataOutputSingleton {
 
         // TODO: Cite Arena code
         // Create a directory to store the data output by all simulations being run.
-        this.simulationDataOutputParentFolder = config.getResultsFolderPath() + "/" + config.getSeed() + "/useSC_" + doesUtiliseSocialCapita + "_AType_";
+        this.simulationDataOutputParentFolder = config.getResultsFolderPath() + "/" + config.getCurrentSeed() + "/useSC_" + doesUtiliseSocialCapita + "_AType_";
 
         if (!doesUtiliseSingleAgentType) {
             this.simulationDataOutputParentFolder += "mixed";
@@ -166,7 +166,7 @@ public class SimulationDataOutputSingleton {
                 this.simulationDataTXTWriter = new FileWriter(this.simulationDataFile);
 
                 this.simulationDataTXTWriter.append("Simulation Information: \n\n");
-                this.simulationDataTXTWriter.append("Seed: ").append(String.valueOf(config.getSeed())).append("\n");
+                this.simulationDataTXTWriter.append("Seed: ").append(String.valueOf(config.getCurrentSeed())).append("\n");
                 this.simulationDataTXTWriter.append("Single agent type: ").append(String.valueOf(doesUtiliseSingleAgentType)).append("\n");
 
                 if (doesUtiliseSingleAgentType) {
