@@ -354,6 +354,17 @@ public class SimulationDataOutputSingleton {
         }
     }
 
+    public void flushAllDataWriters() {
+        try {
+            this.simulationDataTXTWriter.flush();
+            this.agentDataCSVWriter.flush();
+            this.dailyDataCSVWriter.flush();
+            this.exchangeDataCSVWriter.flush();
+        } catch (IOException e) {
+            System.err.println("Error while trying to flush the data writers.");
+        }
+    }
+
     public void closeAllDataWriters() {
         try {
             this.simulationDataTXTWriter.close();

@@ -115,6 +115,8 @@ public class TickerAgent extends Agent {
 
                         if (currentSimulationRun == 1) {
                             setupSimulationSet();
+
+                            TickerTrackerSingleton.getInstance().resetTracking();
                         }
 
                         AgentHelper.printAgentLog(
@@ -440,6 +442,8 @@ public class TickerAgent extends Agent {
         } else {
             // TODO
         }
+
+        SimulationDataOutputSingleton.getInstance().flushAllDataWriters();
     }
 
     private boolean shouldShutEnvironmentDown() {
