@@ -116,6 +116,8 @@ public class TickerAgent extends Agent {
                         if (currentSimulationRun == 1) {
                             setupSimulationSet();
 
+                            config.resetRandomSeed();
+
                             TickerTrackerSingleton.getInstance().resetTracking();
                         }
 
@@ -252,6 +254,8 @@ public class TickerAgent extends Agent {
                     } else {
                         currentSimulationRun++;
                         runReset();
+
+                        config.incrementRandomSeed();
 
                         BlockchainSingleton.getInstance().resetBlockchain();
 

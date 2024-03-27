@@ -213,6 +213,11 @@ public class SimulationConfigurationSingleton {
         random.setSeed(this.currentSeed);
     }
 
+    public void resetRandomSeed() {
+        this.currentSeed = this.originalSeed;
+        random.setSeed(this.currentSeed);
+    }
+
     public void setSingleAgentTypeUsed(boolean doesUtiliseSingleAgentType) {
         this.doesUtiliseSingleAgentType = doesUtiliseSingleAgentType;
         this.selfishPopulationCount = this.ratioToSelfishPopulationCount();
