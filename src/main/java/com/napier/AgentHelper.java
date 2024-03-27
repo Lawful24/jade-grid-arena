@@ -3,7 +3,7 @@ package com.napier;
 import com.napier.concepts.AgentContact;
 import com.napier.concepts.TimeSlot;
 import com.napier.concepts.TimeSlotSatisfactionPair;
-import com.napier.singletons.RunConfigurationSingleton;
+import com.napier.singletons.SimulationConfigurationSingleton;
 import com.napier.types.AgentStrategyType;
 import jade.core.AID;
 import jade.core.Agent;
@@ -240,7 +240,7 @@ public class AgentHelper {
     }
 
     public static AgentStrategyType determineAgentType(int householdAgentNumber) {
-        RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+        SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
         AgentStrategyType agentType;
 
         // Check if only one agent type is supposed to be used
@@ -278,7 +278,7 @@ public class AgentHelper {
      * @return Double The Agents satisfaction with the time-slots given.
      */
     public static double calculateSatisfaction(ArrayList<TimeSlot> timeSlotsToConsider, ArrayList<TimeSlot> requestedTimeSlots) {
-        double[] satisfactionCurve = RunConfigurationSingleton.getInstance().getSatisfactionCurve();
+        double[] satisfactionCurve = SimulationConfigurationSingleton.getInstance().getSatisfactionCurve();
         ArrayList<TimeSlot> tempRequestedTimeSlots = new ArrayList<>(requestedTimeSlots);
         ArrayList<TimeSlot> nonRequestedTimeSlots = new ArrayList<>();
 
@@ -320,7 +320,7 @@ public class AgentHelper {
         }
 
         // Return the Agents satisfaction with the given time-slots, between 1 and 0.
-        return satisfaction / RunConfigurationSingleton.getInstance().getNumOfSlotsPerAgent();
+        return satisfaction / SimulationConfigurationSingleton.getInstance().getNumOfSlotsPerAgent();
     }
 
     // TODO: Cite Arena code
@@ -393,10 +393,10 @@ public class AgentHelper {
     // TODO: Cite Arena code
     public static ArrayList<TimeSlotSatisfactionPair> calculateSatisfactionPerSlot(ArrayList<TimeSlot> requestedTimeSlots) {
         ArrayList<TimeSlotSatisfactionPair> timeSlotSatisfactionPairs = new ArrayList<>();
-        double[] satisfactionCurve = RunConfigurationSingleton.getInstance().getSatisfactionCurve();
+        double[] satisfactionCurve = SimulationConfigurationSingleton.getInstance().getSatisfactionCurve();
 
         // Calculate the potential satisfaction that each time-slot could give based on their proximity to requested time-slots.
-        Double[] slotSatisfaction = new Double[RunConfigurationSingleton.getInstance().getNumOfUniqueTimeSlots()];
+        Double[] slotSatisfaction = new Double[SimulationConfigurationSingleton.getInstance().getNumOfUniqueTimeSlots()];
         Arrays.fill(slotSatisfaction, 0.0);
 
         for (TimeSlot requestedTimeSlot : requestedTimeSlots) {

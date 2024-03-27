@@ -44,7 +44,7 @@ public class SimulationDataOutputSingleton {
     }
 
     private void createSimulationResultsFolderTree(boolean doesUtiliseSocialCapita, boolean doesUtiliseSingleAgentType, AgentStrategyType selectedSingleAgentType) {
-        RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+        SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
 
         // TODO: Cite Arena code
         // Create a directory to store the data output by all simulations being run.
@@ -156,7 +156,7 @@ public class SimulationDataOutputSingleton {
     }
 
     private void createSimulationDataOutputFile(boolean doesUtiliseSocialCapita, boolean doesUtiliseSingleAgentType, AgentStrategyType selectedSingleAgentType) {
-        RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+        SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
 
         if (this.simulationDataOutputParentFolder != null) {
             // TODO: Cite Arena code

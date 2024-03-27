@@ -3,8 +3,7 @@ package com.napier;
 import com.napier.agents.AdvertisingBoardAgent;
 import com.napier.agents.HouseholdAgent;
 import com.napier.agents.TickerAgent;
-import com.napier.singletons.RunConfigurationSingleton;
-import com.napier.singletons.SimulationDataOutputSingleton;
+import com.napier.singletons.SimulationConfigurationSingleton;
 import com.napier.types.ExchangeType;
 import jade.core.Profile;
 import jade.core.ProfileImpl;
@@ -61,7 +60,7 @@ public class Main {
     }
 
     private static void initEnvironment() {
-        RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+        SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
 
         // TODO: Comments and cite the JADE workbook
         Profile profile = new ProfileImpl();

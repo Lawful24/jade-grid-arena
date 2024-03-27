@@ -107,7 +107,7 @@ public class SmartContract {
 
             @Override
             public int onEnd() {
-                if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+                if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
                     AgentHelper.printAgentLog(myAgent.getLocalName(), "finished finalising the exchange");
                 }
 

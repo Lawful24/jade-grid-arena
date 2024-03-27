@@ -5,7 +5,7 @@ import com.napier.AgentHelper;
 import com.napier.concepts.SerializableEndOfDayData;
 import com.napier.concepts.TakeoverDayDataHolder;
 import com.napier.singletons.BlockchainSingleton;
-import com.napier.singletons.RunConfigurationSingleton;
+import com.napier.singletons.SimulationConfigurationSingleton;
 import com.napier.singletons.SimulationDataOutputSingleton;
 import com.napier.singletons.TickerTrackerSingleton;
 import com.napier.types.AgentStrategyType;
@@ -91,7 +91,7 @@ public class TickerAgent extends Agent {
 
         @Override
         public void action() {
-            RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+            SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
 
             // TODO: Cite JADE workbook for the step logic
             switch (step) {
@@ -189,7 +189,7 @@ public class TickerAgent extends Agent {
 
         @Override
         public int onEnd() {
-            RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+            SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
 
             if (config.isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "End of day " + currentDay);
@@ -288,7 +288,7 @@ public class TickerAgent extends Agent {
     private void setupSimulationSet() {
         this.simulationReset();
 
-        RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+        SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
 
         switch (config.getComparisonLevel()) {
             case 1:
@@ -361,9 +361,9 @@ public class TickerAgent extends Agent {
 
     private void initDataOutput() {
         SimulationDataOutputSingleton.getInstance().prepareSimulationDataOutput(
-                RunConfigurationSingleton.getInstance().doesUtiliseSocialCapita(),
-                RunConfigurationSingleton.getInstance().doesUtiliseSingleAgentType(),
-                RunConfigurationSingleton.getInstance().getSelectedSingleAgentType()
+                SimulationConfigurationSingleton.getInstance().doesUtiliseSocialCapita(),
+                SimulationConfigurationSingleton.getInstance().doesUtiliseSingleAgentType(),
+                SimulationConfigurationSingleton.getInstance().getSelectedSingleAgentType()
         );
     }
 
@@ -449,7 +449,7 @@ public class TickerAgent extends Agent {
     private boolean shouldShutEnvironmentDown() {
         boolean shutdown;
 
-        switch (RunConfigurationSingleton.getInstance().getComparisonLevel()) {
+        switch (SimulationConfigurationSingleton.getInstance().getComparisonLevel()) {
             case 1 -> shutdown = this.currentSimulationSet == 2;
             case 2 -> shutdown = this.currentSimulationSet == 5;
             default -> shutdown = true;

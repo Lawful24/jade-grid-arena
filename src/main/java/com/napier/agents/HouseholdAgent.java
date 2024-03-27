@@ -2,7 +2,7 @@ package com.napier.agents;
 
 import com.napier.*;
 import com.napier.concepts.*;
-import com.napier.singletons.RunConfigurationSingleton;
+import com.napier.singletons.SimulationConfigurationSingleton;
 import com.napier.singletons.SmartContract;
 import com.napier.types.AgentStrategyType;
 import com.napier.types.ExchangeType;
@@ -48,7 +48,7 @@ public class HouseholdAgent extends Agent {
 
         AgentHelper.registerAgent(this, "Household");
 
-        if (RunConfigurationSingleton.getInstance().getExchangeType() == ExchangeType.SmartContract) {
+        if (SimulationConfigurationSingleton.getInstance().getExchangeType() == ExchangeType.SmartContract) {
             addBehaviour(new FindHouseholdsBehaviour(this));
         }
 
@@ -112,7 +112,7 @@ public class HouseholdAgent extends Agent {
                     if (tick.getConversationId().equals("New Run")) {
                         initialAgentSetup();
 
-                        if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+                        if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
                             AgentHelper.printAgentLog(myAgent.getLocalName(), "Reset for new run");
                         }
                     }
@@ -127,7 +127,7 @@ public class HouseholdAgent extends Agent {
                     dailyTasks.addSubBehaviour(new CalculateSlotSatisfactionBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new ReceiveRandomInitialTimeSlotAllocationBehaviour(myAgent));
 
-                    switch (RunConfigurationSingleton.getInstance().getExchangeType()){
+                    switch (SimulationConfigurationSingleton.getInstance().getExchangeType()){
                         case MessagePassing -> dailyTasks.addSubBehaviour(new InitiateExchangeListenerBehaviour(myAgent));
                         case SmartContract -> dailyTasks.addSubBehaviour(new InitiateExchangeListenerSCBehaviour(myAgent));
                     }
@@ -166,7 +166,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public void action() {
-            RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+            SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
 
             // Wait until the demand indices are generated
             if (!config.getDemandCurveIndices().isEmpty()) {
@@ -192,7 +192,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public void action() {
-            RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+            SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
 
             // TODO: Cite Arena code
             if (!requestedTimeSlots.isEmpty()) {
@@ -285,7 +285,7 @@ public class HouseholdAgent extends Agent {
                 ACLMessage newExchangeMessage = AgentHelper.receiveMessage(myAgent, "Exchange Initiated");
 
                 if (newExchangeMessage != null) {
-                    if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+                    if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
                         AgentHelper.printAgentLog(myAgent.getLocalName(), "joining the exchange");
                     }
 
@@ -314,7 +314,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public int onEnd() {
-            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+            if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "household finished");
             }
 
@@ -379,7 +379,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public int onEnd() {
-            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+            if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "finished advertising");
             }
 
@@ -428,7 +428,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public int onEnd() {
-            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+            if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "finished inquiring");
             }
 
@@ -505,7 +505,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public int onEnd() {
-            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+            if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "finished listening to the result of the interest");
             }
 
@@ -583,7 +583,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public int onEnd() {
-            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+            if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "finished processing the proposal");
             }
 
@@ -623,7 +623,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public int onEnd() {
-            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+            if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "finished syncing social capita");
             }
 
@@ -645,7 +645,7 @@ public class HouseholdAgent extends Agent {
                 ACLMessage newExchangeMessage = AgentHelper.receiveMessage(myAgent, "Exchange Initiated");
 
                 if (newExchangeMessage != null) {
-                    if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+                    if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
                         AgentHelper.printAgentLog(myAgent.getLocalName(), "joining the exchange");
                     }
 
@@ -741,7 +741,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public int onEnd() {
-            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+            if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "finished listening to the result of the interest");
             }
 
@@ -816,7 +816,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public int onEnd() {
-            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+            if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "finished processing the proposal");
             }
 
@@ -902,7 +902,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public int onEnd() {
-            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+            if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "finished listening to the trade offer reply");
             }
 
@@ -917,7 +917,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public void action() {
-            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+            if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "household finished");
             }
 
@@ -965,7 +965,7 @@ public class HouseholdAgent extends Agent {
                     if (incomingObject != null) {
                         // Make sure the incoming object is of the expected type
                         if (incomingObject instanceof AgentContact) {
-                            RunConfigurationSingleton config = RunConfigurationSingleton.getInstance();
+                            SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
 
                             // TODO: Cite Arena code
                             // Copy the observed agents strategy if it is better than its own, with likelihood dependent on the
@@ -1005,7 +1005,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public int onEnd() {
-            if (RunConfigurationSingleton.getInstance().isDebugMode()) {
+            if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "finished with social learning");
             }
 
@@ -1070,12 +1070,12 @@ public class HouseholdAgent extends Agent {
      * each other Agent.
      */
     private void initializeFavoursStore() {
-        if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapita()) {
+        if (SimulationConfigurationSingleton.getInstance().doesUtiliseSocialCapita()) {
             if (!this.favours.isEmpty()) {
                 this.favours.clear();
             }
 
-            for (int i = 1; i <= RunConfigurationSingleton.getInstance().getPopulationCount(); i++) {
+            for (int i = 1; i <= SimulationConfigurationSingleton.getInstance().getPopulationCount(); i++) {
                 // Prevent the household agent from being registered in the favours storage
                 if (!this.getLocalName().equals("Household-" + i)) {
                     // Initially, no favours are owed or have been given to any other agent.
@@ -1114,7 +1114,7 @@ public class HouseholdAgent extends Agent {
                     exchangeRequestApproved = true;
                     this.numOfDailyAcceptedReceivedExchangesWithoutSocialCapita++;
                 } else if (Double.compare(potentialSatisfaction, currentSatisfaction) == 0) {
-                    if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapita()) {
+                    if (SimulationConfigurationSingleton.getInstance().doesUtiliseSocialCapita()) {
                         if (favours.get(offer.requesterAgent().getLocalName()) < 0) {
                             exchangeRequestApproved = true;
                             this.numOfDailyAcceptedReceivedExchangesWithSocialCapita++;
@@ -1161,7 +1161,7 @@ public class HouseholdAgent extends Agent {
         double newSatisfaction = AgentHelper.calculateSatisfaction(this.allocatedTimeSlots, this.requestedTimeSlots);
 
         // Update the Agents relationship with the other Agent involved in the exchange.
-        if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapita()) {
+        if (SimulationConfigurationSingleton.getInstance().doesUtiliseSocialCapita()) {
             if (Double.compare(newSatisfaction, previousSatisfaction) <= 0 && this.agentType == AgentStrategyType.SOCIAL) {
                 int currentNumberOfFavours = this.favours.get(offer.requesterAgent().getLocalName());
 
@@ -1193,7 +1193,7 @@ public class HouseholdAgent extends Agent {
         double newSatisfaction = AgentHelper.calculateSatisfaction(this.allocatedTimeSlots, this.requestedTimeSlots);
 
         // Update the Agents relationship with the other Agent involved in the exchange.
-        if (RunConfigurationSingleton.getInstance().doesUtiliseSocialCapita()) {
+        if (SimulationConfigurationSingleton.getInstance().doesUtiliseSocialCapita()) {
             if (Double.compare(newSatisfaction, previousSatisfaction) > 0 && this.agentType == AgentStrategyType.SOCIAL) {
                 int currentNumberOfFavours = this.favours.get(offer.receiverAgent().getLocalName());
 

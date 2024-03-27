@@ -9,8 +9,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 
-public class RunConfigurationSingleton {
-    private static RunConfigurationSingleton instance;
+public class SimulationConfigurationSingleton {
+    private static SimulationConfigurationSingleton instance;
     private final boolean debugMode;
     private final ExchangeType exchangeType;
     private static final Random random = new Random();
@@ -45,15 +45,15 @@ public class RunConfigurationSingleton {
     private final int numOfAgentsToEvolve;
     private int selfishPopulationCount;
 
-    public static RunConfigurationSingleton getInstance() {
+    public static SimulationConfigurationSingleton getInstance() {
         if (instance == null) {
-            instance = new RunConfigurationSingleton();
+            instance = new SimulationConfigurationSingleton();
         }
 
         return instance;
     }
 
-    private RunConfigurationSingleton() {
+    private SimulationConfigurationSingleton() {
         this.debugMode = Main.isDebugMode();
         this.exchangeType = Main.getExchangeType();
 
