@@ -56,6 +56,8 @@ public class DataOutputSingleton {
             this.simulationDataOutputParentFolder += this.getAgentStrategyTypeCapString(selectedSingleAgentType);
         }
 
+        this.simulationDataOutputParentFolder += "_" + config.getExchangeType() + "_EType";
+
         this.simulationDataOutputFolder = this.simulationDataOutputParentFolder + "/data";
 
         try {
