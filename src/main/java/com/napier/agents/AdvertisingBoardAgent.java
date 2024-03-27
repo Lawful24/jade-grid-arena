@@ -687,9 +687,6 @@ public class AdvertisingBoardAgent extends Agent {
             ACLMessage interestMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.CFP);
 
             if (interestMessage != null && adverts.size() == config.getPopulationCount()) {
-                // Flip the "made interaction" flag
-                householdAgentsInteractions.replace(interestMessage.getSender(), true);
-
                 // Make sure the incoming object is readable
                 Serializable incomingObject = null;
 
@@ -714,6 +711,8 @@ public class AdvertisingBoardAgent extends Agent {
                         // Check if the household agent has made interaction with another household agent in the current exchange round
                         // Find out if the sender has any timeslots available to trade
                         if (!householdAgentsInteractions.get(interestMessage.getSender()) && !sendersAdvertisedTimeSlots.isEmpty()) {
+                            // Flip the "made interaction" flag
+                            householdAgentsInteractions.replace(interestMessage.getSender(), true);
 
                             // TODO: Cite Arena code
                             ArrayList<AID> shuffledAdvertPosters = new ArrayList<>(adverts.keySet());
