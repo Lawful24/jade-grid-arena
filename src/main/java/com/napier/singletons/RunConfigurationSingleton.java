@@ -94,6 +94,7 @@ public class RunConfigurationSingleton {
     }
 
     /* Accessors */
+
     public boolean isDebugMode() {
         return this.debugMode;
     }

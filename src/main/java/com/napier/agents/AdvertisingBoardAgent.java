@@ -331,97 +331,95 @@ public class AdvertisingBoardAgent extends Agent {
             ACLMessage interestMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.CFP);
 
             if (interestMessage != null && adverts.size() == config.getPopulationCount()) {
-                // Check if the household agent has made interaction with another household agent in the current exchange round
-                if (!householdAgentsInteractions.get(interestMessage.getSender())) {
-                    // Flip the "made interaction" flag
-                    householdAgentsInteractions.replace(interestMessage.getSender(), true);
+                // Make sure the incoming object is readable
+                Serializable incomingObject = null;
 
-                    // Prepare a trade offer to the owner of the desired timeslot if that timeslot is available for trade
-                    ArrayList<TimeSlot> sendersAdvertisedTimeSlots = adverts.get(interestMessage.getSender());
+                try {
+                    incomingObject = interestMessage.getContentObject();
+                } catch (UnreadableException e) {
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming message about an interest in timeslots is unreadable: " + e.getMessage());
+                }
 
-                    // Find out if the sender has any timeslots available to trade
-                    if (!sendersAdvertisedTimeSlots.isEmpty()) {
-                        // Make sure the incoming object is readable
-                        Serializable incomingObject = null;
+                if (incomingObject != null) {
+                    // Make sure the incoming object is of the expected type and the advert is not empty
+                    if (incomingObject instanceof SerializableTimeSlotArray) {
+                        TimeSlot[] desiredTimeSlots = ((SerializableTimeSlotArray) incomingObject).timeSlots();
+                        TimeSlot targetTimeSlot = null;
+                        AID targetOwner = null;
 
-                        try {
-                            incomingObject = interestMessage.getContentObject();
-                        } catch (UnreadableException e) {
-                            AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming message about an interest in timeslots is unreadable: " + e.getMessage());
-                        }
+                        requestedTimeSlots.put(interestMessage.getSender(), new ArrayList<>(Arrays.asList(desiredTimeSlots)));
 
-                        if (incomingObject != null) {
-                            // Make sure the incoming object is of the expected type and the advert is not empty
-                            if (incomingObject instanceof SerializableTimeSlotArray) {
-                                TimeSlot[] desiredTimeSlots = ((SerializableTimeSlotArray) incomingObject).timeSlots();
-                                TimeSlot targetTimeSlot = null;
-                                AID targetOwner = null;
+                        // Prepare a trade offer to the owner of the desired timeslot if that timeslot is available for trade
+                        ArrayList<TimeSlot> sendersAdvertisedTimeSlots = adverts.get(interestMessage.getSender());
 
-                                requestedTimeSlots.put(interestMessage.getSender(), new ArrayList<>(Arrays.asList(desiredTimeSlots)));
+                        // Check if the household agent has made interaction with another household agent in the current exchange round
+                        // Find out if the sender has any timeslots available to trade
+                        if (!householdAgentsInteractions.get(interestMessage.getSender()) && !sendersAdvertisedTimeSlots.isEmpty()) {
+                            // Flip the "made interaction" flag
+                            householdAgentsInteractions.replace(interestMessage.getSender(), true);
 
-                                // TODO: Cite Arena code
-                                ArrayList<AID> shuffledAdvertPosters = new ArrayList<>(adverts.keySet());
+                            // TODO: Cite Arena code
+                            ArrayList<AID> shuffledAdvertPosters = new ArrayList<>(adverts.keySet());
 
-                                // Remove the requesting agent from the temp advert catalogue to avoid an unnecessary check
-                                shuffledAdvertPosters.remove(interestMessage.getSender());
-                                Collections.shuffle(shuffledAdvertPosters, config.getRandom());
+                            // Remove the requesting agent from the temp advert catalogue to avoid an unnecessary check
+                            shuffledAdvertPosters.remove(interestMessage.getSender());
+                            Collections.shuffle(shuffledAdvertPosters, config.getRandom());
 
-                                // Find the desired timeslot in the published adverts
-                                browsingTimeSlots:
-                                for (TimeSlot desiredTimeSlot : desiredTimeSlots) {
-                                    for (AID advertPoster : shuffledAdvertPosters) {
-                                        // Check if the potential receiving household agent has made an interaction in the current exchange round
-                                        if (!householdAgentsInteractions.get(advertPoster)) {
-                                            ArrayList<TimeSlot> timeSlotsForTrade = adverts.get(advertPoster);
+                            // Find the desired timeslot in the published adverts
+                            browsingTimeSlots:
+                            for (TimeSlot desiredTimeSlot : desiredTimeSlots) {
+                                for (AID advertPoster : shuffledAdvertPosters) {
+                                    // Check if the potential receiving household agent has made an interaction in the current exchange round
+                                    if (!householdAgentsInteractions.get(advertPoster)) {
+                                        ArrayList<TimeSlot> timeSlotsForTrade = adverts.get(advertPoster);
 
-                                            for (TimeSlot timeSlotForTrade : timeSlotsForTrade) {
-                                                if (desiredTimeSlot.equals(timeSlotForTrade)) {
-                                                    targetTimeSlot = timeSlotForTrade;
-                                                    targetOwner = advertPoster;
+                                        for (TimeSlot timeSlotForTrade : timeSlotsForTrade) {
+                                            if (desiredTimeSlot.equals(timeSlotForTrade)) {
+                                                targetTimeSlot = timeSlotForTrade;
+                                                targetOwner = advertPoster;
 
-                                                    // Add the target agent to the list of agents to receive a trade offer
-                                                    agentsToReceiveTradeOffer.add(advertPoster);
-                                                    // Flip the target agent's "made interaction" flag to true so that
-                                                    // it does not get paired up with other agents this round
-                                                    householdAgentsInteractions.replace(advertPoster, true);
+                                                // Add the target agent to the list of agents to receive a trade offer
+                                                agentsToReceiveTradeOffer.add(advertPoster);
+                                                // Flip the target agent's "made interaction" flag to true so that
+                                                // it does not get paired up with other agents this round
+                                                householdAgentsInteractions.replace(advertPoster, true);
 
-                                                    break browsingTimeSlots;
-                                                }
+                                                break browsingTimeSlots;
                                             }
-                                        } else {
-                                            // TODO: let the requesting agent know that the receiving agent is already occupied this round
                                         }
+                                    } else {
+                                        // TODO: let the requesting agent know that the receiving agent is already occupied this round
                                     }
                                 }
-
-                                // Check if the sender has any timeslots to offer in return and if a desired timeslot was found
-                                if (targetTimeSlot != null) {
-                                    // Offer the sender's least wanted timeslot - the first element of the advert
-                                    // Send the trade offer to the agent that has the desired timeslot, with the
-                                    // sender's nickname as the text content
-                                    AgentHelper.sendMessage(
-                                            myAgent,
-                                            targetOwner,
-                                            "New Offer",
-                                            new TradeOffer(
-                                                    interestMessage.getSender(),
-                                                    targetOwner,
-                                                    sendersAdvertisedTimeSlots.getFirst(),
-                                                    targetTimeSlot
-                                            ),
-                                            ACLMessage.PROPOSE
-                                    );
-
-                                    numOfTradesStarted++;
-                                    refuseRequest = false;
-                                }
-                            } else {
-                                AgentHelper.printAgentError(myAgent.getLocalName(), "Interest for timeslots cannot be processed: the received object has an incorrect type.");
                             }
+
+                            // Check if the sender has any timeslots to offer in return and if a desired timeslot was found
+                            if (targetTimeSlot != null) {
+                                // Offer the sender's least wanted timeslot - the first element of the advert
+                                // Send the trade offer to the agent that has the desired timeslot, with the
+                                // sender's nickname as the text content
+                                AgentHelper.sendMessage(
+                                        myAgent,
+                                        targetOwner,
+                                        "New Offer",
+                                        new TradeOffer(
+                                                interestMessage.getSender(),
+                                                targetOwner,
+                                                sendersAdvertisedTimeSlots.getFirst(),
+                                                targetTimeSlot
+                                        ),
+                                        ACLMessage.PROPOSE
+                                );
+
+                                numOfTradesStarted++;
+                                refuseRequest = false;
+                            }
+                        } else {
+                            // TODO: let the requesting agent know that it has already made interaction therefore cannot make any more requests
                         }
+                    } else {
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Interest for timeslots cannot be processed: the received object has an incorrect type.");
                     }
-                } else {
-                    // TODO: let the requesting agent know that it has already made interaction therefore cannot make any more requests
                 }
 
                 numOfRequestsProcessed++;
@@ -470,27 +468,7 @@ public class AdvertisingBoardAgent extends Agent {
         @Override
         public int onEnd() {
             if (currentExchangeRound == 1) {
-                // TODO: Cite Arena code
-                ArrayList<TimeSlot> allAllocatedTimeSlots = new ArrayList<>();
-                ArrayList<TimeSlot> allRequestedTimeSlots = new ArrayList<>();
-
-                for (AgentContact householdAgentContact : householdAgentContacts) {
-                    ArrayList<TimeSlot> householdInitialRandomAllocatedTimeSlots = initialRandomAllocatedTimeSlots.get(householdAgentContact.getAgentIdentifier());
-                    ArrayList<TimeSlot> householdRequestedTimeSlots = requestedTimeSlots.get(householdAgentContact.getAgentIdentifier());
-
-                    householdAgentContact.setCurrentSatisfaction(AgentHelper.calculateSatisfaction
-                            (
-                                    householdInitialRandomAllocatedTimeSlots,
-                                    householdRequestedTimeSlots
-                            )
-                    );
-
-                    allAllocatedTimeSlots.addAll(householdInitialRandomAllocatedTimeSlots);
-                    allRequestedTimeSlots.addAll(householdRequestedTimeSlots);
-                }
-
-                initialRandomAllocationAverageSatisfaction = AgentHelper.calculateCurrentAverageAgentSatisfaction(householdAgentContacts);
-                optimumAveragePossibleSatisfaction = AgentHelper.calculateOptimumPossibleSatisfaction(allAllocatedTimeSlots, allRequestedTimeSlots);
+                calculateInitialAndOptimumSatisfactions();
             }
 
             if (RunConfigurationSingleton.getInstance().isDebugMode()) {
@@ -709,94 +687,93 @@ public class AdvertisingBoardAgent extends Agent {
             ACLMessage interestMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.CFP);
 
             if (interestMessage != null && adverts.size() == config.getPopulationCount()) {
-                // Check if the household agent has made interaction with another household agent in the current exchange round
-                if (!householdAgentsInteractions.get(interestMessage.getSender())) {
-                    // Flip the "made interaction" flag
-                    householdAgentsInteractions.replace(interestMessage.getSender(), true);
+                // Flip the "made interaction" flag
+                householdAgentsInteractions.replace(interestMessage.getSender(), true);
 
-                    // Prepare a trade offer to the owner of the desired timeslot if that timeslot is available for trade
-                    ArrayList<TimeSlot> sendersAdvertisedTimeSlots = adverts.get(interestMessage.getSender());
+                // Make sure the incoming object is readable
+                Serializable incomingObject = null;
 
-                    // Find out if the sender has any timeslots available to trade
-                    if (!sendersAdvertisedTimeSlots.isEmpty()) {
-                        // Make sure the incoming object is readable
-                        Serializable incomingObject = null;
+                try {
+                    incomingObject = interestMessage.getContentObject();
+                } catch (UnreadableException e) {
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming message about an interest in timeslots is unreadable: " + e.getMessage());
+                }
 
-                        try {
-                            incomingObject = interestMessage.getContentObject();
-                        } catch (UnreadableException e) {
-                            AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming message about an interest in timeslots is unreadable: " + e.getMessage());
-                        }
+                if (incomingObject != null) {
+                    // Make sure the incoming object is of the expected type and the advert is not empty
+                    if (incomingObject instanceof SerializableTimeSlotArray) {
+                        TimeSlot[] desiredTimeSlots = ((SerializableTimeSlotArray) incomingObject).timeSlots();
+                        TimeSlot targetTimeSlot = null;
+                        AID targetOwner = null;
 
-                        if (incomingObject != null) {
-                            // Make sure the incoming object is of the expected type and the advert is not empty
-                            if (incomingObject instanceof SerializableTimeSlotArray) {
-                                TimeSlot[] desiredTimeSlots = ((SerializableTimeSlotArray) incomingObject).timeSlots();
-                                TimeSlot targetTimeSlot = null;
-                                AID targetOwner = null;
+                        requestedTimeSlots.put(interestMessage.getSender(), new ArrayList<>(Arrays.asList(desiredTimeSlots)));
 
-                                requestedTimeSlots.put(interestMessage.getSender(), new ArrayList<>(Arrays.asList(desiredTimeSlots)));
+                        // Prepare a trade offer to the owner of the desired timeslot if that timeslot is available for trade
+                        ArrayList<TimeSlot> sendersAdvertisedTimeSlots = adverts.get(interestMessage.getSender());
 
-                                // TODO: Cite Arena code
-                                ArrayList<AID> shuffledAdvertPosters = new ArrayList<>(adverts.keySet());
+                        // Check if the household agent has made interaction with another household agent in the current exchange round
+                        // Find out if the sender has any timeslots available to trade
+                        if (!householdAgentsInteractions.get(interestMessage.getSender()) && !sendersAdvertisedTimeSlots.isEmpty()) {
 
-                                // Remove the requesting agent from the temp advert catalogue to avoid an unnecessary check
-                                shuffledAdvertPosters.remove(interestMessage.getSender());
-                                Collections.shuffle(shuffledAdvertPosters, config.getRandom());
+                            // TODO: Cite Arena code
+                            ArrayList<AID> shuffledAdvertPosters = new ArrayList<>(adverts.keySet());
 
-                                // Find the desired timeslot in the published adverts
-                                browsingTimeSlots:
-                                for (TimeSlot desiredTimeSlot : desiredTimeSlots) {
-                                    for (AID advertPoster : shuffledAdvertPosters) {
-                                        // Check if the potential receiving household agent has made an interaction in the current exchange round
-                                        if (!householdAgentsInteractions.get(advertPoster)) {
-                                            ArrayList<TimeSlot> timeSlotsForTrade = adverts.get(advertPoster);
+                            // Remove the requesting agent from the temp advert catalogue to avoid an unnecessary check
+                            shuffledAdvertPosters.remove(interestMessage.getSender());
+                            Collections.shuffle(shuffledAdvertPosters, config.getRandom());
 
-                                            for (TimeSlot timeSlotForTrade : timeSlotsForTrade) {
-                                                if (desiredTimeSlot.equals(timeSlotForTrade)) {
-                                                    targetTimeSlot = timeSlotForTrade;
-                                                    targetOwner = advertPoster;
+                            // Find the desired timeslot in the published adverts
+                            browsingTimeSlots:
+                            for (TimeSlot desiredTimeSlot : desiredTimeSlots) {
+                                for (AID advertPoster : shuffledAdvertPosters) {
+                                    // Check if the potential receiving household agent has made an interaction in the current exchange round
+                                    if (!householdAgentsInteractions.get(advertPoster)) {
+                                        ArrayList<TimeSlot> timeSlotsForTrade = adverts.get(advertPoster);
 
-                                                    // Add the target agent to the list of agents to receive a trade offer
-                                                    agentsToReceiveTradeOffer.add(advertPoster);
-                                                    // Flip the target agent's "made interaction" flag to true so that
-                                                    // it does not get paired up with other agents this round
-                                                    householdAgentsInteractions.replace(advertPoster, true);
+                                        for (TimeSlot timeSlotForTrade : timeSlotsForTrade) {
+                                            if (desiredTimeSlot.equals(timeSlotForTrade)) {
+                                                targetTimeSlot = timeSlotForTrade;
+                                                targetOwner = advertPoster;
 
-                                                    break browsingTimeSlots;
-                                                }
+                                                // Add the target agent to the list of agents to receive a trade offer
+                                                agentsToReceiveTradeOffer.add(advertPoster);
+                                                // Flip the target agent's "made interaction" flag to true so that
+                                                // it does not get paired up with other agents this round
+                                                householdAgentsInteractions.replace(advertPoster, true);
+
+                                                break browsingTimeSlots;
                                             }
-                                        } else {
-                                            // TODO: let the requesting agent know that the receiving agent is already occupied this round
                                         }
+                                    } else {
+                                        // TODO: let the requesting agent know that the receiving agent is already occupied this round
                                     }
                                 }
+                            }
 
-                                // Check if the requester has any timeslots to offer in return and if a desired timeslot was found
-                                if (targetTimeSlot != null) { // TODO: change all occurrences of "sender" to "requester"
-                                    // Offer the requester's least wanted timeslot - the first element of the advert
-                                    // Send the created trade offer object to the requester agent so that it can forward
-                                    // it to the target agent.
-                                    AgentHelper.sendMessage(
-                                            myAgent,
-                                            interestMessage.getSender(),
-                                            "Offer Created",
-                                            new TradeOffer(
-                                                    interestMessage.getSender(),
-                                                    targetOwner,
-                                                    sendersAdvertisedTimeSlots.getFirst(),
-                                                    targetTimeSlot
-                                            ),
-                                            ACLMessage.AGREE
-                                    );
+                            // Check if the requester has any timeslots to offer in return and if a desired timeslot was found
+                            if (targetTimeSlot != null) { // TODO: change all occurrences of "sender" to "requester"
+                                // Offer the requester's least wanted timeslot - the first element of the advert
+                                // Send the created trade offer object to the requester agent so that it can forward
+                                // it to the target agent.
+                                AgentHelper.sendMessage(
+                                        myAgent,
+                                        interestMessage.getSender(),
+                                        "Offer Created",
+                                        new TradeOffer(
+                                                interestMessage.getSender(),
+                                                targetOwner,
+                                                sendersAdvertisedTimeSlots.getFirst(),
+                                                targetTimeSlot
+                                        ),
+                                        ACLMessage.AGREE
+                                );
 
-                                    numOfTradesStarted++;
-                                    refuseRequest = false;
-                                }
-                            } else {
-                                AgentHelper.printAgentError(myAgent.getLocalName(), "Interest for timeslots cannot be processed: the received object has an incorrect type.");
+                                numOfTradesStarted++;
+                                refuseRequest = false;
                             }
                         }
+                    } else {
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Interest for timeslots cannot be processed: the received object has an incorrect type.");
                     }
                 } else {
                     // TODO: let the requesting agent know that it has already made interaction therefore cannot make any more requests
@@ -848,6 +825,10 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public int onEnd() {
+            if (currentExchangeRound == 1) {
+                calculateInitialAndOptimumSatisfactions();
+            }
+
             if (RunConfigurationSingleton.getInstance().isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "done processing cfps");
             }
@@ -1294,5 +1275,19 @@ public class AdvertisingBoardAgent extends Agent {
         for (AgentContact contact : this.householdAgentContacts) {
             this.householdAgentsInteractions.put(contact.getAgentIdentifier(), false);
         }
+    }
+
+    private void calculateInitialAndOptimumSatisfactions() {
+        // TODO: Cite Arena code
+        ArrayList<TimeSlot> allAllocatedTimeSlots = new ArrayList<>();
+        ArrayList<TimeSlot> allRequestedTimeSlots = new ArrayList<>();
+
+        for (AgentContact householdAgentContact : this.householdAgentContacts) {
+            allAllocatedTimeSlots.addAll(this.initialRandomAllocatedTimeSlots.get(householdAgentContact.getAgentIdentifier()));
+            allRequestedTimeSlots.addAll(this.requestedTimeSlots.get(householdAgentContact.getAgentIdentifier()));
+        }
+
+        this.initialRandomAllocationAverageSatisfaction = AgentHelper.calculateCurrentAverageAgentSatisfaction(this.householdAgentContacts);
+        this.optimumAveragePossibleSatisfaction = AgentHelper.calculateOptimumPossibleSatisfaction(allAllocatedTimeSlots, allRequestedTimeSlots);
     }
 }
