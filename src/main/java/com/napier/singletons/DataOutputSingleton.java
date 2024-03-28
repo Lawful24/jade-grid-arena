@@ -2,6 +2,7 @@ package com.napier.singletons;
 
 import com.napier.concepts.AgentStatisticalValuesPerStrategyType;
 import com.napier.types.AgentStrategyType;
+import com.napier.types.ExchangeType;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -11,16 +12,18 @@ import java.nio.file.Path;
 
 public class DataOutputSingleton {
     private static DataOutputSingleton instance;
-    String simulationDataOutputParentFolder;
-    String simulationDataOutputFolder;
+    String simulationDataOutputParentFolderPath;
+    String simulationDataOutputFolderPath;
     File simulationDataFile;
     File agentDataFile;
     File dailyDataFile;
     File exchangeDataFile;
+    File performanceDataFile;
     FileWriter simulationDataTXTWriter;
     FileWriter agentDataCSVWriter;
     FileWriter dailyDataCSVWriter;
     FileWriter exchangeDataCSVWriter;
+    FileWriter performanceDataCSVWriter;
 
     public static DataOutputSingleton getInstance() {
         if (instance == null) {
@@ -48,31 +51,31 @@ public class DataOutputSingleton {
 
         // TODO: Cite Arena code
         // Create a directory to store the data output by all simulations being run.
-        this.simulationDataOutputParentFolder = config.getResultsFolderPath() + "/" + config.getStartingSeed() + "/useSC_" + doesUtiliseSocialCapita + "_AType_";
+        this.simulationDataOutputParentFolderPath = config.getResultsFolderPath() + "/" + config.getStartingSeed() + "/useSC_" + doesUtiliseSocialCapita + "_AType_";
 
         if (!doesUtiliseSingleAgentType) {
-            this.simulationDataOutputParentFolder += "mixed";
+            this.simulationDataOutputParentFolderPath += "mixed";
         } else {
-            this.simulationDataOutputParentFolder += this.getAgentStrategyTypeCapString(selectedSingleAgentType);
+            this.simulationDataOutputParentFolderPath += this.getAgentStrategyTypeCapString(selectedSingleAgentType);
         }
 
-        this.simulationDataOutputParentFolder += "_EType_" + config.getExchangeType();
+        this.simulationDataOutputParentFolderPath += "_EType_" + config.getExchangeType();
 
-        this.simulationDataOutputFolder = this.simulationDataOutputParentFolder + "/data";
+        this.simulationDataOutputFolderPath = this.simulationDataOutputParentFolderPath + "/data";
 
         try {
             // TODO: Cite Arena code
             // Create a directory to store the data output by the simulation.
-            Files.createDirectories(Path.of(this.simulationDataOutputFolder));
+            Files.createDirectories(Path.of(this.simulationDataOutputFolderPath));
         } catch (IOException e) {
             System.err.println("Error while trying to create the folder to store the results of the simulation in: " + e.getMessage());
         }
     }
 
     private void createAgentDataOutputFile() {
-        if (this.simulationDataOutputFolder != null) {
+        if (this.simulationDataOutputFolderPath != null) {
             // TODO: Cite Arena code
-            this.agentDataFile = new File(this.simulationDataOutputFolder, "agentData.csv");
+            this.agentDataFile = new File(this.simulationDataOutputFolderPath, "agentData.csv");
 
             try {
                 this.agentDataCSVWriter = new FileWriter(this.agentDataFile);
@@ -98,9 +101,9 @@ public class DataOutputSingleton {
     }
 
     private void createDailyDataOutputFile() {
-        if (this.simulationDataOutputFolder != null) {
+        if (this.simulationDataOutputFolderPath != null) {
             // TODO: Cite Arena code
-            this.dailyDataFile = new File(this.simulationDataOutputFolder, "dailyData.csv");
+            this.dailyDataFile = new File(this.simulationDataOutputFolderPath, "dailyData.csv");
 
             try {
                 this.dailyDataCSVWriter = new FileWriter(this.dailyDataFile);
@@ -136,9 +139,9 @@ public class DataOutputSingleton {
     }
 
     private void createExchangeDataOutputFile() {
-        if (this.simulationDataOutputFolder != null) {
+        if (this.simulationDataOutputFolderPath != null) {
             // TODO: Cite Arena code
-            this.exchangeDataFile = new File(this.simulationDataOutputFolder, "exchangeData.csv");
+            this.exchangeDataFile = new File(this.simulationDataOutputFolderPath, "exchangeData.csv");
 
             try {
                 this.exchangeDataCSVWriter = new FileWriter(this.exchangeDataFile);
@@ -157,12 +160,37 @@ public class DataOutputSingleton {
         }
     }
 
+    private void createPerformanceDataOutputFile() {
+        if (this.simulationDataOutputFolderPath != null) {
+            this.performanceDataFile = new File(this.simulationDataOutputFolderPath, "performanceData.csv");
+
+            try {
+                this.performanceDataCSVWriter = new FileWriter(this.performanceDataFile);
+
+                performanceDataCSVWriter.append("Exchange Type,");
+                performanceDataCSVWriter.append("Simulation Run,");
+                performanceDataCSVWriter.append("Day,");
+                performanceDataCSVWriter.append("Round,");
+                performanceDataCSVWriter.append("Name,"); // TODO: might not be necessary
+                performanceDataCSVWriter.append("Strategy Type,");
+                performanceDataCSVWriter.append("Requester/Receiver,");
+                performanceDataCSVWriter.append("CPU Time Used,");
+                performanceDataCSVWriter.append("Memory Used");
+                performanceDataCSVWriter.append("\n");
+            } catch (IOException e) {
+                System.err.println("Could not write in performance data output file.");
+            }
+        } else {
+            System.err.println("Data writer tried writing to file without knowing the path of its parent folder.");
+        }
+    }
+
     private void createSimulationDataOutputFile(boolean doesUtiliseSocialCapita, boolean doesUtiliseSingleAgentType, AgentStrategyType selectedSingleAgentType) {
         SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
 
-        if (this.simulationDataOutputParentFolder != null) {
+        if (this.simulationDataOutputParentFolderPath != null) {
             // TODO: Cite Arena code
-            this.simulationDataFile = new File(this.simulationDataOutputParentFolder, "simulationData.txt");
+            this.simulationDataFile = new File(this.simulationDataOutputParentFolderPath, "simulationData.txt");
 
             try {
                 this.simulationDataTXTWriter = new FileWriter(this.simulationDataFile);
@@ -304,6 +332,36 @@ public class DataOutputSingleton {
         }
     }
 
+    public void appendPerformanceData(
+            ExchangeType currentExchangeType,
+            int currentSimulationRun,
+            int currentDay,
+            int currentExchangeRound,
+            String agentNickname,
+            AgentStrategyType agentStrategyType,
+            boolean isTradeOfferReceiver,
+            long cpuTimeUsedThisExchangeRound,
+            long memoryUsedThisExchangeRound
+    ) {
+        if (this.performanceDataCSVWriter != null) {
+            try {
+                this.performanceDataCSVWriter.append(String.valueOf(currentExchangeType)).append(",");
+                this.performanceDataCSVWriter.append(String.valueOf(currentSimulationRun)).append(",");
+                this.performanceDataCSVWriter.append(String.valueOf(currentDay)).append(",");
+                this.performanceDataCSVWriter.append(String.valueOf(currentExchangeRound)).append(",");
+                this.performanceDataCSVWriter.append(agentNickname).append(","); // TODO: might not be necessary
+                this.performanceDataCSVWriter.append(String.valueOf(agentStrategyType)).append(",");
+                this.performanceDataCSVWriter.append(String.valueOf(isTradeOfferReceiver)).append(",");
+                this.performanceDataCSVWriter.append(String.valueOf(cpuTimeUsedThisExchangeRound)).append(",");
+                this.performanceDataCSVWriter.append(String.valueOf(memoryUsedThisExchangeRound)).append("\n");
+            } catch (IOException e) {
+                System.err.println("Error while trying to append data to the performance data file.");
+            }
+        } else {
+            System.err.println("Tried to write data output file but the FileWriter was null.");
+        }
+    }
+
     public void appendSimulationDataForSocialRuns(
             AgentStrategyType agentStrategyType,
             int numOfTypeTakeovers,
@@ -362,6 +420,7 @@ public class DataOutputSingleton {
             this.agentDataCSVWriter.flush();
             this.dailyDataCSVWriter.flush();
             this.exchangeDataCSVWriter.flush();
+            this.performanceDataCSVWriter.flush();
         } catch (IOException e) {
             System.err.println("Error while trying to flush the data writers.");
         }
@@ -373,6 +432,7 @@ public class DataOutputSingleton {
             this.agentDataCSVWriter.close();
             this.dailyDataCSVWriter.close();
             this.exchangeDataCSVWriter.close();
+            this.performanceDataCSVWriter.close();
         } catch (IOException e) {
             System.err.println("Error while trying to close the data writers.");
         }
