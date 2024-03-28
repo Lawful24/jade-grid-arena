@@ -39,6 +39,7 @@ public class HouseholdAgent extends Agent {
     private double currentSatisfaction;
     private boolean areHouseholdsFound;
     private boolean isExchangeTypeBeingSwitched;
+    private boolean activeExchange;
 
     // Agent contact attributes
     private AID tickerAgent;
@@ -105,7 +106,7 @@ public class HouseholdAgent extends Agent {
         public void action() {
             ACLMessage tick = AgentHelper.receiveMessage(myAgent, tickerAgent, ACLMessage.INFORM);
 
-            if (tick != null && tickerAgent != null) {
+            if (tick != null) {
                 // Set up the daily tasks
                 if (!tick.getConversationId().equals("Terminate")) {
                     // Do a reset on all agent attributes on each new simulation run
@@ -114,6 +115,10 @@ public class HouseholdAgent extends Agent {
 
                         if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
                             AgentHelper.printAgentLog(myAgent.getLocalName(), "Reset for new run");
+
+                            if (myAgent.getBehavioursCnt() > 2) {
+                                AgentHelper.printAgentLog(getLocalName(), "behaviour count at the start of a new run: " + myAgent.getBehavioursCnt());
+                            }
                         }
                     }
 
@@ -128,9 +133,13 @@ public class HouseholdAgent extends Agent {
                     dailyTasks.addSubBehaviour(new ReceiveRandomInitialTimeSlotAllocationBehaviour(myAgent));
                     myAgent.addBehaviour(dailyTasks);
 
-                    switch (SimulationConfigurationSingleton.getInstance().getExchangeType()){
-                        case MessagePassing -> myAgent.addBehaviour(new InitiateExchangeListenerBehaviour(myAgent));
-                        case SmartContract -> myAgent.addBehaviour(new InitiateExchangeListenerSCBehaviour(myAgent));
+                    if (!activeExchange) {
+                        switch (SimulationConfigurationSingleton.getInstance().getExchangeType()){
+                            case MessagePassing -> myAgent.addBehaviour(new InitiateExchangeListenerBehaviour(myAgent));
+                            case SmartContract -> myAgent.addBehaviour(new InitiateExchangeListenerSCBehaviour(myAgent));
+                        }
+
+                        activeExchange = true;
                     }
 
                     myAgent.addBehaviour(new SocialLearningListenerBehaviour(myAgent));
@@ -281,70 +290,42 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public void action() {
-            if (!isExchangeActive) {
-                ACLMessage newExchangeMessage = AgentHelper.receiveMessage(myAgent, "Exchange Initiated");
+            ACLMessage newExchangeMessage = AgentHelper.receiveMessage(myAgent, "Exchange Initiated");
 
-                if (newExchangeMessage != null || isExchangeTypeBeingSwitched) {
-                    if (SimulationConfigurationSingleton.getInstance().getExchangeType() == ExchangeType.MessagePassing) {
-                        if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
-                            AgentHelper.printAgentLog(myAgent.getLocalName(), "joining the exchange");
-                        }
-
-                        this.reset();
-
-                        // Define the behaviours of the exchange
-                        exchange.addSubBehaviour(new AdvertiseUnwantedTimeSlotsBehaviour(myAgent));
-                        exchange.addSubBehaviour(new ExchangeOpenListenerBehaviour(myAgent));
-                        exchange.addSubBehaviour(new TradeOfferListenerBehaviour(myAgent));
-                        exchange.addSubBehaviour(new InterestResultListenerBehaviour(myAgent));
-                        exchange.addSubBehaviour(new SocialCapitaSyncReceiverBehaviour(myAgent));
-
-                        myAgent.addBehaviour(exchange);
-
-                        isExchangeActive = true;
-                    } else {
-                        isExchangeTypeBeingSwitched = true;
-
-                        myAgent.addBehaviour(new InitiateExchangeListenerSCBehaviour(myAgent));
-                        myAgent.removeBehaviour(this);
+            if (newExchangeMessage != null || isExchangeTypeBeingSwitched) {
+                if (SimulationConfigurationSingleton.getInstance().getExchangeType() == ExchangeType.MessagePassing) {
+                    if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
+                        AgentHelper.printAgentLog(myAgent.getLocalName(), "joining the exchange");
                     }
+
+                    this.reset();
+
+                    // Define the behaviours of the exchange
+                    exchange.addSubBehaviour(new AdvertiseUnwantedTimeSlotsBehaviour(myAgent));
+                    exchange.addSubBehaviour(new ExchangeOpenListenerBehaviour(myAgent));
+                    exchange.addSubBehaviour(new TradeOfferListenerBehaviour(myAgent));
+                    exchange.addSubBehaviour(new InterestResultListenerBehaviour(myAgent));
+
+                    myAgent.addBehaviour(exchange);
+
+                    isExchangeActive = true;
+                    isExchangeTypeBeingSwitched = false;
                 } else {
-                    block();
+                    isExchangeActive = true;
+                    isExchangeTypeBeingSwitched = true;
+
+                    myAgent.addBehaviour(new InitiateExchangeListenerSCBehaviour(myAgent));
+                    myAgent.removeBehaviour(this);
                 }
+            } else {
+                block();
             }
         }
 
         @Override
         public boolean done() {
-            return exchange.done();
+            return isExchangeActive;
         }
-
-        /*
-        @Override
-        public int onEnd() {
-            if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
-                AgentHelper.printAgentLog(myAgent.getLocalName(), "household finished");
-            }
-
-            currentSatisfaction = AgentHelper.calculateSatisfaction(allocatedTimeSlots, requestedTimeSlots);
-
-            AgentHelper.sendMessage(
-                    myAgent,
-                    advertisingAgent,
-                    "Exchange Done",
-                    new AgentContact(
-                            myAgent.getAID(),
-                            agentType,
-                            currentSatisfaction
-                    ),
-                    ACLMessage.INFORM
-            );
-
-            myAgent.addBehaviour(new InitiateExchangeListenerBehaviour(myAgent));
-
-            return 0;
-        }
-         */
 
         @Override
         public void reset() {
@@ -409,22 +390,20 @@ public class HouseholdAgent extends Agent {
             ACLMessage exchangeOpenMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, ACLMessage.CONFIRM);
 
             if (exchangeOpenMessage != null) {
-                if (!didAdvertiseTimeSlots) {
-                    // Get the difference of the requested timeslots and the allocated timeslots
-                    ArrayList<TimeSlot> desiredTimeSlots = new ArrayList<>(requestedTimeSlots);
-                    desiredTimeSlots.removeAll(allocatedTimeSlots);
+                // Get the difference of the requested timeslots and the allocated timeslots
+                ArrayList<TimeSlot> desiredTimeSlots = new ArrayList<>(requestedTimeSlots);
+                desiredTimeSlots.removeAll(allocatedTimeSlots);
 
-                    // Send a message of interest to the advertising agent
-                    AgentHelper.sendMessage(
-                            myAgent,
-                            advertisingAgent,
-                            "Timeslots Wanted",
-                            new SerializableTimeSlotArray(desiredTimeSlots.toArray(new TimeSlot[]{})),
-                            ACLMessage.CFP
-                    );
+                // Send a message of interest to the advertising agent
+                AgentHelper.sendMessage(
+                        myAgent,
+                        advertisingAgent,
+                        "Timeslots Wanted",
+                        new SerializableTimeSlotArray(desiredTimeSlots.toArray(new TimeSlot[]{})),
+                        ACLMessage.CFP
+                );
 
-                    didAdvertiseTimeSlots = true;
-                }
+                didAdvertiseTimeSlots = true;
             } else {
                 block();
             }
@@ -456,7 +435,7 @@ public class HouseholdAgent extends Agent {
         public void action() {
             ACLMessage interestResultMessage = AgentHelper.receiveCFPReply(myAgent);
 
-            if (interestResultMessage != null && interestResultMessage.getSender().equals(advertisingAgent)) {
+            if (interestResultMessage != null) {
                 if (interestResultMessage.getPerformative() == ACLMessage.AGREE) {
                     // Make sure the incoming object is readable
                     Serializable incomingObject = null;
@@ -518,6 +497,8 @@ public class HouseholdAgent extends Agent {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "finished listening to the result of the interest");
             }
 
+            myAgent.addBehaviour(new FinishExchangeRoundBehaviour(myAgent));
+
             return 0;
         }
     }
@@ -557,6 +538,8 @@ public class HouseholdAgent extends Agent {
                                 // Adjust the agent's properties based on the trade offer
                                 doesRequesterLoseSocialCapita = completeReceivedExchange((TradeOffer)incomingObject);
                                 responsePerformative = ACLMessage.ACCEPT_PROPOSAL;
+
+                                myAgent.addBehaviour(new SocialCapitaSyncReceiverBehaviour(myAgent));
                             }
 
                             AgentHelper.sendMessage(
@@ -571,12 +554,7 @@ public class HouseholdAgent extends Agent {
                         }
                     }
                 } else {
-                    AgentHelper.sendMessage(
-                            myAgent,
-                            advertisingAgent,
-                            "No Offers Reply",
-                            ACLMessage.REFUSE
-                    );
+                    // TODO: no offers expected but this agent can still be a requester
                 }
 
                 proposalProcessed = true;
@@ -636,8 +614,6 @@ public class HouseholdAgent extends Agent {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "finished syncing social capita");
             }
 
-            myAgent.addBehaviour(new FinishExchangeRoundSCBehaviour(myAgent));
-
             return 0;
         }
     }
@@ -652,42 +628,41 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public void action() {
-            if (!isExchangeActive) {
-                ACLMessage newExchangeMessage = AgentHelper.receiveMessage(myAgent, "Exchange Initiated");
+            ACLMessage newExchangeMessage = AgentHelper.receiveMessage(myAgent, "Exchange Initiated");
 
-                if (newExchangeMessage != null || isExchangeTypeBeingSwitched) {
-                    if (SimulationConfigurationSingleton.getInstance().getExchangeType() == ExchangeType.SmartContract) {
-                        if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
-                            AgentHelper.printAgentLog(myAgent.getLocalName(), "joining the exchange");
-                        }
-
-                        this.reset();
-
-                        // Define the behaviours of the exchange
-                        exchange.addSubBehaviour(new AdvertiseUnwantedTimeSlotsBehaviour(myAgent));
-                        exchange.addSubBehaviour(new ExchangeOpenListenerBehaviour(myAgent));
-                        exchange.addSubBehaviour(new InterestResultListenerSCBehaviour(myAgent));
-                        exchange.addSubBehaviour(new TradeOfferListenerSCBehaviour(myAgent));
-
-                        myAgent.addBehaviour(exchange);
-
-                        isExchangeActive = true;
-                        isExchangeTypeBeingSwitched = false;
-                    } else {
-                        isExchangeTypeBeingSwitched = true;
-
-                        myAgent.addBehaviour(new InitiateExchangeListenerBehaviour(myAgent));
-                        myAgent.removeBehaviour(this);
+            if (newExchangeMessage != null || isExchangeTypeBeingSwitched) {
+                if (SimulationConfigurationSingleton.getInstance().getExchangeType() == ExchangeType.SmartContract) {
+                    if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
+                        AgentHelper.printAgentLog(myAgent.getLocalName(), "joining the exchange");
                     }
+
+                    this.reset();
+
+                    // Define the behaviours of the exchange
+                    exchange.addSubBehaviour(new AdvertiseUnwantedTimeSlotsBehaviour(myAgent));
+                    exchange.addSubBehaviour(new ExchangeOpenListenerBehaviour(myAgent));
+                    exchange.addSubBehaviour(new InterestResultListenerSCBehaviour(myAgent));
+                    exchange.addSubBehaviour(new TradeOfferListenerSCBehaviour(myAgent));
+
+                    myAgent.addBehaviour(exchange);
+
+                    isExchangeActive = true;
+                    isExchangeTypeBeingSwitched = false;
                 } else {
-                    block();
+                    isExchangeActive = true;
+                    isExchangeTypeBeingSwitched = true;
+
+                    myAgent.addBehaviour(new InitiateExchangeListenerBehaviour(myAgent));
+                    myAgent.removeBehaviour(this);
                 }
+            } else {
+                block();
             }
         }
 
         @Override
         public boolean done() {
-            return exchange.done();
+            return isExchangeActive;
         }
 
         @Override
@@ -742,9 +717,8 @@ public class HouseholdAgent extends Agent {
                 } else if (interestResultMessage.getPerformative() == ACLMessage.CANCEL) {
                     // TODO
                 } else {
-                    // Skip to the end of the exchange if did not find any requested slots in the adverts
-                    //myAgent.addBehaviour(new FinishExchangeRoundSCBehaviour(myAgent));
-                    // TODO: wrong. get here if did not find any requested slots OR another agent already triggered the made interaction flag
+                    // TODO: get here if did not find any requested slots OR another agent already triggered the made interaction flag
+                    // TODO: which means that this agent could still be receiving after this
                 }
 
                 resultReceived = true;
@@ -810,15 +784,15 @@ public class HouseholdAgent extends Agent {
                             }
 
                             // Finish the current round of exchange after considering the trade
-                            myAgent.addBehaviour(new FinishExchangeRoundSCBehaviour(myAgent));
+                            myAgent.addBehaviour(new FinishExchangeRoundBehaviour(myAgent));
                         } else {
                             AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be answered: the received object has an incorrect type.");
                         }
                     }
                 } else {
-                    // This happens when the agent receives no trade requests
+                    // This happens when the agent receives no trade requests but does send a request
                     if (!isTradeStarted) {
-                        myAgent.addBehaviour(new FinishExchangeRoundSCBehaviour(myAgent));
+                        myAgent.addBehaviour(new FinishExchangeRoundBehaviour(myAgent));
                     }
                 }
 
@@ -906,7 +880,7 @@ public class HouseholdAgent extends Agent {
                         ACLMessage.INFORM
                 );
 
-                myAgent.addBehaviour(new FinishExchangeRoundSCBehaviour(myAgent));
+                myAgent.addBehaviour(new FinishExchangeRoundBehaviour(myAgent));
 
                 proposalReplyReceived = true;
             } else {
@@ -929,8 +903,8 @@ public class HouseholdAgent extends Agent {
         }
     }
 
-    public class FinishExchangeRoundSCBehaviour extends OneShotBehaviour {
-        public FinishExchangeRoundSCBehaviour(Agent a) {
+    public class FinishExchangeRoundBehaviour extends OneShotBehaviour {
+        public FinishExchangeRoundBehaviour(Agent a) {
             super(a);
         }
 
@@ -954,7 +928,7 @@ public class HouseholdAgent extends Agent {
                     ACLMessage.INFORM
             );
 
-            switch (SimulationConfigurationSingleton.getInstance().getExchangeType()) {
+            switch (SimulationConfigurationSingleton.getInstance().getExchangeType()){
                 case MessagePassing -> myAgent.addBehaviour(new InitiateExchangeListenerBehaviour(myAgent));
                 case SmartContract -> myAgent.addBehaviour(new InitiateExchangeListenerSCBehaviour(myAgent));
             }
@@ -973,7 +947,6 @@ public class HouseholdAgent extends Agent {
             ACLMessage socialLearningMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, ACLMessage.QUERY_IF);
 
             if (socialLearningMessage != null) {
-
                 if (socialLearningMessage.getConversationId().equals("Selected for Social Learning")) {
                     // Make sure the incoming object is readable
                     Serializable incomingObject = null;

@@ -594,35 +594,15 @@ public class AdvertisingBoardAgent extends Agent {
                     }
 
                     numOfMessagesPropagated++;
-
-                    if (numOfMessagesPropagated == numOfSuccessfulExchanges) {
-                        AgentHelper.sendMessage(
-                                myAgent,
-                                agentsToNotify,
-                                "No Syncing Necessary",
-                                ACLMessage.INFORM_IF
-                        );
-
-                        allSyncActionsHandled = true;
-                    }
                 } else {
                     block();
                 }
-            } else {
-                AgentHelper.sendMessage(
-                        myAgent,
-                        getHouseholdAgentAIDList(),
-                        "No Syncing Necessary",
-                        ACLMessage.INFORM_IF
-                );
-
-                allSyncActionsHandled = true;
             }
         }
 
         @Override
         public boolean done() {
-            return allSyncActionsHandled;
+            return numOfMessagesPropagated == numOfSuccessfulExchanges;
         }
 
         @Override
