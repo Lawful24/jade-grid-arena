@@ -1194,7 +1194,7 @@ public class AdvertisingBoardAgent extends Agent {
                 );
             }
 
-            SerializableEndOfDayData endOfDayData = new SerializableEndOfDayData(
+            AdvertisingBoardEndOfDayDataHolder endOfDayData = new AdvertisingBoardEndOfDayDataHolder(
                     householdAgentContacts,
                     numOfSocialAgents,
                     config.getPopulationCount() - numOfSocialAgents,

@@ -2,7 +2,7 @@ package com.napier.agents;
 
 import com.napier.concepts.AgentContact;
 import com.napier.AgentHelper;
-import com.napier.concepts.SerializableEndOfDayData;
+import com.napier.concepts.AdvertisingBoardEndOfDayDataHolder;
 import com.napier.concepts.TakeoverDayDataHolder;
 import com.napier.singletons.BlockchainSingleton;
 import com.napier.singletons.SimulationConfigurationSingleton;
@@ -84,7 +84,7 @@ public class TickerAgent extends Agent {
 
     public class DailySyncBehaviour extends Behaviour {
         private int step = 0;
-        SerializableEndOfDayData endOfDayData = null;
+        AdvertisingBoardEndOfDayDataHolder endOfDayData = null;
 
         public DailySyncBehaviour(Agent a) {
             super(a);
@@ -168,11 +168,11 @@ public class TickerAgent extends Agent {
 
                         if (incomingObject != null) {
                             // Make sure the incoming object is of the expected type
-                            if (incomingObject instanceof SerializableEndOfDayData) {
-                                endOfDayData = (SerializableEndOfDayData)incomingObject;
+                            if (incomingObject instanceof AdvertisingBoardEndOfDayDataHolder) {
+                                endOfDayData = (AdvertisingBoardEndOfDayDataHolder)incomingObject;
 
                                 // Overwrite the existing list of contacts with the updated list
-                                householdAgentContacts = ((SerializableEndOfDayData)incomingObject).contacts();
+                                householdAgentContacts = ((AdvertisingBoardEndOfDayDataHolder)incomingObject).contacts();
                             }
                         } else {
                             AgentHelper.printAgentError(myAgent.getLocalName(), "Agent contact list was not updated: the received object has an incorrect type.");
@@ -407,7 +407,7 @@ public class TickerAgent extends Agent {
         this.takeover = false;
     }
 
-    private void extractTakeoverData(SerializableEndOfDayData endOfDayData, boolean isFinalDayOfRun) {
+    private void extractTakeoverData(AdvertisingBoardEndOfDayDataHolder endOfDayData, boolean isFinalDayOfRun) {
         // TODO: Cite Arena code
         if (isFinalDayOfRun) {
             if (endOfDayData.numOfSelfishAgents() == 0.0) {
