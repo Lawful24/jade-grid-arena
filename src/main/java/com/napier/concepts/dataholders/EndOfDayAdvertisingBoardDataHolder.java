@@ -1,4 +1,6 @@
-package com.napier.concepts;
+package com.napier.concepts.dataholders;
+
+import com.napier.concepts.AgentContact;
 
 import java.io.Serializable;
 import java.util.ArrayList;

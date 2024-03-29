@@ -1,7 +1,9 @@
 package com.napier.agents;
 
-import com.napier.concepts.*;
 import com.napier.AgentHelper;
+import com.napier.concepts.AgentContact;
+import com.napier.concepts.dataholders.EndOfDayAdvertisingBoardDataHolder;
+import com.napier.concepts.dataholders.TakeoverDayDataHolder;
 import com.napier.singletons.BlockchainSingleton;
 import com.napier.singletons.SimulationConfigurationSingleton;
 import com.napier.singletons.DataOutputSingleton;

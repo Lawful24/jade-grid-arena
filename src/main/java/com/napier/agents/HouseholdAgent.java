@@ -1,7 +1,13 @@
 package com.napier.agents;
 
-import com.napier.*;
-import com.napier.concepts.*;
+import com.napier.AgentHelper;
+import com.napier.concepts.AgentContact;
+import com.napier.concepts.dataholders.EndOfExchangeHouseholdDataHolder;
+import com.napier.concepts.dataholders.EndOfDayHouseholdAgentDataHolder;
+import com.napier.concepts.dataholders.SerializableTimeSlotArray;
+import com.napier.concepts.TimeSlot;
+import com.napier.concepts.TimeSlotSatisfactionPair;
+import com.napier.concepts.TradeOffer;
 import com.napier.singletons.SimulationConfigurationSingleton;
 import com.napier.singletons.SmartContract;
 import com.napier.types.AgentStrategyType;

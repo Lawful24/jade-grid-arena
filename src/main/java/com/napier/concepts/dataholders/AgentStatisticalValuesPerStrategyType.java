@@ -1,5 +1,6 @@
-package com.napier.concepts;
+package com.napier.concepts.dataholders;
 
+import com.napier.concepts.AgentContact;
 import com.napier.types.AgentStrategyType;
 
 import java.io.Serializable;
