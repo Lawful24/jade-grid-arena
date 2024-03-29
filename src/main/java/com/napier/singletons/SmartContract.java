@@ -2,6 +2,7 @@ package com.napier.singletons;
 
 import com.napier.AgentHelper;
 import com.napier.agents.HouseholdAgent;
+import com.napier.concepts.EndOfDayHouseholdAgentDataHolder;
 import com.napier.concepts.TradeOffer;
 import com.napier.concepts.Transaction;
 import jade.core.behaviours.Behaviour;
@@ -70,27 +71,19 @@ public class SmartContract {
 
                         if (incomingSyncMessage != null) {
                             // Make sure the incoming object is readable
-                            Serializable incomingObject = null;
+                            Serializable receivedObject = AgentHelper.readReceivedContentObject(incomingSyncMessage, myAgent.getLocalName(), TradeOffer.class);
 
-                            try {
-                                incomingObject = incomingSyncMessage.getContentObject();
-                            } catch (UnreadableException e) {
-                                AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming acknowledged trade offer is unreadable: " + e.getMessage());
-                            }
+                            // Make sure the incoming object is of the expected type
+                            if (receivedObject instanceof TradeOffer acknowledgedTradeOffer) {
+                                boolean doesReceiverGainSocialCapita = Boolean.parseBoolean(incomingSyncMessage.getConversationId());
 
-                            if (incomingObject != null) {
-                                // Make sure the incoming object is of the expected type
-                                if (incomingObject instanceof TradeOffer acknowledgedTradeOffer) {
-                                    boolean doesReceiverGainSocialCapita = Boolean.parseBoolean(incomingSyncMessage.getConversationId());
-
-                                    if (doesReceiverGainSocialCapita) {
-                                        receiverAgentObject.incrementTotalSocialCapita();
-                                    }
-
-                                    SmartContract.getInstance().finishSmartContract(acknowledgedTradeOffer, doesReceiverGainSocialCapita, doesRequesterLoseSocialCapita);
-                                } else {
-                                    AgentHelper.printAgentError(myAgent.getLocalName(), "Acknowledged trade offer cannot be processed: the received object has an incorrect type.");
+                                if (doesReceiverGainSocialCapita) {
+                                    receiverAgentObject.incrementTotalSocialCapita();
                                 }
+
+                                SmartContract.getInstance().finishSmartContract(acknowledgedTradeOffer, doesReceiverGainSocialCapita, doesRequesterLoseSocialCapita);
+                            } else {
+                                AgentHelper.printAgentError(myAgent.getLocalName(), "Acknowledged trade offer cannot be processed: the received object has an incorrect type or is null.");
                             }
 
                             step++;

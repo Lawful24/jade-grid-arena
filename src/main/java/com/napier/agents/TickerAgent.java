@@ -1,9 +1,7 @@
 package com.napier.agents;
 
-import com.napier.concepts.AgentContact;
+import com.napier.concepts.*;
 import com.napier.AgentHelper;
-import com.napier.concepts.AdvertisingBoardEndOfDayDataHolder;
-import com.napier.concepts.TakeoverDayDataHolder;
 import com.napier.singletons.BlockchainSingleton;
 import com.napier.singletons.SimulationConfigurationSingleton;
 import com.napier.singletons.DataOutputSingleton;
@@ -84,7 +82,7 @@ public class TickerAgent extends Agent {
 
     public class DailySyncBehaviour extends Behaviour {
         private int step = 0;
-        AdvertisingBoardEndOfDayDataHolder endOfDayData = null;
+        EndOfDayAdvertisingBoardDataHolder endOfDayData = null;
 
         public DailySyncBehaviour(Agent a) {
             super(a);
@@ -158,24 +156,16 @@ public class TickerAgent extends Agent {
 
                     if (advertisingDayOverMessage != null) {
                         // Make sure the incoming object is readable
-                        Serializable incomingObject = null;
+                        Serializable receivedObject = AgentHelper.readReceivedContentObject(advertisingDayOverMessage, myAgent.getLocalName(), EndOfDayAdvertisingBoardDataHolder.class);
 
-                        try {
-                            incomingObject = advertisingDayOverMessage.getContentObject();
-                        } catch (UnreadableException e) {
-                            AgentHelper.printAgentError(myAgent.getLocalName(), "Agent contact list is unreadable: " + e.getMessage());
-                        }
+                        // Make sure the incoming object is of the expected type
+                        if (receivedObject instanceof EndOfDayAdvertisingBoardDataHolder dataHolder) {
+                            endOfDayData = dataHolder;
 
-                        if (incomingObject != null) {
-                            // Make sure the incoming object is of the expected type
-                            if (incomingObject instanceof AdvertisingBoardEndOfDayDataHolder) {
-                                endOfDayData = (AdvertisingBoardEndOfDayDataHolder)incomingObject;
-
-                                // Overwrite the existing list of contacts with the updated list
-                                householdAgentContacts = ((AdvertisingBoardEndOfDayDataHolder)incomingObject).contacts();
-                            }
+                            // Overwrite the existing list of contacts with the updated list
+                            householdAgentContacts = dataHolder.contacts();
                         } else {
-                            AgentHelper.printAgentError(myAgent.getLocalName(), "Agent contact list was not updated: the received object has an incorrect type.");
+                            AgentHelper.printAgentError(myAgent.getLocalName(), "Agent contact list was not updated: the received object has an incorrect type or is null.");
                         }
 
                         step++;
@@ -458,7 +448,7 @@ public class TickerAgent extends Agent {
         this.takeover = false;
     }
 
-    private void extractTakeoverData(AdvertisingBoardEndOfDayDataHolder endOfDayData, boolean isFinalDayOfRun) {
+    private void extractTakeoverData(EndOfDayAdvertisingBoardDataHolder endOfDayData, boolean isFinalDayOfRun) {
         // TODO: Cite Arena code
         if (isFinalDayOfRun) {
             if (endOfDayData.numOfSelfishAgents() == 0.0) {

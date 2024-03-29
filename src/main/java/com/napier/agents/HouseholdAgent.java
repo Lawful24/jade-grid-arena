@@ -256,21 +256,13 @@ public class HouseholdAgent extends Agent {
 
             if (incomingAllocationMessage != null) {
                 // Make sure the incoming object is readable
-                Serializable incomingObject = null;
+                Serializable receivedObject = AgentHelper.readReceivedContentObject(incomingAllocationMessage, myAgent.getLocalName(), SerializableTimeSlotArray.class);
 
-                try {
-                    incomingObject = incomingAllocationMessage.getContentObject();
-                } catch (UnreadableException e) {
-                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming random allocation is unreadable: " + e.getMessage());
-                }
-
-                if (incomingObject != null) {
-                    // Make sure the incoming object is of the expected type
-                    if (incomingObject instanceof SerializableTimeSlotArray) {
-                        allocatedTimeSlots = new ArrayList<>(Arrays.asList(((SerializableTimeSlotArray)incomingObject).timeSlots()));
-                    } else {
-                        AgentHelper.printAgentError(myAgent.getLocalName(), "Initial random allocation cannot be set: the received object has an incorrect type.");
-                    }
+                // Make sure the incoming object is of the expected type
+                if (receivedObject instanceof SerializableTimeSlotArray randomTimeSlotAllocationHolder) {
+                    allocatedTimeSlots = new ArrayList<>(Arrays.asList(randomTimeSlotAllocationHolder.timeSlots()));
+                } else {
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "Initial random allocation cannot be set: the received object has an incorrect type or is null.");
                 }
 
                 wasInitialAllocationReceived = true;
@@ -444,37 +436,29 @@ public class HouseholdAgent extends Agent {
             if (interestResultMessage != null) {
                 if (interestResultMessage.getPerformative() == ACLMessage.AGREE) {
                     // Make sure the incoming object is readable
-                    Serializable incomingObject = null;
+                    Serializable receivedObject = AgentHelper.readReceivedContentObject(interestResultMessage, myAgent.getLocalName(), TradeOffer.class);
 
-                    try {
-                        incomingObject = interestResultMessage.getContentObject();
-                    } catch (UnreadableException e) {
-                        AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming interest result trade offer is unreadable: " + e.getMessage());
-                    }
+                    // Make sure the incoming object is of the expected type
+                    if (receivedObject instanceof TradeOffer) {
+                        boolean doesReceiverGainSocialCapita = completeRequestedExchange((TradeOffer) receivedObject);
 
-                    if (incomingObject != null) {
-                        // Make sure the incoming object is of the expected type
-                        if (incomingObject instanceof TradeOffer) {
-                            boolean doesReceiverGainSocialCapita = completeRequestedExchange((TradeOffer) incomingObject);
-
-                            // Adjust the agent's properties based on the trade offer
-                            // The content of the incoming message is a boolean that carries the information whether
-                            // the requesting party should lose social capita following the trade.
-                            if (Boolean.parseBoolean(interestResultMessage.getConversationId())) {
-                                totalSocialCapita--;
-                            }
-
-                            // Send a message to the Advertising agent to forward to the receiving Household agent
-                            AgentHelper.sendMessage(
-                                    myAgent,
-                                    advertisingAgent,
-                                    Boolean.toString(doesReceiverGainSocialCapita),
-                                    ((TradeOffer) incomingObject).receiverAgent(),
-                                    ACLMessage.PROPAGATE
-                            );
-                        } else {
-                            AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be handled: the received object has an incorrect type.");
+                        // Adjust the agent's properties based on the trade offer
+                        // The content of the incoming message is a boolean that carries the information whether
+                        // the requesting party should lose social capita following the trade.
+                        if (Boolean.parseBoolean(interestResultMessage.getConversationId())) {
+                            totalSocialCapita--;
                         }
+
+                        // Send a message to the Advertising agent to forward to the receiving Household agent
+                        AgentHelper.sendMessage(
+                                myAgent,
+                                advertisingAgent,
+                                Boolean.toString(doesReceiverGainSocialCapita),
+                                ((TradeOffer) receivedObject).receiverAgent(),
+                                ACLMessage.PROPAGATE
+                        );
+                    } else {
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be handled: the received object has an incorrect type or is null.");
                     }
 
                     numOfDailyAcceptedRequestedExchanges++;
@@ -523,41 +507,33 @@ public class HouseholdAgent extends Agent {
 
             if (tradeOfferMessage != null) {
                 if (!tradeOfferMessage.getConversationId().equals("No Expected Offers This Round")) {
-                    // Make sure the incoming object is readable
-                    Serializable incomingObject = null;
                     int responsePerformative = ACLMessage.REJECT_PROPOSAL;
-
-                    try {
-                        incomingObject = tradeOfferMessage.getContentObject();
-                    } catch (UnreadableException e) {
-                        AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming trade offer is unreadable: " + e.getMessage());
-                    }
-
                     boolean doesRequesterLoseSocialCapita = false;
 
-                    if (incomingObject != null) {
-                        // Make sure the incoming object is of the expected type
-                        if (incomingObject instanceof TradeOffer) {
-                            // Consider the trade offer AND
-                            // Check whether the requested time slot is actually owned by the agent
-                            if (considerRequest((TradeOffer)incomingObject) && allocatedTimeSlots.contains(((TradeOffer)incomingObject).timeSlotRequested())) {
-                                // Adjust the agent's properties based on the trade offer
-                                doesRequesterLoseSocialCapita = completeReceivedExchange((TradeOffer)incomingObject);
-                                responsePerformative = ACLMessage.ACCEPT_PROPOSAL;
+                    // Make sure the incoming object is readable
+                    Serializable receivedObject = AgentHelper.readReceivedContentObject(tradeOfferMessage, myAgent.getLocalName(), TradeOffer.class);
 
-                                myAgent.addBehaviour(new SocialCapitaSyncReceiverBehaviour(myAgent));
-                            }
+                    // Make sure the incoming object is of the expected type
+                    if (receivedObject instanceof TradeOffer) {
+                        // Consider the trade offer AND
+                        // Check whether the requested time slot is actually owned by the agent
+                        if (considerRequest((TradeOffer)receivedObject) && allocatedTimeSlots.contains(((TradeOffer)receivedObject).timeSlotRequested())) {
+                            // Adjust the agent's properties based on the trade offer
+                            doesRequesterLoseSocialCapita = completeReceivedExchange((TradeOffer)receivedObject);
+                            responsePerformative = ACLMessage.ACCEPT_PROPOSAL;
 
-                            AgentHelper.sendMessage(
-                                    myAgent,
-                                    advertisingAgent,
-                                    Boolean.toString(doesRequesterLoseSocialCapita),
-                                    incomingObject,
-                                    responsePerformative
-                            );
-                        } else {
-                            AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be answered: the received object has an incorrect type.");
+                            myAgent.addBehaviour(new SocialCapitaSyncReceiverBehaviour(myAgent));
                         }
+
+                        AgentHelper.sendMessage(
+                                myAgent,
+                                advertisingAgent,
+                                Boolean.toString(doesRequesterLoseSocialCapita),
+                                receivedObject,
+                                responsePerformative
+                        );
+                    } else {
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be answered: the received object has an incorrect type or is null.");
                     }
 
                     isTradeOfferReceiver = true;
@@ -699,34 +675,24 @@ public class HouseholdAgent extends Agent {
             if (interestResultMessage != null && interestResultMessage.getSender().equals(advertisingAgent)) {
                 if (interestResultMessage.getPerformative() == ACLMessage.AGREE) {
                     // Make sure the incoming object is readable
-                    Serializable incomingObject = null;
+                    Serializable receivedObject = AgentHelper.readReceivedContentObject(interestResultMessage, myAgent.getLocalName(), TradeOffer.class);
 
-                    try {
-                        incomingObject = interestResultMessage.getContentObject();
-                    } catch (UnreadableException e) {
-                        AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming interest result trade offer is unreadable: " + e.getMessage());
+                    // Make sure the incoming object is of the expected type
+                    if (receivedObject instanceof TradeOffer) {
+                        // Send the trade offer directly to the target agent
+                        AgentHelper.sendMessage(
+                                myAgent,
+                                ((TradeOffer) receivedObject).receiverAgent(),
+                                "New Offer",
+                                receivedObject,
+                                ACLMessage.PROPOSE
+                        );
+
+                        isTradeStarted = true;
+                        myAgent.addBehaviour(new TradeOfferResponseListenerSCBehaviour(myAgent));
+                    } else {
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be handled: the received object has an incorrect type or is null.");
                     }
-
-                    if (incomingObject != null) {
-                        // Make sure the incoming object is of the expected type
-                        if (incomingObject instanceof TradeOffer) {
-                            // Send the trade offer directly to the target agent
-                            AgentHelper.sendMessage(
-                                    myAgent,
-                                    ((TradeOffer) incomingObject).receiverAgent(),
-                                    "New Offer",
-                                    incomingObject,
-                                    ACLMessage.PROPOSE
-                            );
-
-                            isTradeStarted = true;
-                            myAgent.addBehaviour(new TradeOfferResponseListenerSCBehaviour(myAgent));
-                        } else {
-                            AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be handled: the received object has an incorrect type.");
-                        }
-                    }
-                } else if (interestResultMessage.getPerformative() == ACLMessage.CANCEL) {
-                    // TODO
                 } else {
                     // TODO: get here if did not find any requested slots OR another agent already triggered the made interaction flag
                     // TODO: which means that this agent could still be receiving after this
@@ -767,38 +733,30 @@ public class HouseholdAgent extends Agent {
             if (tradeOfferMessage != null) {
                 if (!tradeOfferMessage.getConversationId().equals("No Expected Offers This Round")) {
                     // Make sure the incoming object is readable
-                    Serializable incomingObject = null;
+                    Serializable receivedObject = AgentHelper.readReceivedContentObject(tradeOfferMessage, myAgent.getLocalName(), TradeOffer.class);
 
-                    try {
-                        incomingObject = tradeOfferMessage.getContentObject();
-                    } catch (UnreadableException e) {
-                        AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming trade offer is unreadable: " + e.getMessage());
-                    }
-
-                    if (incomingObject != null) {
-                        // Make sure the incoming object is of the expected type
-                        if (incomingObject instanceof TradeOffer observableTradeOffer) {
-                            // Consider the trade offer AND
-                            // Check whether the requested time slot is actually owned by the agent
-                            if (considerRequest(observableTradeOffer) && allocatedTimeSlots.contains(observableTradeOffer.timeSlotRequested())) {
-                                // Fire the property change in the trade offer object and thus notify its observer,
-                                // the smart contract
-                                SmartContract.getInstance().triggerSmartContract((HouseholdAgent) myAgent, observableTradeOffer);
-                            } else {
-                                AgentHelper.sendMessage(
-                                        myAgent,
-                                        tradeOfferMessage.getSender(),
-                                        "Trade Offer Response",
-                                        observableTradeOffer,
-                                        ACLMessage.REJECT_PROPOSAL
-                                );
-                            }
-
-                            // Finish the current round of exchange after considering the trade
-                            myAgent.addBehaviour(new FinishExchangeRoundBehaviour(myAgent));
+                    // Make sure the incoming object is of the expected type
+                    if (receivedObject instanceof TradeOffer observableTradeOffer) {
+                        // Consider the trade offer AND
+                        // Check whether the requested time slot is actually owned by the agent
+                        if (considerRequest(observableTradeOffer) && allocatedTimeSlots.contains(observableTradeOffer.timeSlotRequested())) {
+                            // Fire the property change in the trade offer object and thus notify its observer,
+                            // the smart contract
+                            SmartContract.getInstance().triggerSmartContract((HouseholdAgent) myAgent, observableTradeOffer);
                         } else {
-                            AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be answered: the received object has an incorrect type.");
+                            AgentHelper.sendMessage(
+                                    myAgent,
+                                    tradeOfferMessage.getSender(),
+                                    "Trade Offer Response",
+                                    observableTradeOffer,
+                                    ACLMessage.REJECT_PROPOSAL
+                            );
                         }
+
+                        // Finish the current round of exchange after considering the trade
+                        myAgent.addBehaviour(new FinishExchangeRoundBehaviour(myAgent));
+                    } else {
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be answered: the received object has an incorrect type or is null.");
                     }
 
                     isTradeOfferReceiver = true;
@@ -846,38 +804,30 @@ public class HouseholdAgent extends Agent {
 
                 if (proposalReplyMessage.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
                     // Make sure the incoming object is readable
-                    Serializable incomingObject = null;
+                    Serializable receivedObject = AgentHelper.readReceivedContentObject(proposalReplyMessage, myAgent.getLocalName(), TradeOffer.class);
 
-                    try {
-                        incomingObject = proposalReplyMessage.getContentObject();
-                    } catch (UnreadableException e) {
-                        AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming accepted trade offer is unreadable: " + e.getMessage());
-                    }
+                    // Make sure the incoming object is of the expected type
+                    if (receivedObject instanceof TradeOffer processedTradeOffer) {
+                        boolean doesReceiverGainSocialCapita = completeRequestedExchange(processedTradeOffer);
 
-                    if (incomingObject != null) {
-                        // Make sure the incoming object is of the expected type
-                        if (incomingObject instanceof TradeOffer processedTradeOffer) {
-                            boolean doesReceiverGainSocialCapita = completeRequestedExchange(processedTradeOffer);
-
-                            // Adjust the agent's properties based on the trade offer
-                            // The content of the incoming message is a boolean that carries the information whether
-                            // the requesting party should lose social capita following the trade.
-                            if (Boolean.parseBoolean(proposalReplyMessage.getConversationId())) {
-                                totalSocialCapita--;
-                            }
-
-                            AgentHelper.sendMessage(
-                                    myAgent,
-                                    processedTradeOffer.receiverAgent(),
-                                    Boolean.toString(doesReceiverGainSocialCapita),
-                                    processedTradeOffer,
-                                    ACLMessage.INFORM_IF
-                            );
-
-                            processedTradeOfferObject = processedTradeOffer;
-                        } else {
-                            AgentHelper.printAgentError(myAgent.getLocalName(), "Accepted trade offer cannot be processed: the received object has an incorrect type.");
+                        // Adjust the agent's properties based on the trade offer
+                        // The content of the incoming message is a boolean that carries the information whether
+                        // the requesting party should lose social capita following the trade.
+                        if (Boolean.parseBoolean(proposalReplyMessage.getConversationId())) {
+                            totalSocialCapita--;
                         }
+
+                        AgentHelper.sendMessage(
+                                myAgent,
+                                processedTradeOffer.receiverAgent(),
+                                Boolean.toString(doesReceiverGainSocialCapita),
+                                processedTradeOffer,
+                                ACLMessage.INFORM_IF
+                        );
+
+                        processedTradeOfferObject = processedTradeOffer;
+                    } else {
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Accepted trade offer cannot be processed: the received object has an incorrect type or is null.");
                     }
 
                     numOfDailyAcceptedRequestedExchanges++;
@@ -963,41 +913,33 @@ public class HouseholdAgent extends Agent {
             if (socialLearningMessage != null) {
                 if (socialLearningMessage.getConversationId().equals("Selected for Social Learning")) {
                     // Make sure the incoming object is readable
-                    Serializable incomingObject = null;
+                    Serializable receivedObject = AgentHelper.readReceivedContentObject(socialLearningMessage, myAgent.getLocalName(), AgentContact.class);
 
-                    try {
-                        incomingObject = socialLearningMessage.getContentObject();
-                    } catch (UnreadableException e) {
-                        AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming agent contact is unreadable: " + e.getMessage());
-                    }
+                    // Make sure the incoming object is of the expected type
+                    if (receivedObject instanceof AgentContact advertisingAgentsHouseholdContact) {
+                        SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
 
-                    if (incomingObject != null) {
-                        // Make sure the incoming object is of the expected type
-                        if (incomingObject instanceof AgentContact) {
-                            SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
+                        // TODO: Cite Arena code
+                        // Copy the observed agents strategy if it is better than its own, with likelihood dependent on the
+                        // difference between the agents satisfaction and the observed satisfaction.
+                        double observedAgentSatisfaction = advertisingAgentsHouseholdContact.getCurrentSatisfaction();
 
-                            // TODO: Cite Arena code
-                            // Copy the observed agents strategy if it is better than its own, with likelihood dependent on the
-                            // difference between the agents satisfaction and the observed satisfaction.
-                            double observedAgentSatisfaction = ((AgentContact)incomingObject).getCurrentSatisfaction();
+                        if (Math.round(currentSatisfaction * config.getNumOfSlotsPerAgent()) < Math.round(observedAgentSatisfaction * config.getNumOfSlotsPerAgent())) {
+                            double difference = observedAgentSatisfaction - currentSatisfaction;
 
-                            if (Math.round(currentSatisfaction * config.getNumOfSlotsPerAgent()) < Math.round(observedAgentSatisfaction * config.getNumOfSlotsPerAgent())) {
-                                double difference = observedAgentSatisfaction - currentSatisfaction;
+                            if (difference >= 0) {
+                                double learningChance = 1 / (1 + (Math.exp(-config.getBeta() * difference)));
+                                double normalisedLearningChance = (learningChance * 2) - 1;
 
-                                if (difference >= 0) {
-                                    double learningChance = 1 / (1 + (Math.exp(-config.getBeta() * difference)));
-                                    double normalisedLearningChance = (learningChance * 2) - 1;
+                                double threshold = config.getRandom().nextDouble();
 
-                                    double threshold = config.getRandom().nextDouble();
-
-                                    if (normalisedLearningChance > threshold) {
-                                        agentType = ((AgentContact)incomingObject).getType();
-                                    }
+                                if (normalisedLearningChance > threshold) {
+                                    agentType = advertisingAgentsHouseholdContact.getType();
                                 }
                             }
-                        } else {
-                            AgentHelper.printAgentError(myAgent.getLocalName(), "Social Learning cannot be started: the received object has an incorrect type.");
                         }
+                    } else {
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Social Learning cannot be started: the received object has an incorrect type or is null.");
                     }
                 }
 

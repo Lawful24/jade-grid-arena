@@ -56,7 +56,7 @@ public class SimulationConfigurationSingleton {
 
     private SimulationConfigurationSingleton() {
         this.debugMode = Main.isDebugMode();
-        this.exchangeType = Main.getExchangeType();
+        this.exchangeType = Main.getDefaultExchangeType();
 
         // Retrieve user parameters from the config file
         Properties properties = new Properties();

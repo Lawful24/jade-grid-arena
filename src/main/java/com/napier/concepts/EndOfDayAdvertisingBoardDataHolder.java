@@ -3,7 +3,7 @@ package com.napier.concepts;
 import java.io.Serializable;
 import java.util.ArrayList;
 
-public record AdvertisingBoardEndOfDayDataHolder(
+public record EndOfDayAdvertisingBoardDataHolder(
         ArrayList<AgentContact> contacts,
         int numOfSocialAgents,
         int numOfSelfishAgents,

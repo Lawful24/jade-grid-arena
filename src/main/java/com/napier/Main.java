@@ -9,27 +9,28 @@ import jade.core.Profile;
 import jade.core.ProfileImpl;
 import jade.core.Runtime;
 import jade.wrapper.ContainerController;
+import jade.wrapper.StaleProxyException;
 
 public class Main {
     private static boolean debugMode;
-    private static ExchangeType exchangeType;
+    private static ExchangeType defaultExchangeType;
 
     public static void main(String[] args) {
         debugMode = false;
-        exchangeType = ExchangeType.MessagePassing;
+        defaultExchangeType = ExchangeType.MessagePassing;
 
         if (args.length == 0 || args.length == 1) {
             if (args.length == 1) {
                 if (args[0].equals("--debug")) {
                     debugMode = true;
                 } else {
-                    exchangeType = null;
+                    defaultExchangeType = null;
 
                     System.err.println("The first argument can only be \"--debug\".");
                 }
             }
 
-            if (exchangeType != null) {
+            if (defaultExchangeType != null) {
                 initEnvironment();
             }
         } else {
@@ -41,26 +42,15 @@ public class Main {
         return debugMode;
     }
 
-    public static ExchangeType getExchangeType() {
-        return exchangeType;
-    }
-
-    private static ExchangeType parseType(String input) {
-        if (input.equals("--MessagePassing")) {
-            return ExchangeType.MessagePassing;
-        } else if (input.equals("--SmartContract")) {
-            return ExchangeType.SmartContract;
-        }
-
-        System.err.println("Invalid exchange type. The available flags are: \"--MessagePassing\" and \"--SmartContract\".");
-
-        return null;
+    public static ExchangeType getDefaultExchangeType() {
+        return defaultExchangeType;
     }
 
     private static void initEnvironment() {
         SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
 
-        // TODO: Comments and cite the JADE workbook
+        // TODO: Cite the JADE workbook
+        // Set up and create the main agent container
         Profile profile = new ProfileImpl();
         Runtime runtime = Runtime.instance();
         ContainerController container = runtime.createMainContainer(profile);
@@ -95,8 +85,8 @@ public class Main {
                         null
                 ).start();
             }
-        } catch (Exception e) {
-            System.err.println(e.getMessage());
+        } catch (StaleProxyException e) {
+            e.printStackTrace();
         }
     }
 }

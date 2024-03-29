@@ -257,27 +257,19 @@ public class AdvertisingBoardAgent extends Agent {
             ACLMessage advertisingMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.REQUEST);
 
             if (advertisingMessage != null) {
-                Serializable incomingObject = null;
+                Serializable receivedObject = AgentHelper.readReceivedContentObject(advertisingMessage, myAgent.getLocalName(), SerializableTimeSlotArray.class);
 
-                try {
-                    incomingObject = advertisingMessage.getContentObject();
-                } catch (UnreadableException e) {
-                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming new advert is unreadable: " + e.getMessage());
-                }
+                // Make sure the incoming object is of the expected type and the advert is not empty
+                if (receivedObject instanceof SerializableTimeSlotArray unwantedTimeSlotsHolder) {
+                    // Register (or update) the advert
+                    adverts.put(
+                            advertisingMessage.getSender(),
+                            new ArrayList<>(Arrays.asList(unwantedTimeSlotsHolder.timeSlots()))
+                    );
 
-                if (incomingObject != null) {
-                    // Make sure the incoming object is of the expected type and the advert is not empty
-                    if (incomingObject instanceof SerializableTimeSlotArray) {
-                        // Register (or update) the advert
-                        adverts.put(
-                                advertisingMessage.getSender(),
-                                new ArrayList<>(Arrays.asList(((SerializableTimeSlotArray)incomingObject).timeSlots()))
-                        );
-
-                        numOfAdvertsReceived++;
-                    } else {
-                        AgentHelper.printAgentError(myAgent.getLocalName(), "Advert cannot be registered: the received object has an incorrect type.");
-                    }
+                    numOfAdvertsReceived++;
+                } else {
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "Advert cannot be registered: the received object has an incorrect type or is null.");
                 }
 
                 // This has to be integrated in this behaviour to make sure that the adverts have been collected
@@ -331,94 +323,85 @@ public class AdvertisingBoardAgent extends Agent {
 
             if (interestMessage != null && adverts.size() == config.getPopulationCount()) {
                 // Make sure the incoming object is readable
-                Serializable incomingObject = null;
+                Serializable receivedObject = AgentHelper.readReceivedContentObject(interestMessage, myAgent.getLocalName(), SerializableTimeSlotArray.class);
 
-                try {
-                    incomingObject = interestMessage.getContentObject();
-                } catch (UnreadableException e) {
-                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming message about an interest in timeslots is unreadable: " + e.getMessage());
-                }
+                // Make sure the incoming object is of the expected type and the advert is not empty
+                if (receivedObject instanceof SerializableTimeSlotArray requestedTimeSlotsHolder) {
+                    TimeSlot targetTimeSlot = null;
+                    AID targetOwner = null;
 
-                if (incomingObject != null) {
-                    // Make sure the incoming object is of the expected type and the advert is not empty
-                    if (incomingObject instanceof SerializableTimeSlotArray) {
-                        TimeSlot[] desiredTimeSlots = ((SerializableTimeSlotArray) incomingObject).timeSlots();
-                        TimeSlot targetTimeSlot = null;
-                        AID targetOwner = null;
+                    AdvertisingBoardAgent.this.requestedTimeSlots.put(interestMessage.getSender(), new ArrayList<>(Arrays.asList(requestedTimeSlotsHolder.timeSlots())));
 
-                        requestedTimeSlots.put(interestMessage.getSender(), new ArrayList<>(Arrays.asList(desiredTimeSlots)));
+                    // Prepare a trade offer to the owner of the desired timeslot if that timeslot is available for trade
+                    ArrayList<TimeSlot> sendersAdvertisedTimeSlots = adverts.get(interestMessage.getSender());
 
-                        // Prepare a trade offer to the owner of the desired timeslot if that timeslot is available for trade
-                        ArrayList<TimeSlot> sendersAdvertisedTimeSlots = adverts.get(interestMessage.getSender());
+                    // Check if the household agent has made interaction with another household agent in the current exchange round
+                    // Find out if the sender has any timeslots available to trade
+                    if (!householdAgentsInteractions.get(interestMessage.getSender()) && !sendersAdvertisedTimeSlots.isEmpty()) {
+                        // Flip the "made interaction" flag
+                        householdAgentsInteractions.replace(interestMessage.getSender(), true);
 
-                        // Check if the household agent has made interaction with another household agent in the current exchange round
-                        // Find out if the sender has any timeslots available to trade
-                        if (!householdAgentsInteractions.get(interestMessage.getSender()) && !sendersAdvertisedTimeSlots.isEmpty()) {
-                            // Flip the "made interaction" flag
-                            householdAgentsInteractions.replace(interestMessage.getSender(), true);
+                        // TODO: Cite Arena code
+                        ArrayList<AID> shuffledAdvertPosters = new ArrayList<>(adverts.keySet());
 
-                            // TODO: Cite Arena code
-                            ArrayList<AID> shuffledAdvertPosters = new ArrayList<>(adverts.keySet());
+                        // Remove the requesting agent from the temp advert catalogue to avoid an unnecessary check
+                        shuffledAdvertPosters.remove(interestMessage.getSender());
+                        Collections.shuffle(shuffledAdvertPosters, config.getRandom());
 
-                            // Remove the requesting agent from the temp advert catalogue to avoid an unnecessary check
-                            shuffledAdvertPosters.remove(interestMessage.getSender());
-                            Collections.shuffle(shuffledAdvertPosters, config.getRandom());
+                        // Find the desired timeslot in the published adverts
+                        browsingTimeSlots:
+                        for (TimeSlot desiredTimeSlot : requestedTimeSlotsHolder.timeSlots()) {
+                            for (AID advertPoster : shuffledAdvertPosters) {
+                                // Check if the potential receiving household agent has made an interaction in the current exchange round
+                                if (!householdAgentsInteractions.get(advertPoster)) {
+                                    ArrayList<TimeSlot> timeSlotsForTrade = adverts.get(advertPoster);
 
-                            // Find the desired timeslot in the published adverts
-                            browsingTimeSlots:
-                            for (TimeSlot desiredTimeSlot : desiredTimeSlots) {
-                                for (AID advertPoster : shuffledAdvertPosters) {
-                                    // Check if the potential receiving household agent has made an interaction in the current exchange round
-                                    if (!householdAgentsInteractions.get(advertPoster)) {
-                                        ArrayList<TimeSlot> timeSlotsForTrade = adverts.get(advertPoster);
+                                    for (TimeSlot timeSlotForTrade : timeSlotsForTrade) {
+                                        if (desiredTimeSlot.equals(timeSlotForTrade)) {
+                                            targetTimeSlot = timeSlotForTrade;
+                                            targetOwner = advertPoster;
 
-                                        for (TimeSlot timeSlotForTrade : timeSlotsForTrade) {
-                                            if (desiredTimeSlot.equals(timeSlotForTrade)) {
-                                                targetTimeSlot = timeSlotForTrade;
-                                                targetOwner = advertPoster;
+                                            // Add the target agent to the list of agents to receive a trade offer
+                                            agentsToReceiveTradeOffer.add(advertPoster);
+                                            // Flip the target agent's "made interaction" flag to true so that
+                                            // it does not get paired up with other agents this round
+                                            householdAgentsInteractions.replace(advertPoster, true);
 
-                                                // Add the target agent to the list of agents to receive a trade offer
-                                                agentsToReceiveTradeOffer.add(advertPoster);
-                                                // Flip the target agent's "made interaction" flag to true so that
-                                                // it does not get paired up with other agents this round
-                                                householdAgentsInteractions.replace(advertPoster, true);
-
-                                                break browsingTimeSlots;
-                                            }
+                                            break browsingTimeSlots;
                                         }
-                                    } else {
-                                        // TODO: let the requesting agent know that the receiving agent is already occupied this round
                                     }
+                                } else {
+                                    // TODO: let the requesting agent know that the receiving agent is already occupied this round
                                 }
                             }
+                        }
 
-                            // Check if the sender has any timeslots to offer in return and if a desired timeslot was found
-                            if (targetTimeSlot != null) {
-                                // Offer the sender's least wanted timeslot - the first element of the advert
-                                // Send the trade offer to the agent that has the desired timeslot, with the
-                                // sender's nickname as the text content
-                                AgentHelper.sendMessage(
-                                        myAgent,
-                                        targetOwner,
-                                        "New Offer",
-                                        new TradeOffer(
-                                                interestMessage.getSender(),
-                                                targetOwner,
-                                                sendersAdvertisedTimeSlots.getFirst(),
-                                                targetTimeSlot
-                                        ),
-                                        ACLMessage.PROPOSE
-                                );
+                        // Check if the sender has any timeslots to offer in return and if a desired timeslot was found
+                        if (targetTimeSlot != null) {
+                            // Offer the sender's least wanted timeslot - the first element of the advert
+                            // Send the trade offer to the agent that has the desired timeslot, with the
+                            // sender's nickname as the text content
+                            AgentHelper.sendMessage(
+                                    myAgent,
+                                    targetOwner,
+                                    "New Offer",
+                                    new TradeOffer(
+                                            interestMessage.getSender(),
+                                            targetOwner,
+                                            sendersAdvertisedTimeSlots.getFirst(),
+                                            targetTimeSlot
+                                    ),
+                                    ACLMessage.PROPOSE
+                            );
 
-                                numOfTradesStarted++;
-                                refuseRequest = false;
-                            }
-                        } else {
-                            // TODO: let the requesting agent know that it has already made interaction therefore cannot make any more requests
+                            numOfTradesStarted++;
+                            refuseRequest = false;
                         }
                     } else {
-                        AgentHelper.printAgentError(myAgent.getLocalName(), "Interest for timeslots cannot be processed: the received object has an incorrect type.");
+                        // TODO: let the requesting agent know that it has already made interaction therefore cannot make any more requests
                     }
+                } else {
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "Interest for timeslots cannot be processed: the received object has an incorrect type or is null.");
                 }
 
                 numOfRequestsProcessed++;
@@ -492,46 +475,38 @@ public class AdvertisingBoardAgent extends Agent {
             if (tradeOfferResponseMessage != null) {
                 if (tradeOfferResponseMessage.getPerformative() != ACLMessage.REFUSE) {
                     // Make sure the incoming object is readable
-                    Serializable incomingObject = null;
+                    Serializable receivedObject = AgentHelper.readReceivedContentObject(tradeOfferResponseMessage, myAgent.getLocalName(), TradeOffer.class);
 
-                    try {
-                        incomingObject = tradeOfferResponseMessage.getContentObject();
-                    } catch (UnreadableException e) {
-                        AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer response message is unreadable: " + e.getMessage());
-                    }
+                    // Make sure the incoming object is of the expected type
+                    if (receivedObject instanceof TradeOffer tradeOfferResponse) {
+                        if (tradeOfferResponseMessage.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
+                            // Handle the accepted trade offer
+                            // Remove the traded timeslots from the adverts
+                            adverts.get(tradeOfferResponseMessage.getSender()).remove(tradeOfferResponse.timeSlotRequested());
+                            adverts.get(((TradeOffer) receivedObject).requesterAgent()).remove(tradeOfferResponse.timeSlotOffered());
 
-                    if (incomingObject != null) {
-                        // Make sure the incoming object is of the expected type
-                        if (incomingObject instanceof TradeOffer) {
-                            if (tradeOfferResponseMessage.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
-                                // Handle the accepted trade offer
-                                // Remove the traded timeslots from the adverts
-                                adverts.get(tradeOfferResponseMessage.getSender()).remove(((TradeOffer) incomingObject).timeSlotRequested());
-                                adverts.get(((TradeOffer) incomingObject).requesterAgent()).remove(((TradeOffer) incomingObject).timeSlotOffered());
+                            // Notify the agent who initiated the interest
+                            AgentHelper.sendMessage(
+                                    myAgent,
+                                    ((TradeOffer) receivedObject).requesterAgent(),
+                                    tradeOfferResponseMessage.getConversationId(),
+                                    receivedObject,
+                                    ACLMessage.AGREE
+                            );
 
-                                // Notify the agent who initiated the interest
-                                AgentHelper.sendMessage(
-                                        myAgent,
-                                        ((TradeOffer) incomingObject).requesterAgent(),
-                                        tradeOfferResponseMessage.getConversationId(),
-                                        incomingObject,
-                                        ACLMessage.AGREE
-                                );
-
-                                numOfSuccessfulExchanges++;
-                            } else {
-                                AgentHelper.sendMessage(
-                                        myAgent,
-                                        ((TradeOffer) incomingObject).requesterAgent(),
-                                        "Trade Rejected",
-                                        ACLMessage.CANCEL
-                                );
-
-                                agentsToNotify.add(tradeOfferResponseMessage.getSender());
-                            }
+                            numOfSuccessfulExchanges++;
                         } else {
-                            AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer response cannot be acted upon: the received object has an incorrect type.");
+                            AgentHelper.sendMessage(
+                                    myAgent,
+                                    ((TradeOffer) receivedObject).requesterAgent(),
+                                    "Trade Rejected",
+                                    ACLMessage.CANCEL
+                            );
+
+                            agentsToNotify.add(tradeOfferResponseMessage.getSender());
                         }
+                    } else {
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer response cannot be acted upon: the received object has an incorrect type or is null.");
                     }
 
                     numOfTradeOfferReplies++;
@@ -571,24 +546,18 @@ public class AdvertisingBoardAgent extends Agent {
                 if (incomingSyncMessage != null) {
                     if (!incomingSyncMessage.getConversationId().equals("No Syncing Necessary")) {
                         // Make sure the incoming object is readable
-                        Serializable incomingObject = null;
+                        Serializable receivedObject = AgentHelper.readReceivedContentObject(incomingSyncMessage, myAgent.getLocalName(), AID.class);
 
-                        try {
-                            incomingObject = incomingSyncMessage.getContentObject();
-                        } catch (UnreadableException e) {
-                            AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer receiver AID is unreadable: " + e.getMessage());
-                        }
-
-                        if (incomingObject != null) {
-                            // Make sure the incoming object is of the expected type
-                            if (incomingObject instanceof AID) {
-                                AgentHelper.sendMessage(
-                                        myAgent,
-                                        (AID) incomingObject,
-                                        incomingSyncMessage.getConversationId(),
-                                        ACLMessage.INFORM_IF
-                                );
-                            }
+                        // Make sure the incoming object is of the expected type
+                        if (receivedObject instanceof AID receiverAgentIdentifier) {
+                            AgentHelper.sendMessage(
+                                    myAgent,
+                                    receiverAgentIdentifier,
+                                    incomingSyncMessage.getConversationId(),
+                                    ACLMessage.INFORM_IF
+                            );
+                        } else {
+                            AgentHelper.printAgentError(myAgent.getLocalName(), "Agent social capita cannot be synced: the received object has an incorrect type or is null.");
                         }
                     }
 
@@ -666,95 +635,86 @@ public class AdvertisingBoardAgent extends Agent {
 
             if (interestMessage != null && adverts.size() == config.getPopulationCount()) {
                 // Make sure the incoming object is readable
-                Serializable incomingObject = null;
+                Serializable receivedObject = AgentHelper.readReceivedContentObject(interestMessage, myAgent.getLocalName(), SerializableTimeSlotArray.class);
 
-                try {
-                    incomingObject = interestMessage.getContentObject();
-                } catch (UnreadableException e) {
-                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming message about an interest in timeslots is unreadable: " + e.getMessage());
-                }
+                // Make sure the incoming object is of the expected type and the advert is not empty
+                if (receivedObject instanceof SerializableTimeSlotArray requestedTimeSlotsHolder) {
+                    TimeSlot targetTimeSlot = null;
+                    AID targetOwner = null;
 
-                if (incomingObject != null) {
-                    // Make sure the incoming object is of the expected type and the advert is not empty
-                    if (incomingObject instanceof SerializableTimeSlotArray) {
-                        TimeSlot[] desiredTimeSlots = ((SerializableTimeSlotArray) incomingObject).timeSlots();
-                        TimeSlot targetTimeSlot = null;
-                        AID targetOwner = null;
+                    requestedTimeSlots.put(interestMessage.getSender(), new ArrayList<>(Arrays.asList(requestedTimeSlotsHolder.timeSlots())));
 
-                        requestedTimeSlots.put(interestMessage.getSender(), new ArrayList<>(Arrays.asList(desiredTimeSlots)));
+                    // Prepare a trade offer to the owner of the desired timeslot if that timeslot is available for trade
+                    ArrayList<TimeSlot> sendersAdvertisedTimeSlots = adverts.get(interestMessage.getSender());
 
-                        // Prepare a trade offer to the owner of the desired timeslot if that timeslot is available for trade
-                        ArrayList<TimeSlot> sendersAdvertisedTimeSlots = adverts.get(interestMessage.getSender());
+                    // Check if the household agent has made interaction with another household agent in the current exchange round
+                    // Find out if the sender has any timeslots available to trade
+                    if (!householdAgentsInteractions.get(interestMessage.getSender()) && !sendersAdvertisedTimeSlots.isEmpty()) {
+                        // Flip the "made interaction" flag
+                        householdAgentsInteractions.replace(interestMessage.getSender(), true);
 
-                        // Check if the household agent has made interaction with another household agent in the current exchange round
-                        // Find out if the sender has any timeslots available to trade
-                        if (!householdAgentsInteractions.get(interestMessage.getSender()) && !sendersAdvertisedTimeSlots.isEmpty()) {
-                            // Flip the "made interaction" flag
-                            householdAgentsInteractions.replace(interestMessage.getSender(), true);
+                        // TODO: Cite Arena code
+                        ArrayList<AID> shuffledAdvertPosters = new ArrayList<>(adverts.keySet());
 
-                            // TODO: Cite Arena code
-                            ArrayList<AID> shuffledAdvertPosters = new ArrayList<>(adverts.keySet());
+                        // Remove the requesting agent from the temp advert catalogue to avoid an unnecessary check
+                        shuffledAdvertPosters.remove(interestMessage.getSender());
+                        Collections.shuffle(shuffledAdvertPosters, config.getRandom());
 
-                            // Remove the requesting agent from the temp advert catalogue to avoid an unnecessary check
-                            shuffledAdvertPosters.remove(interestMessage.getSender());
-                            Collections.shuffle(shuffledAdvertPosters, config.getRandom());
+                        // Find the desired timeslot in the published adverts
+                        browsingTimeSlots:
+                        for (TimeSlot desiredTimeSlot : requestedTimeSlotsHolder.timeSlots()) {
+                            for (AID advertPoster : shuffledAdvertPosters) {
+                                // Check if the potential receiving household agent has made an interaction in the current exchange round
+                                if (!householdAgentsInteractions.get(advertPoster)) {
+                                    ArrayList<TimeSlot> timeSlotsForTrade = adverts.get(advertPoster);
 
-                            // Find the desired timeslot in the published adverts
-                            browsingTimeSlots:
-                            for (TimeSlot desiredTimeSlot : desiredTimeSlots) {
-                                for (AID advertPoster : shuffledAdvertPosters) {
-                                    // Check if the potential receiving household agent has made an interaction in the current exchange round
-                                    if (!householdAgentsInteractions.get(advertPoster)) {
-                                        ArrayList<TimeSlot> timeSlotsForTrade = adverts.get(advertPoster);
+                                    for (TimeSlot timeSlotForTrade : timeSlotsForTrade) {
+                                        if (desiredTimeSlot.equals(timeSlotForTrade)) {
+                                            targetTimeSlot = timeSlotForTrade;
+                                            targetOwner = advertPoster;
 
-                                        for (TimeSlot timeSlotForTrade : timeSlotsForTrade) {
-                                            if (desiredTimeSlot.equals(timeSlotForTrade)) {
-                                                targetTimeSlot = timeSlotForTrade;
-                                                targetOwner = advertPoster;
+                                            // Add the target agent to the list of agents to receive a trade offer
+                                            agentsToReceiveTradeOffer.add(advertPoster);
+                                            // Flip the target agent's "made interaction" flag to true so that
+                                            // it does not get paired up with other agents this round
+                                            householdAgentsInteractions.replace(advertPoster, true);
 
-                                                // Add the target agent to the list of agents to receive a trade offer
-                                                agentsToReceiveTradeOffer.add(advertPoster);
-                                                // Flip the target agent's "made interaction" flag to true so that
-                                                // it does not get paired up with other agents this round
-                                                householdAgentsInteractions.replace(advertPoster, true);
-
-                                                break browsingTimeSlots;
-                                            }
+                                            break browsingTimeSlots;
                                         }
-                                    } else {
-                                        // TODO: let the requesting agent know that the receiving agent is already occupied this round
                                     }
+                                } else {
+                                    // TODO: let the requesting agent know that the receiving agent is already occupied this round
                                 }
                             }
+                        }
 
-                            // Check if the requester has any timeslots to offer in return and if a desired timeslot was found
-                            if (targetTimeSlot != null) { // TODO: change all occurrences of "sender" to "requester"
-                                // Offer the requester's least wanted timeslot - the first element of the advert
-                                // Send the created trade offer object to the requester agent so that it can forward
-                                // it to the target agent.
-                                AgentHelper.sendMessage(
-                                        myAgent,
-                                        interestMessage.getSender(),
-                                        "Offer Created",
-                                        new TradeOffer(
-                                                interestMessage.getSender(),
-                                                targetOwner,
-                                                sendersAdvertisedTimeSlots.getFirst(),
-                                                targetTimeSlot
-                                        ),
-                                        ACLMessage.AGREE
-                                );
+                        // Check if the requester has any timeslots to offer in return and if a desired timeslot was found
+                        if (targetTimeSlot != null) { // TODO: change all occurrences of "sender" to "requester"
+                            // Offer the requester's least wanted timeslot - the first element of the advert
+                            // Send the created trade offer object to the requester agent so that it can forward
+                            // it to the target agent.
+                            AgentHelper.sendMessage(
+                                    myAgent,
+                                    interestMessage.getSender(),
+                                    "Offer Created",
+                                    new TradeOffer(
+                                            interestMessage.getSender(),
+                                            targetOwner,
+                                            sendersAdvertisedTimeSlots.getFirst(),
+                                            targetTimeSlot
+                                    ),
+                                    ACLMessage.AGREE
+                            );
 
-                                numOfTradesStarted++;
-                                refuseRequest = false;
-                            }
-                        } else {
-                            // TODO: let the requesting agent know that it has already made interaction therefore cannot make any more requests
-                            // TODO: this means that this agent could be a receiver
+                            numOfTradesStarted++;
+                            refuseRequest = false;
                         }
                     } else {
-                        AgentHelper.printAgentError(myAgent.getLocalName(), "Interest for timeslots cannot be processed: the received object has an incorrect type.");
+                        // TODO: let the requesting agent know that it has already made interaction therefore cannot make any more requests
+                        // TODO: this means that this agent could be a receiver
                     }
+                } else {
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "Interest for timeslots cannot be processed: the received object has an incorrect type or is null.");
                 }
 
                 numOfRequestsProcessed++;
@@ -828,27 +788,19 @@ public class AdvertisingBoardAgent extends Agent {
 
                 if (tradeOutcomeMessage != null) {
                     // Make sure the incoming object is readable
-                    Serializable incomingObject = null;
+                    Serializable receivedObject = AgentHelper.readReceivedContentObject(tradeOutcomeMessage, myAgent.getLocalName(), TradeOffer.class, String.class);
 
-                    try {
-                        incomingObject = tradeOutcomeMessage.getContentObject();
-                    } catch (UnreadableException e) {
-                        AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming started trade offer is unreadable: " + e.getMessage());
-                    }
+                    if (!receivedObject.equals("Rejected")) {
+                        // Make sure the incoming object is of the expected type
+                        if (receivedObject instanceof TradeOffer acceptedTradeOffer) {
+                            // Handle the accepted trade offer
+                            // Remove the traded timeslots from the adverts
+                            adverts.get(tradeOutcomeMessage.getSender()).remove(acceptedTradeOffer.timeSlotOffered());
+                            adverts.get(acceptedTradeOffer.receiverAgent()).remove(acceptedTradeOffer.timeSlotRequested());
 
-                    if (incomingObject != null) {
-                        if (!incomingObject.equals("Rejected")) {
-                            // Make sure the incoming object is of the expected type
-                            if (incomingObject instanceof TradeOffer acceptedTradeOffer) {
-                                // Handle the accepted trade offer
-                                // Remove the traded timeslots from the adverts
-                                adverts.get(tradeOutcomeMessage.getSender()).remove(acceptedTradeOffer.timeSlotOffered());
-                                adverts.get(acceptedTradeOffer.receiverAgent()).remove(acceptedTradeOffer.timeSlotRequested());
-
-                                numOfSuccessfulExchanges++;
-                            } else {
-                                AgentHelper.printAgentError(myAgent.getLocalName(), "Started trade offer cannot be processed: the received object has an incorrect type.");
-                            }
+                            numOfSuccessfulExchanges++;
+                        } else {
+                            AgentHelper.printAgentError(myAgent.getLocalName(), "Started trade offer cannot be processed: the received object has an incorrect type or is null.");
                         }
                     }
 
@@ -887,28 +839,20 @@ public class AdvertisingBoardAgent extends Agent {
 
             if (doneWithExchangeMessage != null) {
                 // Make sure the incoming object is readable
-                Serializable incomingObject = null;
+                Serializable receivedObject = AgentHelper.readReceivedContentObject(doneWithExchangeMessage, myAgent.getLocalName(), EndOfDayHouseholdAgentDataHolder.class);
 
-                try {
-                    incomingObject = doneWithExchangeMessage.getContentObject();
-                } catch (UnreadableException e) {
-                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming agent contact is unreadable: " + e.getMessage());
-                }
-
-                if (incomingObject != null) {
-                    // Make sure the incoming object is of the expected type
-                    if (incomingObject instanceof EndOfExchangeHouseholdDataHolder) {
-                        // Update the agent contact details with its current values
-                        for (AgentContact contact : householdAgentContacts) {
-                            if (contact.getAgentIdentifier().equals(doneWithExchangeMessage.getSender())) {
-                                contact.setCurrentSatisfaction(((EndOfExchangeHouseholdDataHolder)incomingObject).satisfaction());
-                            }
+                // Make sure the incoming object is of the expected type
+                if (receivedObject instanceof EndOfExchangeHouseholdDataHolder householdAgentDataHolder) {
+                    // Update the agent contact details with its current values
+                    for (AgentContact contact : householdAgentContacts) {
+                        if (contact.getAgentIdentifier().equals(doneWithExchangeMessage.getSender())) {
+                            contact.setCurrentSatisfaction(householdAgentDataHolder.satisfaction());
                         }
-
-                        this.dataHolders.put(doneWithExchangeMessage.getSender(), (EndOfExchangeHouseholdDataHolder)incomingObject);
-                    } else {
-                        AgentHelper.printAgentError(myAgent.getLocalName(), "The exchange round cannot be cannot be ended: the received object has an incorrect type.");
                     }
+
+                    this.dataHolders.put(doneWithExchangeMessage.getSender(), householdAgentDataHolder);
+                } else {
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "The exchange round cannot be cannot be ended: the received object has an incorrect type or is null.");
                 }
             } else {
                 block();
@@ -1066,27 +1010,19 @@ public class AdvertisingBoardAgent extends Agent {
 
             if (socialLearningOverMessage != null) {
                 // Make sure the incoming object is readable
-                Serializable incomingObject = null;
+                Serializable receivedObject = AgentHelper.readReceivedContentObject(socialLearningOverMessage, myAgent.getLocalName(), AgentContact.class);
 
-                try {
-                    incomingObject = socialLearningOverMessage.getContentObject();
-                } catch (UnreadableException e) {
-                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming agent contact is unreadable: " + e.getMessage());
-                }
+                if (receivedObject instanceof AgentContact agentContactAfterSocialLearning) {
+                    for (AgentContact contact : householdAgentContacts) {
+                        if (contact.getAgentIdentifier().equals(agentContactAfterSocialLearning.getAgentIdentifier())) {
+                            contact.setType(agentContactAfterSocialLearning.getType());
+                            contact.setCurrentSatisfaction(agentContactAfterSocialLearning.getCurrentSatisfaction());
 
-                if (incomingObject != null) {
-                    if (incomingObject instanceof AgentContact) {
-                        for (AgentContact contact : householdAgentContacts) {
-                            if (contact.getAgentIdentifier().equals(((AgentContact)incomingObject).getAgentIdentifier())) {
-                                contact.setType(((AgentContact)incomingObject).getType());
-                                contact.setCurrentSatisfaction(((AgentContact)incomingObject).getCurrentSatisfaction());
-
-                                break;
-                            }
+                            break;
                         }
-                    } else {
-                        AgentHelper.printAgentError(myAgent.getLocalName(), "The changes after social learning cannot be reflected: the received object has an incorrect type.");
                     }
+                } else {
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "The changes after social learning cannot be reflected: the received object has an incorrect type or is null.");
                 }
 
                 socialLearningOverMessagesReceived++;
@@ -1123,32 +1059,24 @@ public class AdvertisingBoardAgent extends Agent {
 
             if (householdDoneMessage != null) {
                 // Make sure the incoming object is readable
-                Serializable incomingObject = null;
+                Serializable receivedObject = AgentHelper.readReceivedContentObject(householdDoneMessage, myAgent.getLocalName(), EndOfDayHouseholdAgentDataHolder.class);
 
-                try {
-                    incomingObject = householdDoneMessage.getContentObject();
-                } catch (UnreadableException e) {
-                    AgentHelper.printAgentError(myAgent.getLocalName(), "Incoming agent data holder is unreadable: " + e.getMessage());
-                }
+                if (receivedObject instanceof EndOfDayHouseholdAgentDataHolder householdAgentDataHolder) {
+                    AgentContact doneHouseholdContact = null;
 
-                if (incomingObject != null) {
-                    if (incomingObject instanceof EndOfDayHouseholdAgentDataHolder householdAgentDataHolder) {
-                        AgentContact doneHouseholdContact = null;
-
-                        for (AgentContact householdAgentContact : householdAgentContacts) {
-                            if (householdAgentContact.getAgentIdentifier().equals(householdDoneMessage.getSender())) {
-                                doneHouseholdContact = householdAgentContact;
-                            }
+                    for (AgentContact householdAgentContact : householdAgentContacts) {
+                        if (householdAgentContact.getAgentIdentifier().equals(householdDoneMessage.getSender())) {
+                            doneHouseholdContact = householdAgentContact;
                         }
-
-                        if (doneHouseholdContact != null) {
-                            householdAgentsEndOfDayData.put(doneHouseholdContact, householdAgentDataHolder);
-                        } else {
-                            AgentHelper.printAgentError(myAgent.getLocalName(), "Could not append household agent data to the data file: household agent was not found in the contacts.");
-                        }
-                    } else {
-                        AgentHelper.printAgentError(myAgent.getLocalName(), "The end of day household agent data cannot be processed: the received object has an incorrect type.");
                     }
+
+                    if (doneHouseholdContact != null) {
+                        householdAgentsEndOfDayData.put(doneHouseholdContact, householdAgentDataHolder);
+                    } else {
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "Could not append household agent data to the data file: household agent was not found in the contacts.");
+                    }
+                } else {
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "The end of day household agent data cannot be processed: the received object has an incorrect type or is null.");
                 }
             } else {
                 block();
@@ -1214,7 +1142,7 @@ public class AdvertisingBoardAgent extends Agent {
                 );
             }
 
-            AdvertisingBoardEndOfDayDataHolder endOfDayData = new AdvertisingBoardEndOfDayDataHolder(
+            EndOfDayAdvertisingBoardDataHolder endOfDayData = new EndOfDayAdvertisingBoardDataHolder(
                     householdAgentContacts,
                     numOfSocialAgents,
                     config.getPopulationCount() - numOfSocialAgents,

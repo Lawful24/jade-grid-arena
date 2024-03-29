@@ -3,6 +3,7 @@ package com.napier;
 import com.napier.concepts.AgentContact;
 import com.napier.concepts.TimeSlot;
 import com.napier.concepts.TimeSlotSatisfactionPair;
+import com.napier.concepts.TradeOffer;
 import com.napier.singletons.SimulationConfigurationSingleton;
 import com.napier.types.AgentStrategyType;
 import jade.core.AID;
@@ -13,6 +14,7 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import jade.lang.acl.UnreadableException;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -235,6 +237,32 @@ public class AgentHelper {
 
     public static void printAgentError(String agentNickname, String errorMessage) {
         System.err.println(agentNickname + " error: " + errorMessage);
+    }
+
+    public static Serializable readReceivedContentObject(ACLMessage receivedMessage, String messageReceiverNickname, Class<?> expectedClass) {
+        Serializable receivedObject = null;
+
+        try {
+            receivedObject = receivedMessage.getContentObject();
+        } catch (UnreadableException e) {
+            AgentHelper.printAgentError(messageReceiverNickname, "Incoming expected " + expectedClass.getCanonicalName() + " object is unreadable:");
+            e.printStackTrace();
+        }
+
+        return receivedObject;
+    }
+
+    public static Serializable readReceivedContentObject(ACLMessage receivedMessage, String messageReceiverNickname, Class<?> expectedClass, Class<?> optionalExpectedClass) {
+        Serializable receivedObject = null;
+
+        try {
+            receivedObject = receivedMessage.getContentObject();
+        } catch (UnreadableException e) {
+            AgentHelper.printAgentError(messageReceiverNickname, "Incoming expected " + expectedClass.getCanonicalName() + " or " + optionalExpectedClass.getCanonicalName() + " object is unreadable:");
+            e.printStackTrace();
+        }
+
+        return receivedObject;
     }
 
     public static AgentStrategyType determineAgentType(String householdNickname) {
