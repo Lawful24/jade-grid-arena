@@ -7,7 +7,11 @@ import com.napier.Main;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Random;
+import java.util.ArrayList;
+import java.util.Properties;
+import java.util.Collections;
 
 public class SimulationConfigurationSingleton {
     private static SimulationConfigurationSingleton instance;

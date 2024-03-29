@@ -1,7 +1,5 @@
 package com.napier.concepts;
 
-import com.napier.concepts.TimeSlot;
-
 // TODO: Cite Arena code
 public class TimeSlotSatisfactionPair {
     TimeSlot timeSlot;

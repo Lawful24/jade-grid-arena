@@ -13,10 +13,12 @@ import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SequentialBehaviour;
 import jade.lang.acl.ACLMessage;
-import jade.lang.acl.UnreadableException;
 
 import java.io.Serializable;
-import java.util.*; // TODO: get rid of the wildcard import
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 
 public class AdvertisingBoardAgent extends Agent {
     private ArrayList<TimeSlot> availableTimeSlots;

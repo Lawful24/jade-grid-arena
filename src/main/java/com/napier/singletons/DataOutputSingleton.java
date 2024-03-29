@@ -2,7 +2,6 @@ package com.napier.singletons;
 
 import com.napier.concepts.AgentStatisticalValuesPerStrategyType;
 import com.napier.types.AgentStrategyType;
-import com.napier.types.ExchangeType;
 
 import java.io.File;
 import java.io.FileWriter;

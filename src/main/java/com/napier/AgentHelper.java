@@ -3,7 +3,6 @@ package com.napier;
 import com.napier.concepts.AgentContact;
 import com.napier.concepts.TimeSlot;
 import com.napier.concepts.TimeSlotSatisfactionPair;
-import com.napier.concepts.TradeOffer;
 import com.napier.singletons.SimulationConfigurationSingleton;
 import com.napier.types.AgentStrategyType;
 import jade.core.AID;
