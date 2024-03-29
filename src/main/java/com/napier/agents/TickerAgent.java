@@ -124,7 +124,7 @@ public class TickerAgent extends Agent {
 
                         AgentHelper.printAgentLog(
                                 myAgent.getLocalName(),
-                                "Started Run " + currentSimulationRun + "/" + config.getNumOfSimulationRuns()
+                                "\nStarted Run " + currentSimulationRun + "/" + config.getNumOfSimulationRuns()
                                         + " with " + config.getPopulationCount() + " agents."
                                         + " Exchange Type: " + config.getExchangeType());
 
@@ -225,6 +225,7 @@ public class TickerAgent extends Agent {
                                     + householdAgentContacts.getFirst().getType()
                                     + ", Average satisfaction: "
                                     + (endOfDayData.averageSocialSatisfaction() + endOfDayData.averageSelfishSatisfaction())
+                                    + "\n"
                     );
 
                     if (currentSimulationRun == config.getNumOfSimulationRuns()) {
@@ -302,14 +303,24 @@ public class TickerAgent extends Agent {
                         config.setDoesUtiliseSocialCapita(true);
                         config.setSingleAgentTypeUsed(false);
 
-                        AgentHelper.printAgentLog(getLocalName(), "Starting new simulation set: with social capita\n");
+                        AgentHelper.printAgentLog(
+                                getLocalName(),
+                                "----------------"
+                                        + "Starting new simulation set: with social capita"
+                                        + "----------------\n"
+                        );
 
                         break;
                     case 2:
                         config.setDoesUtiliseSocialCapita(false);
                         config.setSingleAgentTypeUsed(false);
 
-                        AgentHelper.printAgentLog(getLocalName(), "Starting new simulation set: without social capita\n");
+                        AgentHelper.printAgentLog(
+                                getLocalName(),
+                                "----------------"
+                                        + "Starting new simulation set: without social capita"
+                                        + "----------------\n"
+                        );
 
                         break;
                 }
@@ -321,35 +332,60 @@ public class TickerAgent extends Agent {
                         config.setDoesUtiliseSocialCapita(false);
                         config.setSingleAgentTypeUsed(true, AgentStrategyType.SELFISH);
 
-                        AgentHelper.printAgentLog(getLocalName(), "Starting new simulation set: without social capita, only selfish agents\n");
+                        AgentHelper.printAgentLog(
+                                getLocalName(),
+                                "----------------"
+                                        + " Starting new simulation set: without social capita, only selfish agents "
+                                        + "----------------\n"
+                        );
 
                         break;
                     case 2:
                         config.setDoesUtiliseSocialCapita(false);
                         config.setSingleAgentTypeUsed(true, AgentStrategyType.SOCIAL);
 
-                        AgentHelper.printAgentLog(getLocalName(), "Starting new simulation set: without social capita, only social agents\n");
+                        AgentHelper.printAgentLog(
+                                getLocalName(),
+                                "----------------"
+                                        + " Starting new simulation set: without social capita, only social agents "
+                                        + "----------------\n"
+                        );
 
                         break;
                     case 3:
                         config.setDoesUtiliseSocialCapita(true);
                         config.setSingleAgentTypeUsed(true, AgentStrategyType.SOCIAL);
 
-                        AgentHelper.printAgentLog(getLocalName(), "Starting new simulation set: with social capita, only social agents\n");
+                        AgentHelper.printAgentLog(
+                                getLocalName(),
+                                "----------------"
+                                        + " Starting new simulation set: with social capita, only social agents "
+                                        + "----------------\n"
+                        );
 
                         break;
                     case 4:
                         config.setDoesUtiliseSocialCapita(false);
                         config.setSingleAgentTypeUsed(false);
 
-                        AgentHelper.printAgentLog(getLocalName(), "Starting new simulation set: without social capita, no agent type restrictions\n");
+                        AgentHelper.printAgentLog(
+                                getLocalName(),
+                                "----------------"
+                                        + " Starting new simulation set: without social capita, no agent type restrictions "
+                                        + "----------------\n"
+                        );
 
                         break;
                     case 5:
                         config.setDoesUtiliseSocialCapita(true);
                         config.setSingleAgentTypeUsed(false);
 
-                        AgentHelper.printAgentLog(getLocalName(), "Starting new simulation set: without social capita, no agent type restrictions\n");
+                        AgentHelper.printAgentLog(
+                                getLocalName(),
+                                "----------------"
+                                        + " Starting new simulation set: with social capita, no agent type restrictions "
+                                        + "----------------\n"
+                        );
 
                         break;
                 }
@@ -360,20 +396,35 @@ public class TickerAgent extends Agent {
                     case 1:
                         config.setExchangeType(ExchangeType.MessagePassing);
 
-                        AgentHelper.printAgentLog(getLocalName(), "Starting new simulation set: user determined settings, Message Passing exchange type\n");
+                        AgentHelper.printAgentLog(
+                                getLocalName(),
+                                "----------------"
+                                        + " Starting new simulation set: user determined settings, Message Passing exchange type "
+                                        + "----------------\n"
+                        );
 
                         break;
                     case 2:
                         config.setExchangeType(ExchangeType.SmartContract);
 
-                        AgentHelper.printAgentLog(getLocalName(), "Starting new simulation set: user determined settings, Smart Contract exchange type\n");
+                        AgentHelper.printAgentLog(
+                                getLocalName(),
+                                "----------------"
+                                        + " Starting new simulation set: user determined settings, Smart Contract exchange type "
+                                        + "----------------\n"
+                        );
 
                         break;
                 }
 
                 break;
             default:
-                AgentHelper.printAgentLog(getLocalName(), "Starting new simulation set: only user determined settings\n");
+                AgentHelper.printAgentLog(
+                        getLocalName(),
+                        "----------------"
+                                + " Starting new simulation set: user determined settings only "
+                                + "----------------\n"
+                );
 
                 break;
         }

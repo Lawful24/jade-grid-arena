@@ -962,7 +962,6 @@ public class AdvertisingBoardAgent extends Agent {
                         TickerTrackerSingleton.getInstance().getCurrentSimulationRun(),
                         TickerTrackerSingleton.getInstance().getCurrentDay(),
                         currentExchangeRound,
-                        householdAgent.getLocalName(),
                         strategyType,
                         dataHolders.get(householdAgent).isTradeOfferReceiver(),
                         dataHolders.get(householdAgent).exchangeRoundHouseholdCPUTime()

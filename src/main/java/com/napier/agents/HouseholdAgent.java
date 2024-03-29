@@ -16,8 +16,6 @@ import jade.lang.acl.ACLMessage;
 import jade.lang.acl.UnreadableException;
 
 import java.io.Serializable;
-import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadMXBean;
 import java.util.*; // TODO: get rid of the wildcard import
 
 public class HouseholdAgent extends Agent {
@@ -298,7 +296,6 @@ public class HouseholdAgent extends Agent {
 
             if (newExchangeMessage != null || isExchangeTypeBeingSwitched) {
                 if (SimulationConfigurationSingleton.getInstance().getExchangeType() == ExchangeType.MessagePassing) {
-                    exchangeRoundStartTime = ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime();
                     exchangeRoundStartTime = System.nanoTime();
 
                     if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
