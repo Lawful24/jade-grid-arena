@@ -16,6 +16,8 @@ import jade.lang.acl.ACLMessage;
 import jade.lang.acl.UnreadableException;
 
 import java.io.Serializable;
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadMXBean;
 import java.util.*; // TODO: get rid of the wildcard import
 
 public class HouseholdAgent extends Agent {
@@ -40,6 +42,8 @@ public class HouseholdAgent extends Agent {
     private boolean areHouseholdsFound;
     private boolean isExchangeTypeBeingSwitched;
     private boolean activeExchange;
+    private long exchangeRoundStartTime;
+    private boolean isTradeOfferReceiver;
 
     // Agent contact attributes
     private AID tickerAgent;
@@ -294,6 +298,9 @@ public class HouseholdAgent extends Agent {
 
             if (newExchangeMessage != null || isExchangeTypeBeingSwitched) {
                 if (SimulationConfigurationSingleton.getInstance().getExchangeType() == ExchangeType.MessagePassing) {
+                    exchangeRoundStartTime = ManagementFactory.getThreadMXBean().getCurrentThreadCpuTime();
+                    exchangeRoundStartTime = System.nanoTime();
+
                     if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
                         AgentHelper.printAgentLog(myAgent.getLocalName(), "joining the exchange");
                     }
@@ -330,6 +337,8 @@ public class HouseholdAgent extends Agent {
         @Override
         public void reset() {
             super.reset();
+
+            isTradeOfferReceiver = false;
 
             // TODO
         }
@@ -553,6 +562,8 @@ public class HouseholdAgent extends Agent {
                             AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be answered: the received object has an incorrect type.");
                         }
                     }
+
+                    isTradeOfferReceiver = true;
                 } else {
                     // TODO: no offers expected but this agent can still be a requester
                 }
@@ -632,6 +643,8 @@ public class HouseholdAgent extends Agent {
 
             if (newExchangeMessage != null || isExchangeTypeBeingSwitched) {
                 if (SimulationConfigurationSingleton.getInstance().getExchangeType() == ExchangeType.SmartContract) {
+                    exchangeRoundStartTime = System.nanoTime();
+
                     if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
                         AgentHelper.printAgentLog(myAgent.getLocalName(), "joining the exchange");
                     }
@@ -670,6 +683,7 @@ public class HouseholdAgent extends Agent {
             super.reset();
 
             isTradeStarted = false;
+            isTradeOfferReceiver = false;
             // TODO
         }
     }
@@ -789,6 +803,8 @@ public class HouseholdAgent extends Agent {
                             AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be answered: the received object has an incorrect type.");
                         }
                     }
+
+                    isTradeOfferReceiver = true;
                 } else {
                     // This happens when the agent receives no trade requests but does send a request
                     if (!isTradeStarted) {
@@ -915,15 +931,16 @@ public class HouseholdAgent extends Agent {
             }
 
             currentSatisfaction = AgentHelper.calculateSatisfaction(allocatedTimeSlots, requestedTimeSlots);
+            long exchangeRoundEndTime = System.nanoTime();
 
             AgentHelper.sendMessage(
                     myAgent,
                     advertisingAgent,
                     "Exchange Done",
-                    new AgentContact(
-                            myAgent.getAID(),
-                            agentType,
-                            currentSatisfaction
+                    new EndOfExchangeHouseholdDataHolder(
+                            currentSatisfaction,
+                            isTradeOfferReceiver,
+                            exchangeRoundEndTime - exchangeRoundStartTime
                     ),
                     ACLMessage.INFORM
             );

@@ -43,6 +43,7 @@ public class DataOutputSingleton {
         this.createAgentDataOutputFile();
         this.createExchangeDataOutputFile();
         this.createDailyDataOutputFile();
+        this.createPerformanceDataOutputFile();
         this.createSimulationDataOutputFile(doesUtiliseSocialCapita, doesUtiliseSingleAgentType, selectedSingleAgentType);
     }
 
@@ -167,15 +168,13 @@ public class DataOutputSingleton {
             try {
                 this.performanceDataCSVWriter = new FileWriter(this.performanceDataFile);
 
-                performanceDataCSVWriter.append("Exchange Type,");
                 performanceDataCSVWriter.append("Simulation Run,");
                 performanceDataCSVWriter.append("Day,");
                 performanceDataCSVWriter.append("Round,");
                 performanceDataCSVWriter.append("Name,"); // TODO: might not be necessary
                 performanceDataCSVWriter.append("Strategy Type,");
                 performanceDataCSVWriter.append("Requester/Receiver,");
-                performanceDataCSVWriter.append("CPU Time Used,");
-                performanceDataCSVWriter.append("Memory Used");
+                performanceDataCSVWriter.append("CPU Time Used");
                 performanceDataCSVWriter.append("\n");
             } catch (IOException e) {
                 System.err.println("Could not write in performance data output file.");
@@ -333,27 +332,23 @@ public class DataOutputSingleton {
     }
 
     public void appendPerformanceData(
-            ExchangeType currentExchangeType,
             int currentSimulationRun,
             int currentDay,
             int currentExchangeRound,
             String agentNickname,
             AgentStrategyType agentStrategyType,
             boolean isTradeOfferReceiver,
-            long cpuTimeUsedThisExchangeRound,
-            long memoryUsedThisExchangeRound
+            long cpuTimeUsedThisExchangeRound
     ) {
         if (this.performanceDataCSVWriter != null) {
             try {
-                this.performanceDataCSVWriter.append(String.valueOf(currentExchangeType)).append(",");
                 this.performanceDataCSVWriter.append(String.valueOf(currentSimulationRun)).append(",");
                 this.performanceDataCSVWriter.append(String.valueOf(currentDay)).append(",");
                 this.performanceDataCSVWriter.append(String.valueOf(currentExchangeRound)).append(",");
                 this.performanceDataCSVWriter.append(agentNickname).append(","); // TODO: might not be necessary
                 this.performanceDataCSVWriter.append(String.valueOf(agentStrategyType)).append(",");
                 this.performanceDataCSVWriter.append(String.valueOf(isTradeOfferReceiver)).append(",");
-                this.performanceDataCSVWriter.append(String.valueOf(cpuTimeUsedThisExchangeRound)).append(",");
-                this.performanceDataCSVWriter.append(String.valueOf(memoryUsedThisExchangeRound)).append("\n");
+                this.performanceDataCSVWriter.append(String.valueOf(cpuTimeUsedThisExchangeRound)).append("\n");
             } catch (IOException e) {
                 System.err.println("Error while trying to append data to the performance data file.");
             }

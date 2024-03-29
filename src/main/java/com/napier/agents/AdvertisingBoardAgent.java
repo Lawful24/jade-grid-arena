@@ -558,7 +558,6 @@ public class AdvertisingBoardAgent extends Agent {
 
     public class SocialCapitaSyncPropagateBehaviour extends Behaviour {
         private int numOfMessagesPropagated = 0;
-        private boolean allSyncActionsHandled = false;
 
         public SocialCapitaSyncPropagateBehaviour(Agent a) {
             super(a);
@@ -876,7 +875,7 @@ public class AdvertisingBoardAgent extends Agent {
     }
 
     public class ExchangeRoundOverListener extends Behaviour {
-        private int numOfHouseholdAgentsFinished = 0;
+        private final HashMap<AID, EndOfExchangeHouseholdDataHolder> dataHolders = new HashMap<>();
 
         public ExchangeRoundOverListener(Agent a) {
             super(a);
@@ -898,19 +897,19 @@ public class AdvertisingBoardAgent extends Agent {
 
                 if (incomingObject != null) {
                     // Make sure the incoming object is of the expected type
-                    if (incomingObject instanceof AgentContact) {
+                    if (incomingObject instanceof EndOfExchangeHouseholdDataHolder) {
                         // Update the agent contact details with its current values
                         for (AgentContact contact : householdAgentContacts) {
-                            if (contact.getAgentIdentifier() == ((AgentContact)incomingObject).getAgentIdentifier()) {
-                                contact.setCurrentSatisfaction(((AgentContact)incomingObject).getCurrentSatisfaction());
+                            if (contact.getAgentIdentifier().equals(doneWithExchangeMessage.getSender())) {
+                                contact.setCurrentSatisfaction(((EndOfExchangeHouseholdDataHolder)incomingObject).satisfaction());
                             }
                         }
+
+                        this.dataHolders.put(doneWithExchangeMessage.getSender(), (EndOfExchangeHouseholdDataHolder)incomingObject);
                     } else {
-                        AgentHelper.printAgentError(myAgent.getLocalName(), "Household contacts cannot be updated: the received object has an incorrect type.");
+                        AgentHelper.printAgentError(myAgent.getLocalName(), "The exchange round cannot be cannot be ended: the received object has an incorrect type.");
                     }
                 }
-
-                numOfHouseholdAgentsFinished++;
             } else {
                 block();
             }
@@ -918,7 +917,7 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public boolean done() {
-            return numOfHouseholdAgentsFinished == SimulationConfigurationSingleton.getInstance().getPopulationCount();
+            return dataHolders.size() == SimulationConfigurationSingleton.getInstance().getPopulationCount();
         }
 
         @Override
@@ -945,6 +944,28 @@ public class AdvertisingBoardAgent extends Agent {
                         currentExchangeRound,
                         agentStrategyType,
                         AgentHelper.averageAgentSatisfaction(householdAgentContacts, agentStrategyType)
+                );
+            }
+
+            for (AID householdAgent : this.dataHolders.keySet()) {
+                AgentStrategyType strategyType = null;
+
+                for (AgentContact householdAgentContact : householdAgentContacts) {
+                    if (householdAgentContact.getAgentIdentifier().equals(householdAgent)) {
+                        strategyType = householdAgentContact.getType();
+
+                        break;
+                    }
+                }
+
+                DataOutputSingleton.getInstance().appendPerformanceData(
+                        TickerTrackerSingleton.getInstance().getCurrentSimulationRun(),
+                        TickerTrackerSingleton.getInstance().getCurrentDay(),
+                        currentExchangeRound,
+                        householdAgent.getLocalName(),
+                        strategyType,
+                        dataHolders.get(householdAgent).isTradeOfferReceiver(),
+                        dataHolders.get(householdAgent).exchangeRoundHouseholdCPUTime()
                 );
             }
 
