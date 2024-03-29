@@ -47,6 +47,7 @@ public class Main {
     }
 
     private static void initEnvironment() {
+        // Create the first instance of the configuration singleton before the agent threads can access it
         SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
 
         // TODO: Cite the JADE workbook

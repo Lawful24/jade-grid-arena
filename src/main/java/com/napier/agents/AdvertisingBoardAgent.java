@@ -46,11 +46,20 @@ public class AdvertisingBoardAgent extends Agent {
     private ArrayList<AgentContact> householdAgentContacts;
     private HashMap<AID, Boolean> householdAgentsInteractions;
 
+    // Singletons
+    private SimulationConfigurationSingleton config;
+    private TickerTrackerSingleton timeTracker;
+    private DataOutputSingleton outputInstance;
+
     @Override
     protected void setup() {
         this.initialAgentSetup();
 
         AgentHelper.registerAgent(this, "Advertising-board");
+
+        this.config = SimulationConfigurationSingleton.getInstance();
+        this.timeTracker = TickerTrackerSingleton.getInstance();
+        this.outputInstance = DataOutputSingleton.getInstance();
 
         addBehaviour(new FindTickerBehaviour(this));
         addBehaviour(new TickerDailyBehaviour(this));
@@ -100,7 +109,7 @@ public class AdvertisingBoardAgent extends Agent {
                     if (tick.getConversationId().equals("New Run")) {
                         initialAgentSetup();
 
-                        if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
+                        if (config.isDebugMode()) {
                             AgentHelper.printAgentLog(myAgent.getLocalName(), "Reset for new run");
                         }
 
@@ -115,7 +124,7 @@ public class AdvertisingBoardAgent extends Agent {
                     dailyTasks.addSubBehaviour(new GenerateTimeSlotsBehaviour(myAgent));
                     dailyTasks.addSubBehaviour(new DistributeInitialRandomTimeSlotAllocations(myAgent));
 
-                    switch (SimulationConfigurationSingleton.getInstance().getExchangeType()) {
+                    switch (config.getExchangeType()) {
                         case MessagePassing -> dailyTasks.addSubBehaviour(new InitiateExchangeBehaviour(myAgent));
                         case SmartContract -> dailyTasks.addSubBehaviour(new InitiateSCExchangeBehaviour(myAgent));
                     }
@@ -151,8 +160,6 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public void action() {
-            SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
-
             // TODO: Cite Arena code
             // Fill the available time-slots with all the slots that exist each day.
             int numOfRequiredTimeSlots = config.getPopulationCount() * config.getNumOfSlotsPerAgent();
@@ -184,8 +191,6 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public void action() {
-            SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
-
             Collections.shuffle(householdAgentContacts, config.getRandom());
 
             for (AgentContact contact : householdAgentContacts) {
@@ -283,10 +288,10 @@ public class AdvertisingBoardAgent extends Agent {
                 }
 
                 // This has to be integrated in this behaviour to make sure that the adverts have been collected
-                if (numOfAdvertsReceived == SimulationConfigurationSingleton.getInstance().getPopulationCount() && householdAgentContacts.size() == numOfAdvertsReceived) {
+                if (numOfAdvertsReceived == config.getPopulationCount() && householdAgentContacts.size() == numOfAdvertsReceived) {
                     // Shuffle the agent contact list before broadcasting the exchange open message
                     // This likely determines the order in which agents participate in the exchange
-                    Collections.shuffle(householdAgentContacts, SimulationConfigurationSingleton.getInstance().getRandom());
+                    Collections.shuffle(householdAgentContacts, config.getRandom());
 
                     // Broadcast to all agents that the exchange is open
                     AgentHelper.sendMessage(
@@ -303,12 +308,12 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public boolean done() {
-            return numOfAdvertsReceived == SimulationConfigurationSingleton.getInstance().getPopulationCount();
+            return numOfAdvertsReceived == config.getPopulationCount();
         }
 
         @Override
         public int onEnd() {
-            if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
+            if (config.isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "done listening for new adverts");
             }
 
@@ -326,7 +331,6 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public void action() {
-            SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
             boolean refuseRequest = true;
 
             ACLMessage interestMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.CFP);
@@ -417,7 +421,7 @@ public class AdvertisingBoardAgent extends Agent {
                 numOfRequestsProcessed++;
 
                 // After processing each CFP, check if all agents have sent this message
-                final int populationCount = SimulationConfigurationSingleton.getInstance().getPopulationCount();
+                final int populationCount = config.getPopulationCount();
 
                 if (numOfRequestsProcessed == populationCount && agentsToReceiveTradeOffer.size() <= populationCount) {
                     // By subtracting the arraylist of agents from the list of all agents, get the agents who did not
@@ -454,7 +458,7 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public boolean done() {
-            return numOfRequestsProcessed == SimulationConfigurationSingleton.getInstance().getPopulationCount();
+            return numOfRequestsProcessed == config.getPopulationCount();
         }
 
         @Override
@@ -463,7 +467,7 @@ public class AdvertisingBoardAgent extends Agent {
                 calculateInitialAndOptimumSatisfactions();
             }
 
-            if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
+            if (config.isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "done processing cfps");
             }
 
@@ -533,7 +537,7 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public int onEnd() {
-            if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
+            if (config.isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "done listening for trades");
             }
 
@@ -585,7 +589,7 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public int onEnd() {
-            if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
+            if (config.isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "done propagating");
             }
 
@@ -638,7 +642,6 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public void action() {
-            SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
             boolean refuseRequest = true;
 
             ACLMessage interestMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.CFP);
@@ -730,7 +733,7 @@ public class AdvertisingBoardAgent extends Agent {
                 numOfRequestsProcessed++;
 
                 // After processing each CFP, check if all agents have sent this message
-                final int populationCount = SimulationConfigurationSingleton.getInstance().getPopulationCount();
+                final int populationCount = config.getPopulationCount();
 
                 if (numOfRequestsProcessed == populationCount && agentsToReceiveTradeOffer.size() <= populationCount) {
                     // By subtracting the arraylist of agents from the list of all agents, get the agents who did not
@@ -767,7 +770,7 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public boolean done() {
-            return numOfRequestsProcessed == SimulationConfigurationSingleton.getInstance().getPopulationCount();
+            return numOfRequestsProcessed == config.getPopulationCount();
         }
 
         @Override
@@ -776,7 +779,7 @@ public class AdvertisingBoardAgent extends Agent {
                 calculateInitialAndOptimumSatisfactions();
             }
 
-            if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
+            if (config.isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "done processing cfps");
             }
 
@@ -828,7 +831,7 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public int onEnd() {
-            if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
+            if (config.isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "done updating adverts based on started trades");
             }
 
@@ -871,12 +874,12 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public boolean done() {
-            return dataHolders.size() == SimulationConfigurationSingleton.getInstance().getPopulationCount();
+            return dataHolders.size() == config.getPopulationCount();
         }
 
         @Override
         public int onEnd() {
-            if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
+            if (config.isDebugMode()) {
                 AgentHelper.printAgentLog(
                         myAgent.getLocalName(),
                         "Exchange round " + currentExchangeRound +  " over." +
@@ -892,9 +895,9 @@ public class AdvertisingBoardAgent extends Agent {
             }
 
             for (AgentStrategyType agentStrategyType : AgentStrategyType.values()) {
-                DataOutputSingleton.getInstance().appendExchangeData(
-                        TickerTrackerSingleton.getInstance().getCurrentSimulationRun(),
-                        TickerTrackerSingleton.getInstance().getCurrentDay(),
+                outputInstance.appendExchangeData(
+                        timeTracker.getCurrentSimulationRun(),
+                        timeTracker.getCurrentDay(),
                         currentExchangeRound,
                         agentStrategyType,
                         AgentHelper.averageAgentSatisfaction(householdAgentContacts, agentStrategyType)
@@ -912,9 +915,9 @@ public class AdvertisingBoardAgent extends Agent {
                     }
                 }
 
-                DataOutputSingleton.getInstance().appendPerformanceData(
-                        TickerTrackerSingleton.getInstance().getCurrentSimulationRun(),
-                        TickerTrackerSingleton.getInstance().getCurrentDay(),
+                outputInstance.appendPerformanceData(
+                        timeTracker.getCurrentSimulationRun(),
+                        timeTracker.getCurrentDay(),
                         currentExchangeRound,
                         strategyType,
                         dataHolders.get(householdAgent).isTradeOfferReceiver(),
@@ -933,7 +936,7 @@ public class AdvertisingBoardAgent extends Agent {
             } else {
                 currentExchangeRound++;
 
-                switch (SimulationConfigurationSingleton.getInstance().getExchangeType()) {
+                switch (config.getExchangeType()) {
                     case MessagePassing -> myAgent.addBehaviour(new InitiateExchangeBehaviour(myAgent));
                     case SmartContract -> myAgent.addBehaviour(new InitiateSCExchangeBehaviour(myAgent));
                 }
@@ -950,8 +953,6 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public void action() {
-            SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
-
             // TODO: Cite Arena code
             // Copy agents to store all agents that haven't yet been selected for social learning.
             ArrayList<AID> unselectedAgents = new ArrayList<>(getHouseholdAgentAIDList());
@@ -999,7 +1000,7 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public int onEnd() {
-            if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
+            if (config.isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "initiated social learning");
             }
 
@@ -1043,12 +1044,12 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public boolean done() {
-            return socialLearningOverMessagesReceived == SimulationConfigurationSingleton.getInstance().getPopulationCount();
+            return socialLearningOverMessagesReceived == config.getPopulationCount();
         }
 
         @Override
         public int onEnd() {
-            if (SimulationConfigurationSingleton.getInstance().isDebugMode()) {
+            if (config.isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "done waiting for social learning to finish");
             }
 
@@ -1095,13 +1096,11 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public boolean done() {
-            return householdAgentsEndOfDayData.size() == SimulationConfigurationSingleton.getInstance().getPopulationCount();
+            return householdAgentsEndOfDayData.size() == config.getPopulationCount();
         }
 
         @Override
         public int onEnd() {
-            SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
-
             double overallRunSatisfactionSum = 0;
             double socialAgentsRunSatisfactionSum = 0;
             int numOfSocialAgents = 0;
@@ -1122,9 +1121,9 @@ public class AdvertisingBoardAgent extends Agent {
             AgentStatisticalValuesPerStrategyType socialStatisticalValues = new AgentStatisticalValuesPerStrategyType(householdAgentContacts, AgentStrategyType.SOCIAL);
             AgentStatisticalValuesPerStrategyType selfishStatisticalValues = new AgentStatisticalValuesPerStrategyType(householdAgentContacts, AgentStrategyType.SELFISH);
 
-            DataOutputSingleton.getInstance().appendDailyData(
-                    TickerTrackerSingleton.getInstance().getCurrentSimulationRun(),
-                    TickerTrackerSingleton.getInstance().getCurrentDay(),
+            outputInstance.appendDailyData(
+                    timeTracker.getCurrentSimulationRun(),
+                    timeTracker.getCurrentDay(),
                     numOfSocialAgents,
                     config.getPopulationCount() - numOfSocialAgents,
                     averageSocialSatisfaction,
@@ -1138,9 +1137,9 @@ public class AdvertisingBoardAgent extends Agent {
             );
 
             for (AgentContact householdAgentContact : householdAgentContacts) {
-                DataOutputSingleton.getInstance().appendAgentData(
-                        TickerTrackerSingleton.getInstance().getCurrentSimulationRun(),
-                        TickerTrackerSingleton.getInstance().getCurrentDay(),
+                outputInstance.appendAgentData(
+                        timeTracker.getCurrentSimulationRun(),
+                        timeTracker.getCurrentDay(),
                         householdAgentContact.getType(),
                         householdAgentContact.getCurrentSatisfaction(),
                         householdAgentsEndOfDayData.get(householdAgentContact).numOfDailyRejectedReceivedExchanges(),
@@ -1204,7 +1203,7 @@ public class AdvertisingBoardAgent extends Agent {
         this.householdAgentsInteractions.clear();
 
         // Shuffle the list of household agents before every exchange
-        Collections.shuffle(this.householdAgentContacts, SimulationConfigurationSingleton.getInstance().getRandom());
+        Collections.shuffle(this.householdAgentContacts, config.getRandom());
 
         // Reset each household agent's "made interaction" flag to false
         // By recreating the hashmap that holds the (AID, Boolean) pairs

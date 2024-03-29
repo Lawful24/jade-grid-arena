@@ -38,11 +38,22 @@ public class TickerAgent extends Agent {
     private ArrayList<AgentContact> householdAgentContacts;
     private AID advertisingAgent;
 
+    // Singletons
+    private SimulationConfigurationSingleton config;
+    private TickerTrackerSingleton timeTracker;
+    private DataOutputSingleton outputInstance;
+    private BlockchainSingleton blockchainReference;
+
     @Override
     protected void setup() {
         this.initialAgentSetup();
 
         AgentHelper.registerAgent(this, "Ticker");
+
+        this.config = SimulationConfigurationSingleton.getInstance();
+        this.timeTracker = TickerTrackerSingleton.getInstance();
+        this.outputInstance = DataOutputSingleton.getInstance();
+        this.blockchainReference = BlockchainSingleton.getInstance();
 
         doWait(1500);
         addBehaviour(new FindHouseholdsBehaviour(this));
@@ -91,8 +102,6 @@ public class TickerAgent extends Agent {
 
         @Override
         public void action() {
-            SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
-
             // TODO: Cite JADE workbook for the step logic
             switch (step) {
                 case 0:
@@ -110,15 +119,16 @@ public class TickerAgent extends Agent {
                         allAgents.add(advertisingAgent);
                     }
 
+                    // Reset the values used in each simulation run on the first day of the run
                     if (currentDay == 1) {
                         runReset();
 
+                        // Set up the simulation set on the first day of the
                         if (currentSimulationRun == 1) {
                             setupSimulationSet();
 
                             config.resetRandomSeed();
-
-                            TickerTrackerSingleton.getInstance().resetTracking();
+                            timeTracker.resetTracking();
                         }
 
                         AgentHelper.printAgentLog(
@@ -134,8 +144,8 @@ public class TickerAgent extends Agent {
                                 ACLMessage.INFORM
                         );
 
-                        TickerTrackerSingleton.getInstance().incrementCurrentSimulationRun();
-                        TickerTrackerSingleton.getInstance().resetDayTracking();
+                        timeTracker.incrementCurrentSimulationRun();
+                        timeTracker.resetDayTracking();
                     } else {
                         // Broadcast the start of the new day to other agents
                         AgentHelper.sendMessage(
@@ -146,7 +156,7 @@ public class TickerAgent extends Agent {
                         );
                     }
 
-                    TickerTrackerSingleton.getInstance().incrementCurrentDay();
+                    timeTracker.incrementCurrentDay();
 
                     // Progress the agent state
                     step++;
@@ -183,8 +193,6 @@ public class TickerAgent extends Agent {
 
         @Override
         public int onEnd() {
-            SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
-
             if (config.isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "End of day " + currentDay);
             }
@@ -231,7 +239,7 @@ public class TickerAgent extends Agent {
                                     ACLMessage.INFORM
                             );
 
-                            DataOutputSingleton.getInstance().closeAllDataWriters();
+                            outputInstance.closeAllDataWriters();
 
                             // Terminate the ticker agent itself
                             myAgent.doDelete();
@@ -239,7 +247,7 @@ public class TickerAgent extends Agent {
                             simulationReset();
                             currentSimulationSet++;
 
-                            BlockchainSingleton.getInstance().resetBlockchain();
+                            blockchainReference.resetBlockchain();
 
                             myAgent.addBehaviour(new FindHouseholdsBehaviour(myAgent));
                             myAgent.addBehaviour(new DailySyncBehaviour(myAgent));
@@ -250,7 +258,7 @@ public class TickerAgent extends Agent {
 
                         config.incrementRandomSeed();
 
-                        BlockchainSingleton.getInstance().resetBlockchain();
+                        blockchainReference.resetBlockchain();
 
                         myAgent.addBehaviour(new FindHouseholdsBehaviour(myAgent));
                         myAgent.addBehaviour(new DailySyncBehaviour(myAgent));
@@ -284,8 +292,6 @@ public class TickerAgent extends Agent {
 
     private void setupSimulationSet() {
         this.simulationReset();
-
-        SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
 
         switch (config.getComparisonLevel()) {
             case 1:
@@ -424,10 +430,10 @@ public class TickerAgent extends Agent {
     }
 
     private void initDataOutput() {
-        DataOutputSingleton.getInstance().prepareSimulationDataOutput(
-                SimulationConfigurationSingleton.getInstance().doesUtiliseSocialCapita(),
-                SimulationConfigurationSingleton.getInstance().doesUtiliseSingleAgentType(),
-                SimulationConfigurationSingleton.getInstance().getSelectedSingleAgentType()
+        outputInstance.prepareSimulationDataOutput(
+                config.doesUtiliseSocialCapita(),
+                config.doesUtiliseSingleAgentType(),
+                config.getSelectedSingleAgentType()
         );
     }
 
@@ -507,13 +513,13 @@ public class TickerAgent extends Agent {
             // TODO
         }
 
-        DataOutputSingleton.getInstance().flushAllDataWriters();
+        outputInstance.flushAllDataWriters();
     }
 
     private boolean shouldShutEnvironmentDown() {
         boolean shutdown;
 
-        switch (SimulationConfigurationSingleton.getInstance().getComparisonLevel()) {
+        switch (config.getComparisonLevel()) {
             case 1, 3 -> shutdown = this.currentSimulationSet == 2;
             case 2 -> shutdown = this.currentSimulationSet == 5;
             default -> shutdown = true;

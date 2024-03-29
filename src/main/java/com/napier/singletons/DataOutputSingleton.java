@@ -11,18 +11,16 @@ import java.nio.file.Path;
 
 public class DataOutputSingleton {
     private static DataOutputSingleton instance;
-    String simulationDataOutputParentFolderPath;
-    String simulationDataOutputFolderPath;
-    File simulationDataFile;
-    File agentDataFile;
-    File dailyDataFile;
-    File exchangeDataFile;
-    File performanceDataFile;
-    FileWriter simulationDataTXTWriter;
-    FileWriter agentDataCSVWriter;
-    FileWriter dailyDataCSVWriter;
-    FileWriter exchangeDataCSVWriter;
-    FileWriter performanceDataCSVWriter;
+    private String simulationDataOutputParentFolderPath;
+    private String simulationDataOutputFolderPath;
+    private FileWriter simulationDataTXTWriter;
+    private FileWriter agentDataCSVWriter;
+    private FileWriter dailyDataCSVWriter;
+    private FileWriter exchangeDataCSVWriter;
+    private FileWriter performanceDataCSVWriter;
+
+    // Singleton
+    private final SimulationConfigurationSingleton config;
 
     public static DataOutputSingleton getInstance() {
         if (instance == null) {
@@ -33,7 +31,7 @@ public class DataOutputSingleton {
     }
 
     public DataOutputSingleton() {
-        // no-op
+        this.config = SimulationConfigurationSingleton.getInstance();
     }
 
     public void prepareSimulationDataOutput(boolean doesUtiliseSocialCapita, boolean doesUtiliseSingleAgentType, AgentStrategyType selectedSingleAgentType) {
@@ -47,11 +45,9 @@ public class DataOutputSingleton {
     }
 
     private void createSimulationResultsFolderTree(boolean doesUtiliseSocialCapita, boolean doesUtiliseSingleAgentType, AgentStrategyType selectedSingleAgentType) {
-        SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
-
         // TODO: Cite Arena code
         // Create a directory to store the data output by all simulations being run.
-        this.simulationDataOutputParentFolderPath = config.getResultsFolderPath() + "/" + config.getStartingSeed() + "/useSC_" + doesUtiliseSocialCapita + "_AType_";
+        this.simulationDataOutputParentFolderPath = this.config.getResultsFolderPath() + "/" + this.config.getStartingSeed() + "/useSC_" + doesUtiliseSocialCapita + "_AType_";
 
         if (!doesUtiliseSingleAgentType) {
             this.simulationDataOutputParentFolderPath += "mixed";
@@ -59,7 +55,7 @@ public class DataOutputSingleton {
             this.simulationDataOutputParentFolderPath += this.getAgentStrategyTypeCapString(selectedSingleAgentType);
         }
 
-        this.simulationDataOutputParentFolderPath += "_EType_" + config.getExchangeType();
+        this.simulationDataOutputParentFolderPath += "_EType_" + this.config.getExchangeType();
 
         this.simulationDataOutputFolderPath = this.simulationDataOutputParentFolderPath + "/data";
 
@@ -75,10 +71,10 @@ public class DataOutputSingleton {
     private void createAgentDataOutputFile() {
         if (this.simulationDataOutputFolderPath != null) {
             // TODO: Cite Arena code
-            this.agentDataFile = new File(this.simulationDataOutputFolderPath, "agentData.csv");
+            File agentDataFile = new File(this.simulationDataOutputFolderPath, "agentData.csv");
 
             try {
-                this.agentDataCSVWriter = new FileWriter(this.agentDataFile);
+                this.agentDataCSVWriter = new FileWriter(agentDataFile);
 
                 agentDataCSVWriter.append("Simulation Run,"); // TODO: convert these statements into an array and then map a function to convert it into csv data
                 agentDataCSVWriter.append("Day,");
@@ -103,10 +99,10 @@ public class DataOutputSingleton {
     private void createDailyDataOutputFile() {
         if (this.simulationDataOutputFolderPath != null) {
             // TODO: Cite Arena code
-            this.dailyDataFile = new File(this.simulationDataOutputFolderPath, "dailyData.csv");
+            File dailyDataFile = new File(this.simulationDataOutputFolderPath, "dailyData.csv");
 
             try {
-                this.dailyDataCSVWriter = new FileWriter(this.dailyDataFile);
+                this.dailyDataCSVWriter = new FileWriter(dailyDataFile);
 
                 dailyDataCSVWriter.append("Simulation Run,");
                 dailyDataCSVWriter.append("Day,");
@@ -141,10 +137,10 @@ public class DataOutputSingleton {
     private void createExchangeDataOutputFile() {
         if (this.simulationDataOutputFolderPath != null) {
             // TODO: Cite Arena code
-            this.exchangeDataFile = new File(this.simulationDataOutputFolderPath, "exchangeData.csv");
+            File exchangeDataFile = new File(this.simulationDataOutputFolderPath, "exchangeData.csv");
 
             try {
-                this.exchangeDataCSVWriter = new FileWriter(this.exchangeDataFile);
+                this.exchangeDataCSVWriter = new FileWriter(exchangeDataFile);
 
                 exchangeDataCSVWriter.append("Simulation Run,");
                 exchangeDataCSVWriter.append("Day,");
@@ -162,10 +158,10 @@ public class DataOutputSingleton {
 
     private void createPerformanceDataOutputFile() {
         if (this.simulationDataOutputFolderPath != null) {
-            this.performanceDataFile = new File(this.simulationDataOutputFolderPath, "performanceData.csv");
+            File performanceDataFile = new File(this.simulationDataOutputFolderPath, "performanceData.csv");
 
             try {
-                this.performanceDataCSVWriter = new FileWriter(this.performanceDataFile);
+                this.performanceDataCSVWriter = new FileWriter(performanceDataFile);
 
                 performanceDataCSVWriter.append("Simulation Run,");
                 performanceDataCSVWriter.append("Day,");
@@ -183,17 +179,15 @@ public class DataOutputSingleton {
     }
 
     private void createSimulationDataOutputFile(boolean doesUtiliseSocialCapita, boolean doesUtiliseSingleAgentType, AgentStrategyType selectedSingleAgentType) {
-        SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
-
         if (this.simulationDataOutputParentFolderPath != null) {
             // TODO: Cite Arena code
-            this.simulationDataFile = new File(this.simulationDataOutputParentFolderPath, "simulationData.txt");
+            File simulationDataFile = new File(this.simulationDataOutputParentFolderPath, "simulationData.txt");
 
             try {
-                this.simulationDataTXTWriter = new FileWriter(this.simulationDataFile);
+                this.simulationDataTXTWriter = new FileWriter(simulationDataFile);
 
                 this.simulationDataTXTWriter.append("Simulation Information: \n\n");
-                this.simulationDataTXTWriter.append("Seed: ").append(String.valueOf(config.getCurrentSeed())).append("\n");
+                this.simulationDataTXTWriter.append("Seed: ").append(String.valueOf(this.config.getCurrentSeed())).append("\n");
                 this.simulationDataTXTWriter.append("Single agent type: ").append(String.valueOf(doesUtiliseSingleAgentType)).append("\n");
 
                 if (doesUtiliseSingleAgentType) {
@@ -201,18 +195,18 @@ public class DataOutputSingleton {
                 }
 
                 this.simulationDataTXTWriter.append("Use social capita: ").append(String.valueOf(doesUtiliseSocialCapita)).append("\n");
-                this.simulationDataTXTWriter.append("Simulation runs: ").append(String.valueOf(config.getNumOfSimulationRuns())).append("\n");
-                this.simulationDataTXTWriter.append("Days after strategy takeover: ").append(String.valueOf(config.getNumOfAdditionalDaysAfterTakeover())).append("\n");
-                this.simulationDataTXTWriter.append("Population size: ").append(String.valueOf(config.getPopulationCount())).append("\n");
-                this.simulationDataTXTWriter.append("Unique time-slots: ").append(String.valueOf(config.getNumOfUniqueTimeSlots())).append("\n");
-                this.simulationDataTXTWriter.append("Slots per agent: ").append(String.valueOf(config.getNumOfSlotsPerAgent())).append("\n");
-                this.simulationDataTXTWriter.append("Number of agents to evolve: ").append(String.valueOf(config.getNumOfAgentsToEvolve())).append("\n");
+                this.simulationDataTXTWriter.append("Simulation runs: ").append(String.valueOf(this.config.getNumOfSimulationRuns())).append("\n");
+                this.simulationDataTXTWriter.append("Days after strategy takeover: ").append(String.valueOf(this.config.getNumOfAdditionalDaysAfterTakeover())).append("\n");
+                this.simulationDataTXTWriter.append("Population size: ").append(String.valueOf(this.config.getPopulationCount())).append("\n");
+                this.simulationDataTXTWriter.append("Unique time-slots: ").append(String.valueOf(this.config.getNumOfUniqueTimeSlots())).append("\n");
+                this.simulationDataTXTWriter.append("Slots per agent: ").append(String.valueOf(this.config.getNumOfSlotsPerAgent())).append("\n");
+                this.simulationDataTXTWriter.append("Number of agents to evolve: ").append(String.valueOf(this.config.getNumOfAgentsToEvolve())).append("\n");
                 this.simulationDataTXTWriter.append("Starting ratio of agent types: ")
                         .append(this.getAgentStrategyTypeCapString(AgentStrategyType.SELFISH))
                         .append(" ")
-                        .append(String.valueOf(config.getSelfishPopulationCount()))
+                        .append(String.valueOf(this.config.getSelfishPopulationCount()))
                         .append(" : ")
-                        .append(String.valueOf(config.getPopulationCount() - config.getSelfishPopulationCount()))
+                        .append(String.valueOf(this.config.getPopulationCount() - this.config.getSelfishPopulationCount()))
                         .append(" ")
                         .append(this.getAgentStrategyTypeCapString(AgentStrategyType.SOCIAL)); // TODO: this might have to be reworked but definitely has to be tested
                 this.simulationDataTXTWriter.append("\n\n");
