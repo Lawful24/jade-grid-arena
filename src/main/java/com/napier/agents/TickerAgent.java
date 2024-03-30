@@ -164,7 +164,7 @@ public class TickerAgent extends Agent {
                     // Progress the current day tracking
                     timeTracker.incrementCurrentDay();
 
-                    // Progress the agent state
+                    // Progress the state of the behaviour
                     step++;
 
                     break;
@@ -189,7 +189,7 @@ public class TickerAgent extends Agent {
                             AgentHelper.printAgentError(myAgent.getLocalName(), "Agent contact list was not updated: the received object has an incorrect type or is null.");
                         }
 
-                        // Progress the agent state
+                        // Progress the state of the behaviour
                         step++;
                     } else {
                         block();

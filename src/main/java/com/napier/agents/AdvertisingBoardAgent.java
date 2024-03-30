@@ -107,6 +107,7 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public void action() {
+            // Listen for the tick that starts the day
             ACLMessage tick = AgentHelper.receiveMessage(myAgent, tickerAgent, ACLMessage.INFORM);
 
             if (tick != null) {
@@ -250,7 +251,7 @@ public class AdvertisingBoardAgent extends Agent {
 
             // Define the behaviours that should be used in a Message Passing exchange round
             exchangeRoundSequence.addSubBehaviour(new NewAdvertListenerBehaviour(myAgent));
-            exchangeRoundSequence.addSubBehaviour(new InterestListenerBehaviour(myAgent));
+            exchangeRoundSequence.addSubBehaviour(new InquiryListenerBehaviour(myAgent));
             exchangeRoundSequence.addSubBehaviour(new TradeOfferResponseListenerBehaviour(myAgent));
             exchangeRoundSequence.addSubBehaviour(new SocialCapitaSyncPropagateBehaviour(myAgent));
             exchangeRoundSequence.addSubBehaviour(new ExchangeRoundOverListener(myAgent));
@@ -336,26 +337,26 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
-    public class InterestListenerBehaviour extends Behaviour {
+    public class InquiryListenerBehaviour extends Behaviour {
         private int numOfRequestsProcessed = 0;
         private final ArrayList<AID> agentsToReceiveATradeOffer = new ArrayList<>();
 
-        public InterestListenerBehaviour(Agent a) {
+        public InquiryListenerBehaviour(Agent a) {
             super(a);
         }
 
         @Override
         public void action() {
             // Listen for calls for proposal from Household agents
-            ACLMessage interestMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.CFP);
+            ACLMessage inquiryMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.CFP);
 
             // Wait until all agents had posted an advert
-            if (interestMessage != null && adverts.size() == config.getPopulationCount()) {
-                AID requesterAgent = interestMessage.getSender();
+            if (inquiryMessage != null && adverts.size() == config.getPopulationCount()) {
+                AID requesterAgent = inquiryMessage.getSender();
                 boolean refuseRequest = true;
 
                 // Make sure the incoming object is readable
-                Serializable receivedObject = AgentHelper.readReceivedContentObject(interestMessage, myAgent.getLocalName(), SerializableTimeSlotArray.class);
+                Serializable receivedObject = AgentHelper.readReceivedContentObject(inquiryMessage, myAgent.getLocalName(), SerializableTimeSlotArray.class);
 
                 // Make sure the incoming object is of the expected type and the advert is not empty
                 if (receivedObject instanceof SerializableTimeSlotArray requestedTimeSlotsHolder) {
@@ -403,7 +404,7 @@ public class AdvertisingBoardAgent extends Agent {
                         }
                     }
                 } else {
-                    AgentHelper.printAgentError(myAgent.getLocalName(), "Interest for timeslots cannot be processed: the received object has an incorrect type or is null.");
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "Inquiry for timeslots cannot be processed: the received object has an incorrect type or is null.");
                 }
 
                 numOfRequestsProcessed++;
@@ -494,7 +495,7 @@ public class AdvertisingBoardAgent extends Agent {
                             adverts.get(tradeOfferResponseMessage.getSender()).remove(tradeOfferResponse.timeSlotRequested());
                             adverts.get(((TradeOffer) receivedObject).requesterAgent()).remove(tradeOfferResponse.timeSlotOffered());
 
-                            // Notify the agent who initiated the interest (the requester)
+                            // Notify the agent who initiated the inquiry (the requester)
                             AgentHelper.sendMessage(
                                     myAgent,
                                     ((TradeOffer) receivedObject).requesterAgent(),
@@ -505,7 +506,7 @@ public class AdvertisingBoardAgent extends Agent {
 
                             numOfSuccessfulExchanges++;
                         } else {
-                            // Notify the agent who initiated the interest (the requester)
+                            // Notify the agent who initiated the inquiry (the requester)
                             AgentHelper.sendMessage(
                                     myAgent,
                                     ((TradeOffer) receivedObject).requesterAgent(),
@@ -613,7 +614,7 @@ public class AdvertisingBoardAgent extends Agent {
 
             // Define the behaviours that should be used in a Smart Contract exchange round
             exchangeRoundSequence.addSubBehaviour(new NewAdvertListenerBehaviour(myAgent));
-            exchangeRoundSequence.addSubBehaviour(new InterestListenerSCBehaviour(myAgent));
+            exchangeRoundSequence.addSubBehaviour(new InquiryListenerSCBehaviour(myAgent));
             exchangeRoundSequence.addSubBehaviour(new StartedTradesOutcomeSCListener(myAgent));
             exchangeRoundSequence.addSubBehaviour(new ExchangeRoundOverListener(myAgent));
             myAgent.addBehaviour(exchangeRoundSequence);
@@ -635,25 +636,25 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
-    public class InterestListenerSCBehaviour extends Behaviour {
+    public class InquiryListenerSCBehaviour extends Behaviour {
         private int numOfRequestsProcessed = 0;
         private final ArrayList<AID> agentsToReceiveATradeOffer = new ArrayList<>();
 
-        public InterestListenerSCBehaviour(Agent a) {
+        public InquiryListenerSCBehaviour(Agent a) {
             super(a);
         }
 
         @Override
         public void action() {
             // Listen for calls for proposal from Household agents
-            ACLMessage interestMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.CFP);
+            ACLMessage inquiryMessage = AgentHelper.receiveMessage(myAgent, ACLMessage.CFP);
 
-            if (interestMessage != null && adverts.size() == config.getPopulationCount()) {
-                AID requesterAgent = interestMessage.getSender();
+            if (inquiryMessage != null && adverts.size() == config.getPopulationCount()) {
+                AID requesterAgent = inquiryMessage.getSender();
                 boolean refuseRequest = true;
 
                 // Make sure the incoming object is readable
-                Serializable receivedObject = AgentHelper.readReceivedContentObject(interestMessage, myAgent.getLocalName(), SerializableTimeSlotArray.class);
+                Serializable receivedObject = AgentHelper.readReceivedContentObject(inquiryMessage, myAgent.getLocalName(), SerializableTimeSlotArray.class);
 
                 // Make sure the incoming object is of the expected type and the advert is not empty
                 if (receivedObject instanceof SerializableTimeSlotArray requestedTimeSlotsHolder) {
@@ -700,7 +701,7 @@ public class AdvertisingBoardAgent extends Agent {
                         }
                     }
                 } else {
-                    AgentHelper.printAgentError(myAgent.getLocalName(), "Interest for timeslots cannot be processed: the received object has an incorrect type or is null.");
+                    AgentHelper.printAgentError(myAgent.getLocalName(), "Inquiry for timeslots cannot be processed: the received object has an incorrect type or is null.");
                 }
 
                 numOfRequestsProcessed++;
