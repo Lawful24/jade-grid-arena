@@ -23,39 +23,62 @@ import java.util.List;
 
 import static java.lang.Math.sqrt;
 
+/**
+ * @author László Tárkányi
+ */
 public class AgentHelper {
-    // TODO: Cite JADE workbook or JADE documentation
-    public static void registerAgent(Agent a, String agentClass) {
+    /**
+     * Registers an agent with the JADE Directory Facilitator.
+     *
+     * @param agentToRegister The agent object to be registered.
+     * @param agentClassName The canonical name of the agent class.
+     */
+    public static void registerAgent(Agent agentToRegister, String agentClassName) {
+        // TODO: Cite JADE workbook or JADE documentation
         // Create a Directory Facilitator Description with the AID of the agent
         DFAgentDescription dfAgentDescription = new DFAgentDescription();
-        dfAgentDescription.setName(a.getAID());
+        dfAgentDescription.setName(agentToRegister.getAID());
 
         // Describe the type of the agent
         ServiceDescription serviceDescription = new ServiceDescription();
-        serviceDescription.setType(agentClass);
-        serviceDescription.setName(a.getLocalName() + "-" + agentClass + "-agent");
+        serviceDescription.setType(agentClassName);
+        serviceDescription.setName(agentToRegister.getLocalName() + "-" + agentClassName + "-agent");
         dfAgentDescription.addServices(serviceDescription);
 
         // Register agent in the Directory Facilitator
         try {
-            DFService.register(a, dfAgentDescription);
+            DFService.register(agentToRegister, dfAgentDescription);
         } catch (FIPAException e) {
             e.printStackTrace();
         }
     }
 
-    // TODO: Cite JADE workbook
-    public static void deregisterAgent(Agent a) {
+    /**
+     * Deregisters an agent from the JADE Directory Facilitator.
+     *
+     * @param agentToDeregister The agent object to deregister.
+     */
+    public static void deregisterAgent(Agent agentToDeregister) {
+        // TODO: Cite JADE workbook
         // Deregister agent from the Directory Facilitator
         try {
-            DFService.deregister(a);
+            DFService.deregister(agentToDeregister);
         } catch (FIPAException e) {
             e.printStackTrace();
         }
     }
 
-    // TODO: Cite JADE workbook
+    /**
+     * Saves all agents of a given type from the Directory Facilitator to its own contact directory ("phone book").
+     *
+     * @see <a href="https://jade.tilab.com/documentation/examples/yellow-pages/">JADE Yellow Pages</a>
+     *
+     * @param agent The agent that is required to communicate with other agents.
+     * @param agentTypeToFind The type of agent to be saved.
+     * @return (ArrayList of AgentContacts) A list of the agents saved in a custom AgentContact wrapper format.
+     */
     public static ArrayList<AgentContact> saveAgentContacts(Agent agent, String agentTypeToFind) {
+        // TODO: Cite JADE workbook
         ArrayList<AgentContact> agentContacts = new ArrayList<>();
 
         DFAgentDescription agentDescription = new DFAgentDescription();
@@ -82,6 +105,16 @@ public class AgentHelper {
         return agentContacts;
     }
 
+    /**
+     * Sends a FIPA compliant message from one agent to another.
+     *
+     * @see <a href="https://jmvidal.cse.sc.edu/talks/agentcommunication/performatives.html">FIPA Performatives</a>
+     *
+     * @param sender The agent to send the message from.
+     * @param receiver The agent to receive the message.
+     * @param messageText The text content of the message.
+     * @param performative The FIPA performative of the message.
+     */
     public static void sendMessage(Agent sender, AID receiver, String messageText, int performative) {
         // Check if provided int is a registered ACL performative
         if (isValidFIPAPerformative(performative)) {
@@ -97,6 +130,16 @@ public class AgentHelper {
         }
     }
 
+    /**
+     * Broadcasts a FIPA compliant message from one agent to multiple agents.
+     *
+     * @see <a href="https://jmvidal.cse.sc.edu/talks/agentcommunication/performatives.html">FIPA Performatives</a>
+     *
+     * @param sender The agent to send the message from.
+     * @param receivers The agents to receive the message.
+     * @param messageText The text content of the message.
+     * @param performative The FIPA performative of the message.
+     */
     public static void sendMessage(Agent sender, ArrayList<AID> receivers, String messageText, int performative) {
         // Check if provided int is a registered ACL performative
         if (isValidFIPAPerformative(performative)) {
@@ -111,11 +154,20 @@ public class AgentHelper {
 
             // Send the message
             sender.send(message);
-
         }
-
     }
 
+    /**
+     * Sends a message from one agent to another that contains a serialized object.
+     *
+     * @see <a href="https://jmvidal.cse.sc.edu/talks/agentcommunication/performatives.html">FIPA Performatives</a>
+     *
+     * @param sender The agent to send the message from.
+     * @param receiver The agent to receive the message.
+     * @param messageText The text content of the message.
+     * @param object The serializable object to send.
+     * @param performative The FIPA performative of the message.
+     */
     public static void sendMessage (Agent sender, AID receiver, String messageText, Serializable object, int performative) {
         if (object != null) {
             // Check if provided int is a registered ACL performative
@@ -148,16 +200,38 @@ public class AgentHelper {
         }
     }
 
-    // TODO: Cite JADE workbook
+    /**
+     * Attempts to receive a FIPA compliant message with a given specific message text.
+     *
+     * @param agentToReceive The agent to receive the message.
+     * @param messageText The conversation ID of the incoming message. In this project, the conversationId of an ACL message serves as the text content as the content gets overwritten by contentObjects.
+     * @return (ACLMessage or null) An ACLMessage object containing information enclosed by the sender or null if no message with the given parameters has been received yet.
+     */
     public static ACLMessage receiveMessage(Agent agentToReceive, String messageText) {
         return agentToReceive.receive(MessageTemplate.MatchConversationId(messageText));
     }
 
-    // TODO: Cite JADE workbook
+    /**
+     * Attempts to receive a FIPA compliant message by 2 possible matching text contents.
+     *
+     * @param agentToReceive The agent to receive the message.
+     * @param messageText The conversationId of the incoming message. In this project, the conversationId of an ACL message serves as the text content as the content gets overwritten by contentObjects.
+     * @param optionalMessageText The optional conversationId of the incoming message.
+     * @return (ACLMessage or null) An ACLMessage object containing information enclosed by the sender or null if no message with the given parameters has been received yet.
+     */
     public static ACLMessage receiveMessage(Agent agentToReceive, String messageText, String optionalMessageText) {
         return agentToReceive.receive(MessageTemplate.or(MessageTemplate.MatchConversationId(messageText), MessageTemplate.MatchConversationId(optionalMessageText)));
     }
 
+    /**
+     * Attempts to receive a FIPA compliant message with a given specific message text.
+     *
+     * @param agentToReceive The agent to receive the message.
+     * @param sender The agent to receive the message from.
+     * @param messageText The conversation ID of the incoming message. In this project, the conversationId of an ACL message serves as the text content as the content gets overwritten by contentObjects.
+     * @param performative The FIPA performative of the incoming message, serving as the label.
+     * @return (ACLMessage or null) An ACLMessage object containing information enclosed by the sender or null if no message with the given parameters has been received yet.
+     */
     public static ACLMessage receiveMessage(Agent agentToReceive, AID sender, String messageText, int performative) {
         // Check if the provided performative is a valid FIPA performative
         if (isValidFIPAPerformative(performative)) {
@@ -176,6 +250,13 @@ public class AgentHelper {
         }
     }
 
+    /**
+     * Attempts to receive a FIPA compliant message with a given specific message text.
+     *
+     * @param agentToReceive The agent to receive the message.
+     * @param performative The FIPA performative of the incoming message, serving as the label.
+     * @return (ACLMessage or null) An ACLMessage object containing information enclosed by the sender or null if no message with the given parameters has been received yet.
+     */
     public static ACLMessage receiveMessage(Agent agentToReceive, int performative) {
         // Check if the provided performative is a valid FIPA performative
         if (isValidFIPAPerformative(performative)) {
@@ -186,6 +267,14 @@ public class AgentHelper {
         }
     }
 
+    /**
+     * Attempts to receive a FIPA compliant message with a given specific message text.
+     *
+     * @param agentToReceive The agent to receive the message.
+     * @param sender The agent to receive the message from.
+     * @param performative The FIPA performative of the incoming message, serving as the label.
+     * @return (ACLMessage or null) An ACLMessage object containing information enclosed by the sender or null if no message with the given parameters has been received yet.
+     */
     public static ACLMessage receiveMessage(Agent agentToReceive, AID sender, int performative) {
         // Check if the provided performative is a valid FIPA performative
         if (isValidFIPAPerformative(performative)) {
@@ -196,6 +285,12 @@ public class AgentHelper {
         }
     }
 
+    /**
+     * Attempts to receive a reply to a previous Call For Proposal message.
+     *
+     * @param agentToReceive The agent to receive the message.
+     * @return (ACLMessage or null) An ACLMessage object containing information enclosed by the sender or null if no message with the given parameters has been received yet.
+     */
     public static ACLMessage receiveCFPReply(Agent agentToReceive) {
         // Let the agent receive either AGREE, CANCEL, or REFUSE messages
         return agentToReceive.receive(
@@ -209,6 +304,12 @@ public class AgentHelper {
         );
     }
 
+    /**
+     * Attempts to receive a reply to a previous Proposal message.
+     *
+     * @param agentToReceive The agent to receive the message.
+     * @return (ACLMessage or null) An ACLMessage object containing information enclosed by the sender or null if no message with the given parameters has been received yet.
+     */
     public static ACLMessage receiveProposalReply(Agent agentToReceive) {
         // Let the agent receive either ACCEPT_PROPOSAL, REJECT_PROPOSAL, or REFUSE messages
         return agentToReceive.receive(
@@ -222,14 +323,36 @@ public class AgentHelper {
         );
     }
 
+    /**
+     * Writes output to the console with the name of an agent.
+     * Helps to identify what each individual agent does.
+     *
+     * @param agentNickname The agent to print the log.
+     * @param logMessage The text content of the log.
+     */
     public static void printAgentLog(String agentNickname, String logMessage) {
         System.out.println(agentNickname + " says: " + logMessage);
     }
 
+    /**
+     * Writes output to the console with the name of an agent.
+     * Helps to identify the errors of an individual agent.
+     *
+     * @param agentNickname The agent to print the error log.
+     * @param errorMessage The text content of the error log.
+     */
     public static void printAgentError(String agentNickname, String errorMessage) {
         System.err.println(agentNickname + " error: " + errorMessage);
     }
 
+    /**
+     * Deserialize a contentObject received in a message.
+     *
+     * @param receivedMessage The message containing the object to be deserialized.
+     * @param messageReceiverNickname The localName of the agent that received the message.
+     * @param expectedClass The canonical name of the object expected to be enclosed in the received message.
+     * @return (Serializable or null) The object enclosed in the message or null if the contentObject of the received message object is not readable.
+     */
     public static Serializable readReceivedContentObject(ACLMessage receivedMessage, String messageReceiverNickname, Class<?> expectedClass) {
         Serializable receivedObject = null;
 
@@ -243,6 +366,15 @@ public class AgentHelper {
         return receivedObject;
     }
 
+    /**
+     * Deserialize a contentObject received in a message.
+     *
+     * @param receivedMessage The message containing the object to be deserialized.
+     * @param messageReceiverNickname The localName of the agent that received the message.
+     * @param expectedClass The canonical name of the class of the object expected to be enclosed in the received message.
+     * @param optionalExpectedClass The optional canonical name of the class of the object expected to be enclosed in the received message.
+     * @return (Serializable or null) The object enclosed in the message or null if the contentObject of the received message object is not readable.
+     */
     public static Serializable readReceivedContentObject(ACLMessage receivedMessage, String messageReceiverNickname, Class<?> expectedClass, Class<?> optionalExpectedClass) {
         Serializable receivedObject = null;
 
@@ -256,6 +388,12 @@ public class AgentHelper {
         return receivedObject;
     }
 
+    /**
+     * Provides a strategy type based on the Household agent's nickname.
+     *
+     * @param householdNickname The localName of a Household agent.
+     * @return (AgentStrategyType or null) The enum value based on the agent's nickname or null if the Household agent's number is too high or if a non-Household agent is provided.
+     */
     public static AgentStrategyType determineAgentType(String householdNickname) {
         SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
         AgentStrategyType agentType;
@@ -278,10 +416,22 @@ public class AgentHelper {
         return agentType;
     }
 
+    /**
+     * Finds the Household number in the agent's nickname.
+     *
+     * @param agentNickname The localName of the Household agent.
+     * @return (int) The number assigned to the provided Household agent.
+     */
     private static int getHouseholdAgentNumber(String agentNickname) {
         return Integer.parseInt(agentNickname.substring(agentNickname.length() - 1));
     }
 
+    /**
+     * Checks if a given integer is a FIPA performative.
+     *
+     * @param performative The integer representation of a FIPA performative enum.
+     * @return (boolean) If the provided performative is a valid FIPA performative.
+     */
     private static boolean isValidFIPAPerformative(int performative) {
         return Arrays.asList(ACLMessage.getAllPerformativeNames()).contains(ACLMessage.getPerformative(performative));
     }
@@ -292,6 +442,7 @@ public class AgentHelper {
      * requested by this Agent.
      *
      * @param timeSlotsToConsider The set of time-slots to consider.
+     * @param requestedTimeSlots  The set of time-slots requested.
      * @return Double The Agents satisfaction with the time-slots given.
      */
     public static double calculateSatisfaction(ArrayList<TimeSlot> timeSlotsToConsider, ArrayList<TimeSlot> requestedTimeSlots) {
@@ -345,7 +496,7 @@ public class AgentHelper {
      * Takes all Agents individual satisfactions and calculates the average satisfaction of all Agents in the
      * simulation.
      *
-     * @param householdAgentContacts Array List of all the agents that exist in the current simulation.
+     * @param householdAgentContacts Array List of all the Household agents that exist in the current simulation.
      * @return Double Returns the average satisfaction between 0 and 1 of all agents in the simulation.
      */
     public static double calculateCurrentAverageAgentSatisfaction(ArrayList<AgentContact> householdAgentContacts) {
@@ -383,6 +534,9 @@ public class AgentHelper {
     /**
      * Returns the optimum average satisfaction possible for all agents given the current requests and allocations in
      * the simulation.
+     *
+     * @param allAllocatedTimeSlots The timeslots that were distributed at the start of the day.
+     * @param allRequestedTimeSlots All timeslots that were requested by all Household agents at the start of the day.
      *
      * @return Double Returns the highest possible average satisfaction between 0 and 1 of all agents in the simulation.
      */
@@ -447,6 +601,7 @@ public class AgentHelper {
      * @param agentContacts Array List of all the agents that exist in the current simulation.
      * @param agentType The type for which to calculate the variance between the average satisfactions of all Agents of
      *                  that type.
+     * @param averageOverallSatisfaction The average satisfaction of all Household agents.
      * @return Double Returns the variance between the average satisfactions of all agents of the given type.
      */
     public static double averageSatisfactionStandardDeviation(ArrayList<AgentContact> agentContacts, AgentStrategyType agentType, double averageOverallSatisfaction) {
