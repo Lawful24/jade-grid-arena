@@ -58,7 +58,7 @@ public class AgentStatisticalValuesPerStrategyType implements Serializable {
             }
 
             if (lqSet.length % 2 == 1) {
-                lq = 0 != lqSet.length ? lqSet[lqSet.length / 2] : 0;
+                lq = lqSet[lqSet.length / 2];
                 uq = 0!= uqSet.length ? uqSet[uqSet.length / 2] : 0;
             } else {
                 lq = 0 != lqSet.length ? (lqSet[lqSet.length / 2] + lqSet[(lqSet.length / 2) - 1]) / 2 : 0;
@@ -70,7 +70,7 @@ public class AgentStatisticalValuesPerStrategyType implements Serializable {
             lq = 0;
         }
 
-        ninetyfifth = size != 0 ? percentile(satArray,95) : 0;
+        ninetyfifth = size != 0 ? percentile(satArray) : 0;
 
         this.upperQuarter = uq;
         this.lowerQuarter = lq;
@@ -109,16 +109,15 @@ public class AgentStatisticalValuesPerStrategyType implements Serializable {
      * Use linear interpolation to calculate a percentile from an array of data.
      *
      * @param xs Array of values from which the percentile is calculated.
-     * @param p The percentile to calculate.
      * @return Double value of the percentile requested.
      */
-    private static double percentile(double[] xs, int p) {
+    private static double percentile(double[] xs) {
         // The sorted elements in X are taken as the 100(0.5/n)th, 100(1.5/n)th, ..., 100([n – 0.5]/n)th percentiles.
-        int i = (int) (p * xs.length / 100.0 - 0.5);
+        int i = (int) (95 * xs.length / 100.0 - 0.5);
 
         // Linear interpolation uses linear polynomials to find yi = f(xi), the values of the underlying function
         // Y = f(X) at the points in the vector or array x. Given the data points (x1, y1) and (x2, y2), where
         // y1 = f(x1) and y2 = f(x2), linear interpolation finds y = f(x) for a given x between x1 and x2 as follows:
-        return i != (xs.length - 1) ? xs[i] + (xs[i + 1] - xs[i]) * (p / 100.0 - (i + 0.5) / xs.length) / ((i + 1.5) / xs.length - (i + 0.5) / xs.length) : xs[i];
+        return i != (xs.length - 1) ? xs[i] + (xs[i + 1] - xs[i]) * (95 / 100.0 - (i + 0.5) / xs.length) / ((i + 1.5) / xs.length - (i + 0.5) / xs.length) : xs[i];
     }
 }

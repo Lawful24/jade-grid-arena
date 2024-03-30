@@ -35,7 +35,6 @@ public class DataOutputSingleton {
     }
 
     public void prepareSimulationDataOutput(boolean doesUtiliseSocialCapita, boolean doesUtiliseSingleAgentType, AgentStrategyType selectedSingleAgentType) {
-        // TODO: take the exchange type into account for the folder creation
         this.createSimulationResultsFolderTree(doesUtiliseSocialCapita, doesUtiliseSingleAgentType, selectedSingleAgentType);
         this.createAgentDataOutputFile();
         this.createExchangeDataOutputFile();
@@ -49,14 +48,17 @@ public class DataOutputSingleton {
         // Create a directory to store the data output by all simulations being run.
         this.simulationDataOutputParentFolderPath = this.config.getResultsFolderPath() + "/" + this.config.getStartingSeed() + "/useSC_" + doesUtiliseSocialCapita + "_AType_";
 
+        // Append the agent types used to the folder path
         if (!doesUtiliseSingleAgentType) {
             this.simulationDataOutputParentFolderPath += "mixed";
         } else {
             this.simulationDataOutputParentFolderPath += this.getAgentStrategyTypeCapString(selectedSingleAgentType);
         }
 
+        // Append the exchange type to the folder path
         this.simulationDataOutputParentFolderPath += "_EType_" + this.config.getExchangeType();
 
+        // Add subdirectory path
         this.simulationDataOutputFolderPath = this.simulationDataOutputParentFolderPath + "/data";
 
         try {
@@ -76,6 +78,7 @@ public class DataOutputSingleton {
             try {
                 this.agentDataCSVWriter = new FileWriter(agentDataFile);
 
+                // Write first row of the .csv file
                 agentDataCSVWriter.append("Simulation Run,"); // TODO: convert these statements into an array and then map a function to convert it into csv data
                 agentDataCSVWriter.append("Day,");
                 agentDataCSVWriter.append("Agent Type,");
@@ -104,6 +107,7 @@ public class DataOutputSingleton {
             try {
                 this.dailyDataCSVWriter = new FileWriter(dailyDataFile);
 
+                // Write first row of the .csv file
                 dailyDataCSVWriter.append("Simulation Run,");
                 dailyDataCSVWriter.append("Day,");
                 dailyDataCSVWriter.append("Social Pop,");
@@ -142,6 +146,7 @@ public class DataOutputSingleton {
             try {
                 this.exchangeDataCSVWriter = new FileWriter(exchangeDataFile);
 
+                // Write first row of the .csv file
                 exchangeDataCSVWriter.append("Simulation Run,");
                 exchangeDataCSVWriter.append("Day,");
                 exchangeDataCSVWriter.append("Round,");
@@ -163,6 +168,7 @@ public class DataOutputSingleton {
             try {
                 this.performanceDataCSVWriter = new FileWriter(performanceDataFile);
 
+                // Write first row of the .csv file
                 performanceDataCSVWriter.append("Simulation Run,");
                 performanceDataCSVWriter.append("Day,");
                 performanceDataCSVWriter.append("Round,");
@@ -186,6 +192,7 @@ public class DataOutputSingleton {
             try {
                 this.simulationDataTXTWriter = new FileWriter(simulationDataFile);
 
+                // Write first row of the .csv file
                 this.simulationDataTXTWriter.append("Simulation Information: \n\n");
                 this.simulationDataTXTWriter.append("Seed: ").append(String.valueOf(this.config.getCurrentSeed())).append("\n");
                 this.simulationDataTXTWriter.append("Single agent type: ").append(String.valueOf(doesUtiliseSingleAgentType)).append("\n");
@@ -299,7 +306,6 @@ public class DataOutputSingleton {
         }
     }
 
-    // TODO: call this for each agent type at the end of the exchange round
     public void appendExchangeData(
             int currentSimulationRun,
             int currentDay,
@@ -347,7 +353,7 @@ public class DataOutputSingleton {
         }
     }
 
-    public void appendSimulationDataForSocialRuns(
+    public void appendSimulationDataByTakeoverType(
             AgentStrategyType agentStrategyType,
             int numOfTypeTakeovers,
             int fastestTakeoverRun,
@@ -388,7 +394,8 @@ public class DataOutputSingleton {
 
                         break;
                     default:
-                        // TODO
+                        System.err.println("Tried to append undefined exchange type data.");
+
                         break;
                 }
             } catch (IOException e) {

@@ -604,7 +604,7 @@ public class TickerAgent extends Agent {
         TakeoverDayDataHolder slowestTakeover = takeoverDayDataHolders.get(numOfTypeTakeoverRuns - 1);
         TakeoverDayDataHolder fastestTakeover = takeoverDayDataHolders.getFirst();
 
-        DataOutputSingleton.getInstance().appendSimulationDataForSocialRuns(
+        DataOutputSingleton.getInstance().appendSimulationDataByTakeoverType(
                 agentStrategyType,
                 numOfTypeTakeoverRuns,
                 fastestTakeover.simulationRun(),

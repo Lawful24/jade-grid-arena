@@ -41,7 +41,7 @@ public class SimulationConfigurationSingleton {
     private final double[] satisfactionCurve; // agent.satisfactionCurve
 
     /* Calculated Values */
-    private long currentSeed; // seed
+    private long currentSeed;
     private final double[][] bucketedDemandCurves;
     private final double[] totalDemandValues;
     private ArrayList<Integer> demandCurveIndices;
@@ -119,14 +119,6 @@ public class SimulationConfigurationSingleton {
 
     public String getResultsFolderPath() {
         return this.resultsFolderPath;
-    }
-
-    public String getPythonExePath() {
-        return this.pythonExePath;
-    }
-
-    public String getPythonScriptsPath() {
-        return this.pythonScriptsPath;
     }
 
     public int getPopulationCount() {
@@ -225,8 +217,6 @@ public class SimulationConfigurationSingleton {
         random.setSeed(this.currentSeed);
     }
 
-    // TODO: create a configureSimulation method
-
     public void setExchangeType(ExchangeType exchangeType) {
         this.exchangeType = exchangeType;
     }
@@ -264,18 +254,19 @@ public class SimulationConfigurationSingleton {
     private void loadPropertiesFromFile(Properties properties, boolean isDebug) {
         String configFilename;
 
+        // Choose the configuration file based on execution mode
         if (isDebug) {
             configFilename = "debug.config.properties";
         } else {
             configFilename = "config.properties";
         }
 
+        // Load the properties from the configuration file
         try (InputStream input = new FileInputStream(configFilename)) {
             properties.load(input);
         } catch (IOException e) {
             System.err.println(e.getMessage());
         }
-
     }
 
     private double[] inputToDoubleArray(String input) {
