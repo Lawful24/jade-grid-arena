@@ -40,7 +40,7 @@ public class AgentHelper {
         try {
             DFService.register(a, dfAgentDescription);
         } catch (FIPAException e) {
-            System.err.println(e.toString());
+            e.printStackTrace();
         }
     }
 
@@ -50,7 +50,7 @@ public class AgentHelper {
         try {
             DFService.deregister(a);
         } catch (FIPAException e) {
-            System.err.println(e.toString());
+            e.printStackTrace();
         }
     }
 
@@ -76,7 +76,7 @@ public class AgentHelper {
                 }
             }
         } catch (FIPAException e) {
-            System.err.println(e.toString());
+            e.printStackTrace();
         }
 
         return agentContacts;
@@ -84,7 +84,7 @@ public class AgentHelper {
 
     public static void sendMessage(Agent sender, AID receiver, String messageText, int performative) {
         // Check if provided int is a registered ACL performative
-        if (isValidACLPerformative(performative)) {
+        if (isValidFIPAPerformative(performative)) {
             // Build the message
             ACLMessage message = new ACLMessage(performative);
             message.setConversationId(messageText);
@@ -97,9 +97,9 @@ public class AgentHelper {
         }
     }
 
-    public static ACLMessage sendMessage(Agent sender, ArrayList<AID> receivers, String messageText, int performative) {
+    public static void sendMessage(Agent sender, ArrayList<AID> receivers, String messageText, int performative) {
         // Check if provided int is a registered ACL performative
-        if (isValidACLPerformative(performative)) {
+        if (isValidFIPAPerformative(performative)) {
             // Build the message
             ACLMessage message = new ACLMessage(performative);
             message.setConversationId(messageText);
@@ -112,16 +112,14 @@ public class AgentHelper {
             // Send the message
             sender.send(message);
 
-            return message;
         }
 
-        return null;
     }
 
     public static void sendMessage (Agent sender, AID receiver, String messageText, Serializable object, int performative) {
         if (object != null) {
             // Check if provided int is a registered ACL performative
-            if (isValidACLPerformative(performative)) {
+            if (isValidFIPAPerformative(performative)) {
                 // Build the message
                 ACLMessage message = new ACLMessage(performative);
 
@@ -161,7 +159,8 @@ public class AgentHelper {
     }
 
     public static ACLMessage receiveMessage(Agent agentToReceive, AID sender, String messageText, int performative) {
-        if (isValidACLPerformative(performative)) {
+        // Check if the provided performative is a valid FIPA performative
+        if (isValidFIPAPerformative(performative)) {
             return agentToReceive.receive(
                     MessageTemplate.and(
                             MessageTemplate.MatchSender(sender),
@@ -178,7 +177,8 @@ public class AgentHelper {
     }
 
     public static ACLMessage receiveMessage(Agent agentToReceive, int performative) {
-        if (isValidACLPerformative(performative)) {
+        // Check if the provided performative is a valid FIPA performative
+        if (isValidFIPAPerformative(performative)) {
             return agentToReceive.receive(MessageTemplate.MatchPerformative(performative));
         } else {
             System.err.println("Incorrect ACL performative: " + performative);
@@ -187,17 +187,9 @@ public class AgentHelper {
     }
 
     public static ACLMessage receiveMessage(Agent agentToReceive, AID sender, int performative) {
-        if (isValidACLPerformative(performative)) {
+        // Check if the provided performative is a valid FIPA performative
+        if (isValidFIPAPerformative(performative)) {
             return agentToReceive.receive(MessageTemplate.and(MessageTemplate.MatchSender(sender), MessageTemplate.MatchPerformative(performative)));
-        } else {
-            System.err.println("Incorrect ACL performative: " + performative);
-            return null;
-        }
-    }
-
-    public static ACLMessage receiveMessage(Agent agentToReceive, int performative, int optionalPerformative) {
-        if (isValidACLPerformative(performative)) {
-            return agentToReceive.receive(MessageTemplate.or(MessageTemplate.MatchPerformative(performative), MessageTemplate.MatchPerformative(optionalPerformative)));
         } else {
             System.err.println("Incorrect ACL performative: " + performative);
             return null;
@@ -290,7 +282,7 @@ public class AgentHelper {
         return Integer.parseInt(agentNickname.substring(agentNickname.length() - 1));
     }
 
-    private static boolean isValidACLPerformative(int performative) {
+    private static boolean isValidFIPAPerformative(int performative) {
         return Arrays.asList(ACLMessage.getAllPerformativeNames()).contains(ACLMessage.getPerformative(performative));
     }
 
@@ -392,7 +384,6 @@ public class AgentHelper {
      * Returns the optimum average satisfaction possible for all agents given the current requests and allocations in
      * the simulation.
      *
-     * @param householdAgentContacts Array List of all the agents that exist in the current simulation.
      * @return Double Returns the highest possible average satisfaction between 0 and 1 of all agents in the simulation.
      */
     public static double calculateOptimumPossibleSatisfaction(ArrayList<TimeSlot> allAllocatedTimeSlots, ArrayList<TimeSlot> allRequestedTimeSlots) {
