@@ -24,6 +24,8 @@ import java.util.List;
 import static java.lang.Math.sqrt;
 
 /**
+ * Contains static helper methods for agent activities.
+ *
  * @author László Tárkányi
  */
 public class AgentHelper {

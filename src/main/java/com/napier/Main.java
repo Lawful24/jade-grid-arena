@@ -11,14 +11,19 @@ import jade.core.Runtime;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 
+/**
+ * The main class and entrypoint of the application.
+ *
+ * @author László Tárkányi
+ */
 public class Main {
     private static boolean debugMode;
-    private static ExchangeType defaultExchangeType;
+    private static ExchangeType defaultExchangeType = ExchangeType.MessagePassing;
 
     public static void main(String[] args) {
         debugMode = false;
-        defaultExchangeType = ExchangeType.MessagePassing;
 
+        // Check the command line arguments and determine the execution mode based on them
         if (args.length == 0 || args.length == 1) {
             if (args.length == 1) {
                 if (args[0].equals("--debug")) {
@@ -38,10 +43,21 @@ public class Main {
         }
     }
 
+    /**
+     * Checks if the application should run in Debug Mode. Agents in Debug Mode print additional logs to the console.
+     *
+     * @return (boolean) Whether the application should be running in Debug Mode or not.
+     */
     public static boolean isDebugMode() {
         return debugMode;
     }
 
+    /**
+     * Gets the default Exchange Type.
+     * The default type can be changed by assigning a different enum value to the defaultExchangeType attribute.
+     *
+     * @return (ExchangeType) The default Exchange Type that should be used in the application.
+     */
     public static ExchangeType getDefaultExchangeType() {
         return defaultExchangeType;
     }
