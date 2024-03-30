@@ -26,7 +26,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 public class HouseholdAgent extends Agent {
-    // Agent arguments
+    // Agent attributes
     private AgentStrategyType agentType;
     private ArrayList<TimeSlot> requestedTimeSlots;
     private ArrayList<TimeSlot> allocatedTimeSlots;
@@ -34,6 +34,8 @@ public class HouseholdAgent extends Agent {
     private HashMap<String, Integer> favours;
     private double[] dailyDemandCurve;
     private double dailyDemandValue;
+
+    // Statistical attributes
     private int numOfDailyRejectedReceivedExchanges;
     private int numOfDailyRejectedRequestedExchanges;
     private int numOfDailyAcceptedRequestedExchanges;
@@ -41,12 +43,12 @@ public class HouseholdAgent extends Agent {
     private int numOfDailyAcceptedReceivedExchangesWithSocialCapita;
     private int numOfDailyAcceptedReceivedExchangesWithoutSocialCapita;
 
-    // Updated properties
+    // Logic tracker attributes
     private boolean isTradeStarted;
     private double currentSatisfaction;
     private boolean areHouseholdsFound;
     private boolean isExchangeTypeBeingSwitched;
-    private boolean activeExchange;
+    private boolean isExchangeActive;
     private long exchangeRoundStartTime;
     private boolean isTradeOfferReceiver;
 
@@ -63,8 +65,7 @@ public class HouseholdAgent extends Agent {
 
         AgentHelper.registerAgent(this, "Household");
 
-        this.config = SimulationConfigurationSingleton.getInstance();
-
+        // Add the initial behaviours
         addBehaviour(new FindTickerBehaviour(this));
         addBehaviour(new FindAdvertisingBoardBehaviour(this));
         addBehaviour(new TickerDailyBehaviour(this));
@@ -147,13 +148,13 @@ public class HouseholdAgent extends Agent {
                     dailyTasks.addSubBehaviour(new ReceiveRandomInitialTimeSlotAllocationBehaviour(myAgent));
                     myAgent.addBehaviour(dailyTasks);
 
-                    if (!activeExchange) {
+                    if (!isExchangeActive) {
                         switch (config.getExchangeType()){
                             case MessagePassing -> myAgent.addBehaviour(new InitiateExchangeListenerBehaviour(myAgent));
                             case SmartContract -> myAgent.addBehaviour(new InitiateExchangeListenerSCBehaviour(myAgent));
                         }
 
-                        activeExchange = true;
+                        isExchangeActive = true;
                     }
 
                     myAgent.addBehaviour(new SocialLearningListenerBehaviour(myAgent));
@@ -312,10 +313,10 @@ public class HouseholdAgent extends Agent {
 
                     myAgent.addBehaviour(exchange);
 
-                    isExchangeActive = true;
+                    this.isExchangeActive = true;
                     isExchangeTypeBeingSwitched = false;
                 } else {
-                    isExchangeActive = true;
+                    this.isExchangeActive = true;
                     isExchangeTypeBeingSwitched = true;
 
                     myAgent.addBehaviour(new InitiateExchangeListenerSCBehaviour(myAgent));
@@ -328,7 +329,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public boolean done() {
-            return isExchangeActive;
+            return this.isExchangeActive;
         }
 
         @Override
@@ -640,10 +641,10 @@ public class HouseholdAgent extends Agent {
 
                     myAgent.addBehaviour(exchange);
 
-                    isExchangeActive = true;
+                    this.isExchangeActive = true;
                     isExchangeTypeBeingSwitched = false;
                 } else {
-                    isExchangeActive = true;
+                    this.isExchangeActive = true;
                     isExchangeTypeBeingSwitched = true;
 
                     myAgent.addBehaviour(new InitiateExchangeListenerBehaviour(myAgent));
@@ -656,7 +657,7 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public boolean done() {
-            return isExchangeActive;
+            return this.isExchangeActive;
         }
 
         @Override
@@ -1005,6 +1006,8 @@ public class HouseholdAgent extends Agent {
     }
 
     private void initialAgentSetup() {
+        this.config = SimulationConfigurationSingleton.getInstance();
+
         if (!this.areHouseholdsFound && config.getExchangeType() == ExchangeType.SmartContract) {
             addBehaviour(new FindHouseholdsBehaviour(this));
         }

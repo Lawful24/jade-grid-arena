@@ -21,11 +21,14 @@ import java.util.ArrayList;
 import java.util.Comparator;
 
 public class TickerAgent extends Agent {
+    // Simulation tracker attributes
     private int currentSimulationSet;
     private int currentSimulationRun;
     private int currentDay;
     private int currentDayAfterTakeover;
     private boolean takeover;
+
+    // Takeover data attributes
     private ArrayList<TakeoverDayDataHolder> socialTakeoverDayDataHolders;
     private ArrayList<TakeoverDayDataHolder> selfishTakeoverDayDataHolders;
     private ArrayList<TakeoverDayDataHolder> socialFinalDayDataHolders;
@@ -34,7 +37,7 @@ public class TickerAgent extends Agent {
     private int numOfSelfishTakeoverRuns;
 
     // Agent contact attributes
-    private ArrayList<AID> allAgents;
+    private ArrayList<AID> allAgentIdentifiers;
     private ArrayList<AgentContact> householdAgentContacts;
     private AID advertisingAgent;
 
@@ -50,12 +53,10 @@ public class TickerAgent extends Agent {
 
         AgentHelper.registerAgent(this, "Ticker");
 
-        this.config = SimulationConfigurationSingleton.getInstance();
-        this.timeTracker = TickerTrackerSingleton.getInstance();
-        this.outputInstance = DataOutputSingleton.getInstance();
-        this.blockchainReference = BlockchainSingleton.getInstance();
-
+        // Wait until the other agents are created and registered
         doWait(1500);
+
+        // Add the initial behaviours
         addBehaviour(new FindHouseholdsBehaviour(this));
         addBehaviour(new FindAdvertisingBoardBehaviour(this));
         addBehaviour(new DailySyncBehaviour(this));
@@ -76,7 +77,7 @@ public class TickerAgent extends Agent {
 
         @Override
         public void action() {
-            // Populate the contact collections
+            // Populate the contact collection
             householdAgentContacts = AgentHelper.saveAgentContacts(myAgent, "Household");
         }
     }
@@ -93,8 +94,8 @@ public class TickerAgent extends Agent {
     }
 
     public class DailySyncBehaviour extends Behaviour {
-        private int step = 0;
-        EndOfDayAdvertisingBoardDataHolder endOfDayData = null;
+        private int step = 1;
+        private EndOfDayAdvertisingBoardDataHolder endOfDayData = null;
 
         public DailySyncBehaviour(Agent a) {
             super(a);
@@ -104,19 +105,20 @@ public class TickerAgent extends Agent {
         public void action() {
             // TODO: Cite JADE workbook for the step logic
             switch (step) {
-                case 0:
+                // Step 1: Let all other agents know that the new day (or a new simulation run) has started
+                case 1:
                     // Reshuffle the daily demand curve allocation
                     config.recreateDemandCurveIndices();
 
                     // Collect all receivers
-                    if (allAgents.size() <= config.getPopulationCount()) {
-                        allAgents.clear();
+                    if (allAgentIdentifiers.size() <= config.getPopulationCount()) {
+                        allAgentIdentifiers.clear();
 
                         for (AgentContact householdAgentContact : householdAgentContacts) {
-                            allAgents.add(householdAgentContact.getAgentIdentifier());
+                            allAgentIdentifiers.add(householdAgentContact.getAgentIdentifier());
                         }
 
-                        allAgents.add(advertisingAgent);
+                        allAgentIdentifiers.add(advertisingAgent);
                     }
 
                     // Reset the values used in each simulation run on the first day of the run
@@ -127,6 +129,7 @@ public class TickerAgent extends Agent {
                         if (currentSimulationRun == 1) {
                             setupSimulationSet();
 
+                            // Reset information singletons to their default state
                             config.resetRandomSeed();
                             timeTracker.resetTracking();
                         }
@@ -137,32 +140,39 @@ public class TickerAgent extends Agent {
                                         + " with " + config.getPopulationCount() + " agents."
                                         + " Exchange Type: " + config.getExchangeType());
 
+                        // Broadcast the start of the new simulation run to all other agents
                         AgentHelper.sendMessage(
                                 myAgent,
-                                allAgents,
+                                allAgentIdentifiers,
                                 "New Run",
                                 ACLMessage.INFORM
                         );
 
+                        // Track the start of a new run and reset the day tracking
                         timeTracker.incrementCurrentSimulationRun();
                         timeTracker.resetDayTracking();
                     } else {
-                        // Broadcast the start of the new day to other agents
+                        // Broadcast the start of the new day to all other agents
                         AgentHelper.sendMessage(
                                 myAgent,
-                                allAgents,
+                                allAgentIdentifiers,
                                 "New Day",
                                 ACLMessage.INFORM
                         );
                     }
 
+                    // Progress the current day tracking
                     timeTracker.incrementCurrentDay();
 
                     // Progress the agent state
                     step++;
 
                     break;
-                case 1:
+                case 2:
+                    // Step 2: Be notified when the Advertising agent announces that the day is over
+
+                    // Receive a done message from the Advertising agent when a day is over
+                    // The Advertising agent will send this message when the exchange has timed out
                     ACLMessage advertisingDayOverMessage = AgentHelper.receiveMessage(myAgent, advertisingAgent, "Done", ACLMessage.INFORM);
 
                     if (advertisingDayOverMessage != null) {
@@ -171,24 +181,27 @@ public class TickerAgent extends Agent {
 
                         // Make sure the incoming object is of the expected type
                         if (receivedObject instanceof EndOfDayAdvertisingBoardDataHolder dataHolder) {
+                            // Store the data provided by the Advertising agent
                             endOfDayData = dataHolder;
-
                             // Overwrite the existing list of contacts with the updated list
                             householdAgentContacts = dataHolder.contacts();
                         } else {
                             AgentHelper.printAgentError(myAgent.getLocalName(), "Agent contact list was not updated: the received object has an incorrect type or is null.");
                         }
 
+                        // Progress the agent state
                         step++;
                     } else {
                         block();
                     }
+                default:
+                    break;
             }
         }
 
         @Override
         public boolean done() {
-            return step == 2;
+            return step == 3;
         }
 
         @Override
@@ -197,25 +210,24 @@ public class TickerAgent extends Agent {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "End of day " + currentDay);
             }
 
+            // Make sure that the incoming data from the Advertising agent is not null
             if (endOfDayData != null) {
                 // TODO: Cite Arena code
+                // Check if a takeover has happened in the current run
+                // This will trigger the count of the additional days defined in the configuration file
                 if (((endOfDayData.numOfSelfishAgents() == 0 || endOfDayData.numOfSocialAgents() == 0) || config.getNumOfAgentsToEvolve() == 0) && !takeover) {
                     takeover = true;
+                    extractTakeoverData(endOfDayData, false);
 
                     if (config.isDebugMode()) {
                         AgentHelper.printAgentLog(myAgent.getLocalName(), "takeover! social agents: " + endOfDayData.numOfSocialAgents() + " selfish agents: " + endOfDayData.numOfSelfishAgents());
                     }
-
-                    extractTakeoverData(endOfDayData, false);
                 }
 
+                // If the current additional day count has reached the defined limit, the run is finished
                 if (currentDayAfterTakeover == config.getNumOfAdditionalDaysAfterTakeover()) {
                     extractTakeoverData(endOfDayData, true);
 
-                    // TODO: print run stats here (maybe in a method)
-                    // - days it took
-                    // - what kind of takeover was it
-                    // - average satisfaction?
                     AgentHelper.printAgentLog(
                             myAgent.getLocalName(),
                             "Days: "
@@ -227,14 +239,16 @@ public class TickerAgent extends Agent {
                                     + "\n"
                     );
 
+                    // Check if the current run is the last run in the current simulation set, based on the configuration file
                     if (currentSimulationRun == config.getNumOfSimulationRuns()) {
                         writeSimulationData();
 
+                        // Determine if the program should continue with another simulation set or if it should exit
                         if (shouldShutEnvironmentDown()) {
                             // Broadcast the Terminate message to all other agents
                             AgentHelper.sendMessage(
                                     myAgent,
-                                    allAgents,
+                                    allAgentIdentifiers,
                                     "Terminate",
                                     ACLMessage.INFORM
                             );
@@ -244,38 +258,52 @@ public class TickerAgent extends Agent {
                             // Terminate the ticker agent itself
                             myAgent.doDelete();
                         } else {
+                            // Progress the program by setting up and executing the next simulation set
                             simulationReset();
                             currentSimulationSet++;
 
+                            // Flush the transactions from the blockchain's ledger
                             blockchainReference.resetBlockchain();
 
+                            // Update the Household agent contacts
                             myAgent.addBehaviour(new FindHouseholdsBehaviour(myAgent));
+
+                            // Recreate this behaviour by adding it to the agent's behaviour queue
                             myAgent.addBehaviour(new DailySyncBehaviour(myAgent));
                         }
                     } else {
+                        // Progress the simulation set by setting up the next run
                         currentSimulationRun++;
                         runReset();
 
                         config.incrementRandomSeed();
 
+                        // Flush the transactions from the blockchain's ledger
                         blockchainReference.resetBlockchain();
 
+                        // Update the Household agent contacts
                         myAgent.addBehaviour(new FindHouseholdsBehaviour(myAgent));
+
+                        // Recreate this behaviour by adding it to the agent's behaviour queue
                         myAgent.addBehaviour(new DailySyncBehaviour(myAgent));
                     }
                 } else {
+                    // Progress the current run by starting a new day
                     currentDay++;
 
+                    // Check if a Household agent type takeover has happened yet
                     if (takeover) {
                         currentDayAfterTakeover++;
                     }
 
-                    // Recreate the sync behaviour and add it to the ticker's behaviour queue
+                    // Update the Household agent contacts
                     myAgent.addBehaviour(new FindHouseholdsBehaviour(myAgent));
+
+                    // Recreate this behaviour by adding it to the agent's behaviour queue
                     myAgent.addBehaviour(new DailySyncBehaviour(myAgent));
                 }
             } else {
-                // TODO
+                AgentHelper.printAgentError(myAgent.getLocalName(), "Failed to process end of day Advertising agent data: incoming object is null.");
             }
 
             return 0;
@@ -283,8 +311,13 @@ public class TickerAgent extends Agent {
     }
 
     private void initialAgentSetup() {
+        this.config = SimulationConfigurationSingleton.getInstance();
+        this.timeTracker = TickerTrackerSingleton.getInstance();
+        this.outputInstance = DataOutputSingleton.getInstance();
+        this.blockchainReference = BlockchainSingleton.getInstance();
+
         this.currentSimulationSet = 1;
-        this.allAgents = new ArrayList<>();
+        this.allAgentIdentifiers = new ArrayList<>();
 
         this.simulationReset();
         this.runReset();
@@ -293,6 +326,7 @@ public class TickerAgent extends Agent {
     private void setupSimulationSet() {
         this.simulationReset();
 
+        // Modify the simulation configuration based on the defined comparison level and current simulation set
         switch (config.getComparisonLevel()) {
             case 1:
                 switch (this.currentSimulationSet) {
@@ -426,10 +460,7 @@ public class TickerAgent extends Agent {
                 break;
         }
 
-        initDataOutput();
-    }
-
-    private void initDataOutput() {
+        // Create the output folder and files to store the resulting data in
         outputInstance.prepareSimulationDataOutput(
                 config.doesUtiliseSocialCapita(),
                 config.doesUtiliseSingleAgentType(),
@@ -536,6 +567,7 @@ public class TickerAgent extends Agent {
         ArrayList<TakeoverDayDataHolder> finalDayDataHolders;
         int numOfTypeTakeoverRuns;
 
+        // Determine the type of data to use
         if (agentStrategyType == AgentStrategyType.SOCIAL) {
             takeoverDayDataHolders = this.socialTakeoverDayDataHolders;
             finalDayDataHolders = this.socialFinalDayDataHolders;
