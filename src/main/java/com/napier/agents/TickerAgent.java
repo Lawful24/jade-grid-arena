@@ -130,7 +130,6 @@ public class TickerAgent extends Agent {
                             setupSimulationSet();
 
                             // Reset information singletons to their default state
-                            config.resetRandomSeed();
                             timeTracker.resetTracking();
                         }
 
@@ -331,8 +330,7 @@ public class TickerAgent extends Agent {
             case 1:
                 switch (this.currentSimulationSet) {
                     case 1:
-                        config.setDoesUtiliseSocialCapita(true);
-                        config.setSingleAgentTypeUsed(false);
+                        config.modifyConfiguration(false, config.getSelectedSingleAgentType(), true);
 
                         AgentHelper.printAgentLog(
                                 getLocalName(),
@@ -343,8 +341,7 @@ public class TickerAgent extends Agent {
 
                         break;
                     case 2:
-                        config.setDoesUtiliseSocialCapita(false);
-                        config.setSingleAgentTypeUsed(false);
+                        config.modifyConfiguration(false, config.getSelectedSingleAgentType(), false);
 
                         AgentHelper.printAgentLog(
                                 getLocalName(),
@@ -360,8 +357,7 @@ public class TickerAgent extends Agent {
             case 2:
                 switch (this.currentSimulationSet) {
                     case 1:
-                        config.setDoesUtiliseSocialCapita(false);
-                        config.setSingleAgentTypeUsed(true, AgentStrategyType.SELFISH);
+                        config.modifyConfiguration(true, AgentStrategyType.SELFISH, false);
 
                         AgentHelper.printAgentLog(
                                 getLocalName(),
@@ -372,8 +368,7 @@ public class TickerAgent extends Agent {
 
                         break;
                     case 2:
-                        config.setDoesUtiliseSocialCapita(false);
-                        config.setSingleAgentTypeUsed(true, AgentStrategyType.SOCIAL);
+                        config.modifyConfiguration(true, AgentStrategyType.SOCIAL, false);
 
                         AgentHelper.printAgentLog(
                                 getLocalName(),
@@ -384,8 +379,7 @@ public class TickerAgent extends Agent {
 
                         break;
                     case 3:
-                        config.setDoesUtiliseSocialCapita(true);
-                        config.setSingleAgentTypeUsed(true, AgentStrategyType.SOCIAL);
+                        config.modifyConfiguration(true, AgentStrategyType.SOCIAL, true);
 
                         AgentHelper.printAgentLog(
                                 getLocalName(),
@@ -396,8 +390,7 @@ public class TickerAgent extends Agent {
 
                         break;
                     case 4:
-                        config.setDoesUtiliseSocialCapita(false);
-                        config.setSingleAgentTypeUsed(false);
+                        config.modifyConfiguration(false, config.getSelectedSingleAgentType(), true);
 
                         AgentHelper.printAgentLog(
                                 getLocalName(),
@@ -408,8 +401,7 @@ public class TickerAgent extends Agent {
 
                         break;
                     case 5:
-                        config.setDoesUtiliseSocialCapita(true);
-                        config.setSingleAgentTypeUsed(false);
+                        config.modifyConfiguration(false, config.getSelectedSingleAgentType(), true);
 
                         AgentHelper.printAgentLog(
                                 getLocalName(),

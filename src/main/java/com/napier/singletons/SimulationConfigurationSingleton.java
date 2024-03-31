@@ -113,6 +113,7 @@ public class SimulationConfigurationSingleton {
     public Random getRandom() {
         return random;
     }
+
     public long getStartingSeed() {
         return this.startingSeed;
     }
@@ -212,7 +213,10 @@ public class SimulationConfigurationSingleton {
         random.setSeed(this.currentSeed);
     }
 
-    public void resetRandomSeed() {
+    /**
+     * Restore the seed of the random object to the seed defined in the configuration file.
+     */
+    private void resetRandomSeed() {
         this.currentSeed = this.startingSeed;
         random.setSeed(this.currentSeed);
     }
@@ -221,36 +225,62 @@ public class SimulationConfigurationSingleton {
         this.exchangeType = exchangeType;
     }
 
-    public void setSingleAgentTypeUsed(boolean doesUtiliseSingleAgentType) {
-        this.doesUtiliseSingleAgentType = doesUtiliseSingleAgentType;
-        this.selfishPopulationCount = this.ratioToSelfishPopulationCount();
+    /**
+     * At the start of a simulation set, this overwrites some of the user defined configuration settings.
+     *
+     * @param doesUtiliseSingleAgentType Whether the Household agents in the next simulation set should be allowed to choose between 1 or 2 strategy types.
+     * @param selectedSingleAgentType The strategy type that the Household agents can use, if they can only use one. (If they can be either selfish or social, call getSelectedSingleAgentType().)
+     * @param doesUtiliseSocialCapita Whether social capita should be used in the exchanges of the next simulation set.
+     */
+    public void modifyConfiguration(boolean doesUtiliseSingleAgentType, AgentStrategyType selectedSingleAgentType, boolean doesUtiliseSocialCapita) {
+        this.resetRandomSeed();
+        this.setSingleAgentTypeUsed(doesUtiliseSingleAgentType, selectedSingleAgentType);
+        this.setDoesUtiliseSocialCapita(doesUtiliseSocialCapita);
     }
 
-    public void setSingleAgentTypeUsed(boolean doesUtiliseSingleAgentType, AgentStrategyType selectedSingleAgentType) {
+    private void setSingleAgentTypeUsed(boolean doesUtiliseSingleAgentType, AgentStrategyType selectedSingleAgentType) {
         this.doesUtiliseSingleAgentType = doesUtiliseSingleAgentType;
         this.selectedSingleAgentType = selectedSingleAgentType;
 
-        if (this.selectedSingleAgentType == AgentStrategyType.SOCIAL) {
-            this.selfishPopulationCount = 0;
+        if (this.doesUtiliseSingleAgentType) {
+            if (this.selectedSingleAgentType == AgentStrategyType.SOCIAL) {
+                this.selfishPopulationCount = 0;
+            } else {
+                this.selfishPopulationCount = this.populationCount;
+            }
         } else {
-            this.selfishPopulationCount = this.populationCount;
+            this.selfishPopulationCount = this.ratioToSelfishPopulationCount();
         }
     }
 
-    public void setDoesUtiliseSocialCapita(boolean doesUtiliseSocialCapital) {
+    private void setDoesUtiliseSocialCapita(boolean doesUtiliseSocialCapital) {
         this.doesUtiliseSocialCapita = doesUtiliseSocialCapital;
     }
 
+    /**
+     * Gets and removes the first index of the demand curve array that determines the daily demand of a Household agent.
+     *
+     * @return (Integer) The element at the first position of the shuffled array containing indices.
+     */
     public Integer popFirstDemandCurveIndex() {
         return this.demandCurveIndices.removeFirst();
     }
 
+    /**
+     * Resets the array that stores daily demand curves.
+     */
     public void recreateDemandCurveIndices() {
         this.demandCurveIndices = this.createDemandCurveIndices();
     }
 
     /* Helpers */
 
+    /**
+     * Reads the configuration file and loads the user settings into a Properties object.
+     *
+     * @param properties The object that stores the settings from the configuration file.
+     * @param isDebug Whether the application is running in Debug Mode or not. If Debug Mode is on, the debug.config.properties file is used.
+     */
     private void loadPropertiesFromFile(Properties properties, boolean isDebug) {
         String configFilename;
 
@@ -269,11 +299,25 @@ public class SimulationConfigurationSingleton {
         }
     }
 
+    /**
+     * Converts a String into a double array.
+     * The String has to be in the following format: 1.0,1.0,0.0,1.0
+     *
+     * @param input The text containing the values of the array.
+     * @return (double[]) The array form of the input text.
+     */
     private double[] inputToDoubleArray(String input) {
         return Arrays.stream(input.split(",")).mapToDouble(Double::parseDouble).toArray();
     }
 
     // TODO: Cite Arena code
+    /**
+     * Converts a String into a two-dimensional double array.
+     * The String has to be in the following format: 1.0,1.0,0.0,1.0||0.0,0.0,1.0,0.0
+     *
+     * @param input The text containing the values of the array.
+     * @return (double[][]) The array form of the input text.
+     */
     private double[][] inputToDouble2DArray(String input) {
         // Split the input string into sets using "||" as the delimiter
         String[] sets = input.split("\\|\\|");
@@ -295,15 +339,36 @@ public class SimulationConfigurationSingleton {
         return result;
     }
 
+    /**
+     * Converts a String into a double array.
+     * The String has to be in the following format: 1,1,0,1
+     *
+     * @param input The text containing the values of the array.
+     * @return (int[]) The array form of the input text.
+     */
     private int[] inputToIntArray(String input) {
         return Arrays.stream(input.split(",")).mapToInt(Integer::parseInt).toArray();
     }
 
     // TODO: Flag as nullable
+    /**
+     * Converts a String to an agent strategy type enum.
+     * The String has to be in the following format: social
+     *
+     * @param input The String containing the strategy type.
+     * @return (AgentStrategyType) The enum form of the input text.
+     */
     private AgentStrategyType inputToStrategyEnum(String input) {
         return input.equals("social") ? AgentStrategyType.SOCIAL : input.equals("selfish") ? AgentStrategyType.SELFISH : null;
     }
 
+    /**
+     * Converts a String ratio into the number of selfish Household agents in the simulation set.
+     * The String has to be in the following format: 2:1
+     * Float values are supported: 2.01:1.39472
+     *
+     * @return (int) The number of selfish Household agents that form the selfish population.
+     */
     private int ratioToSelfishPopulationCount() {
         // Split the input string by colon
         String[] ratioParts = this.agentTypeRatioInputString.split(":");
@@ -369,6 +434,13 @@ public class SimulationConfigurationSingleton {
         return totalDemandValues;
     }
 
+    /**
+     * Generates indices in a list that point to values in the generated daily demand curves array.
+     * This allows Household agents to have a different demand for timeslots at the start of each day.
+     *
+     * @return (ArrayList of Integers) The shuffled indices that point to demand curves.
+     * @throws NullPointerException If the demand curves have not been bucket sorted before this is called.
+     */
     private ArrayList<Integer> createDemandCurveIndices() throws NullPointerException {
         ArrayList<Integer> unallocatedCurveIndices = new ArrayList<>();
         int curveIndex = 0;
