@@ -1,5 +1,10 @@
 package com.napier.singletons;
 
+/**
+ * Contains the state of the currently running simulation set.
+ *
+ * @author László Tárkányi
+ */
 public class TickerTrackerSingleton {
     private static TickerTrackerSingleton instance;
     private int currentSimulationRun;
@@ -13,10 +18,16 @@ public class TickerTrackerSingleton {
         return instance;
     }
 
+    /**
+     * Assigns the initial value to the tracking variables.
+     * (They both start at 0.)
+     */
     public TickerTrackerSingleton() {
         this.currentSimulationRun = 0;
         this.currentDay = 0;
     }
+
+    /* Accessors */
 
     public int getCurrentSimulationRun() {
         return currentSimulationRun;
@@ -26,10 +37,20 @@ public class TickerTrackerSingleton {
         return currentDay;
     }
 
+    /* Mutators */
+
+    /**
+     * Resets the day tracking variable to its initial value (0).
+     * Used at the start of a simulation run.
+     */
     public void resetDayTracking() {
         this.currentDay = 0;
     }
 
+    /**
+     * Resets all tracking variables to their initial values (0).
+     * Used at the start of a simulation set.
+     */
     public void resetTracking() {
         this.currentSimulationRun = 0;
         this.currentDay = 0;

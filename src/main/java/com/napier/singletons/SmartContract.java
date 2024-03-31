@@ -12,6 +12,11 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+/**
+ * Represents a Smart Contract in a Blockchain that is executed when certain conditions are met within the application.
+ *
+ * @author László Tárkányi
+ */
 public class SmartContract {
     private static SmartContract instance;
 
@@ -27,10 +32,23 @@ public class SmartContract {
         // no-op
     }
 
+    /**
+     * Should be called when the receiver Household agent of a trade offer accepts said trade offer.
+     *
+     * @param receiverAgentObject The Agent object of the Household agent accepting the trade offer.
+     * @param acceptedTradeOffer The trade offer that got accepted.
+     */
     public void triggerSmartContract(HouseholdAgent receiverAgentObject, TradeOffer acceptedTradeOffer) {
         this.finaliseExchange(receiverAgentObject, acceptedTradeOffer);
     }
 
+    /**
+     * Used to create a transaction after the exchange based on the accepted trade offer has been finalised.
+     *
+     * @param finalisedTradeOffer The trade offer that got accepted and was processed by the smart contract.
+     * @param doesReceiverGainSocialCapita Whether the Household agent who received the trade gains social capita based on the accepted trade or not.
+     * @param doesRequesterLoseSocialCapita Whether the Household agent who requested the trade loses social capita based on the accepted trade or not.
+     */
     public void finishSmartContract(TradeOffer finalisedTradeOffer, boolean doesReceiverGainSocialCapita, boolean doesRequesterLoseSocialCapita) {
         this.createNewBlock(new Transaction(
                 finalisedTradeOffer.requesterAgent(),
@@ -42,6 +60,13 @@ public class SmartContract {
         ));
     }
 
+    /**
+     * Creates a new behaviour that is executed by the receiving Household agent.
+     * This behaviour transfers the ownership of the timeslots that are being traded and adjusts the social capita for both parties.
+     *
+     * @param receiverAgentObject The Agent object of the Household agent accepting the trade offer.
+     * @param acceptedTradeOffer The trade offer that got accepted.
+     */
     private void finaliseExchange(HouseholdAgent receiverAgentObject, TradeOffer acceptedTradeOffer) {
         // Finalise the exchange
         final boolean doesRequesterLoseSocialCapita = receiverAgentObject.completeReceivedExchange(acceptedTradeOffer);
@@ -125,6 +150,11 @@ public class SmartContract {
         receiverAgentObject.addBehaviour(finaliseTradeSCBehaviour);
     }
 
+    /**
+     * Notifies the blockchain about a new successful transaction and encrypts it to verify its authenticity.
+     *
+     * @param transaction The object containing details about the transfer of ownership.
+     */
     private void createNewBlock(Transaction transaction) {
         String transactionString = transaction.toString();
         byte[] hashByteArray = null;

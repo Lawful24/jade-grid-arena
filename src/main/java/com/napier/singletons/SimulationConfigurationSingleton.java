@@ -13,6 +13,12 @@ import java.util.ArrayList;
 import java.util.Properties;
 import java.util.Collections;
 
+/**
+ * A singleton class that imports and contains user defined settings from a configuration file
+ * and uses them to calibrate the rules of a simulation set.
+ *
+ * @author László Tárkányi
+ */
 public class SimulationConfigurationSingleton {
     private static SimulationConfigurationSingleton instance;
     private final boolean debugMode;
