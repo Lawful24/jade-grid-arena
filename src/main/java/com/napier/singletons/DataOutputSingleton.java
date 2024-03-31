@@ -8,6 +8,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A singleton class responsible for writing statistical data into files.
@@ -23,6 +25,7 @@ public class DataOutputSingleton {
     private FileWriter dailyDataCSVWriter;
     private FileWriter exchangeDataCSVWriter;
     private FileWriter performanceDataCSVWriter;
+    private File dailyDataFile;
 
     // Singleton
     private final SimulationConfigurationSingleton config;
@@ -143,10 +146,10 @@ public class DataOutputSingleton {
             See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/ArenaEnvironment.java
             */
 
-            File dailyDataFile = new File(this.simulationDataOutputFolderPath, "dailyData.csv");
+            this.dailyDataFile = new File(this.simulationDataOutputFolderPath, "dailyData.csv");
 
             try {
-                this.dailyDataCSVWriter = new FileWriter(dailyDataFile);
+                this.dailyDataCSVWriter = new FileWriter(this.dailyDataFile);
 
                 // Write first row of the .csv file
                 dailyDataCSVWriter.append("Simulation Run,");
@@ -277,7 +280,7 @@ public class DataOutputSingleton {
                         .append(" : ")
                         .append(String.valueOf(this.config.getPopulationCount() - this.config.getSelfishPopulationCount()))
                         .append(" ")
-                        .append(this.getAgentStrategyTypeCapString(AgentStrategyType.SOCIAL)); // TODO: this might have to be reworked but definitely has to be tested
+                        .append(this.getAgentStrategyTypeCapString(AgentStrategyType.SOCIAL));
                 this.simulationDataTXTWriter.append("\n\n");
             } catch (IOException e) {
                 System.err.println("Could not write in exchange data output file.");
@@ -322,7 +325,7 @@ public class DataOutputSingleton {
 
                 this.agentDataCSVWriter.append(String.valueOf(currentSimulationRun)).append(",");
                 this.agentDataCSVWriter.append(String.valueOf(currentDay)).append(",");
-                this.agentDataCSVWriter.append(String.valueOf(agentStrategyType)).append(","); // TODO: could be an issue with the scripts expecting an int
+                this.agentDataCSVWriter.append(String.valueOf(agentStrategyType)).append(",");
                 this.agentDataCSVWriter.append(String.valueOf(currentSatisfaction)).append(",");
                 this.agentDataCSVWriter.append(String.valueOf(numOfDailyRejectedReceivedExchanges)).append(",");
                 this.agentDataCSVWriter.append(String.valueOf(numOfDailyAcceptedReceivedExchangesWithSocialCapita + numOfDailyAcceptedReceivedExchangesWithoutSocialCapita)).append(",");
@@ -431,8 +434,8 @@ public class DataOutputSingleton {
 
                 this.exchangeDataCSVWriter.append(String.valueOf(currentSimulationRun)).append(",");
                 this.exchangeDataCSVWriter.append(String.valueOf(currentDay)).append(",");
-                this.exchangeDataCSVWriter.append(String.valueOf(currentExchangeRound)).append(","); // TODO: this starts at 0 in the original code
-                this.exchangeDataCSVWriter.append(String.valueOf(agentStrategyType)).append(","); // TODO: this might fail in the scripts due to expecting a numeric value
+                this.exchangeDataCSVWriter.append(String.valueOf(currentExchangeRound)).append(",");
+                this.exchangeDataCSVWriter.append(String.valueOf(agentStrategyType)).append(",");
                 this.exchangeDataCSVWriter.append(String.valueOf(averageSatisfactionForType)).append("\n");
             } catch (IOException e) {
                 System.err.println("Error while trying to append data to the exchange data file.");
@@ -578,6 +581,50 @@ public class DataOutputSingleton {
         } catch (IOException e) {
             System.err.println("Error while trying to close the data writers.");
         }
+    }
+
+    /**
+     * Begins python code that visualises the gathered data from the current environment being simulated.
+     *
+     * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/SimulationVisualiserInitiator.java">ResourceExchangeArena</a>
+     *
+     * @param typicalSocial The most average performing social run.
+     * @param typicalSelfish The most average performing selfish run.
+     * @exception IOException On input error.
+     * @see IOException
+     */
+    public void initiateSimulationVisualiser(
+            double typicalSocial,
+            double typicalSelfish
+    ) throws IOException {
+        System.out.println("Starting typical run visualisation...");
+
+        // Pass average satisfaction levels data to python to be visualised.
+        List<String> satisfactionPythonArgs = new ArrayList<>();
+
+        String satisfactionPythonPath = this.config.getPythonScriptsPath() + "TypicalRun.py";
+
+        satisfactionPythonArgs.add(this.config.getPythonExePath());
+        satisfactionPythonArgs.add(satisfactionPythonPath);
+        satisfactionPythonArgs.add(this.simulationDataOutputFolderPath);
+        satisfactionPythonArgs.add(this.dailyDataFile.getAbsolutePath());
+        satisfactionPythonArgs.add(Double.toString(typicalSocial));
+        satisfactionPythonArgs.add(Double.toString(typicalSelfish));
+
+        ProcessBuilder satisfactionBuilder = new ProcessBuilder(satisfactionPythonArgs);
+
+        // IO from the Python is shared with the same terminal as the Java code.
+        satisfactionBuilder.inheritIO();
+        satisfactionBuilder.redirectErrorStream(true);
+
+        Process satisfactionProcess = satisfactionBuilder.start();
+        try {
+            satisfactionProcess.waitFor();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("Visualisation complete.");
     }
 
     /**

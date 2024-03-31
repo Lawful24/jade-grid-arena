@@ -128,6 +128,14 @@ public class SimulationConfigurationSingleton {
         return this.resultsFolderPath;
     }
 
+    public String getPythonExePath() {
+        return pythonExePath;
+    }
+
+    public String getPythonScriptsPath() {
+        return pythonScriptsPath;
+    }
+
     public int getPopulationCount() {
         return this.populationCount;
     }
@@ -166,14 +174,6 @@ public class SimulationConfigurationSingleton {
 
     public int getComparisonLevel() {
         return this.comparisonLevel;
-    }
-
-    public double[][] getDemandCurves() {
-        return this.demandCurves;
-    }
-
-    public int[] getAvailabilityCurve() {
-        return this.availabilityCurve;
     }
 
     public int getNumOfAgentsToEvolve() {

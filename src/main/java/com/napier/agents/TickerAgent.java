@@ -16,6 +16,7 @@ import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.lang.acl.ACLMessage;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -581,8 +582,15 @@ public class TickerAgent extends Agent {
             if (this.numOfSelfishTakeoverRuns > 0) {
                 middleSelfishRun = processTakeoverDataByType(AgentStrategyType.SELFISH);
             }
+
+            try {
+                outputInstance.initiateSimulationVisualiser(middleSocialRun, middleSelfishRun);
+            } catch (IOException e) {
+                AgentHelper.printAgentError(getLocalName(), "A problem occurred while trying to run the data visualisation scripts.");
+                e.printStackTrace();
+            }
         } else {
-            // TODO
+            AgentHelper.printAgentError(getLocalName(), "No takeovers have occurred or they have not been recorded.");
         }
 
         outputInstance.flushAllDataWriters();
