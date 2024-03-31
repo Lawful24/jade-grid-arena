@@ -25,6 +25,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
+/**
+ * An agent representing a Household in an isolated smart power grid community.
+ * This agent is of the buyer and seller archetypes as it is trading timeslots with other Household agents through
+ * either a third party or directly in an attempt to find all the timeslots it requires for the day.
+ * At least 2 of them has to exist in this application.
+ *
+ * @author László Tárkányi
+ *
+ */
 public class HouseholdAgent extends Agent {
     // Agent attributes
     private AgentStrategyType agentType;
@@ -77,6 +86,10 @@ public class HouseholdAgent extends Agent {
         AgentHelper.deregisterAgent(this);
     }
 
+    /**
+     * Seeks out the only Ticker type agent and saves it for contacting it in the future.
+     * A reusable behaviour of HouseholdAgent.
+     */
     public class FindTickerBehaviour extends OneShotBehaviour {
         public FindTickerBehaviour(Agent a) {
             super(a);
@@ -88,6 +101,10 @@ public class HouseholdAgent extends Agent {
         }
     }
 
+    /**
+     * Seeks out the only Advertising Board type agent and saves it for contacting it in the future.
+     * A reusable behaviour of HouseholdAgent.
+     */
     public class FindAdvertisingBoardBehaviour extends OneShotBehaviour {
         public FindAdvertisingBoardBehaviour(Agent a) {
             super(a);
@@ -99,6 +116,11 @@ public class HouseholdAgent extends Agent {
         }
     }
 
+    /**
+     * Seeks out all the Household type agents and save them for contacting them in the future.
+     * Only used if the agents are required to use P2P timeslot trading.
+     * A reusable behaviour of HouseholdAgent.
+     */
     public class FindHouseholdsBehaviour extends OneShotBehaviour {
         public FindHouseholdsBehaviour(Agent a) {
             super(a);
@@ -114,6 +136,10 @@ public class HouseholdAgent extends Agent {
         }
     }
 
+    /**
+     * A listener for messages from the Ticker agent. It is also responsible for initiating the agent's daily activities.
+     * A repeated behaviour of HouseholdAgent.
+     */
     public class TickerDailyBehaviour extends CyclicBehaviour {
         public TickerDailyBehaviour(Agent a) {
             super(a);
@@ -188,6 +214,10 @@ public class HouseholdAgent extends Agent {
         }
     }
 
+    /**
+     * Receives its daily demand curve for timeslots randomly.
+     * A reusable behaviour of HouseholdAgent.
+     */
     public class DetermineDailyDemandBehaviour extends Behaviour {
         private boolean wasDailyDemandDetermined = false;
 
@@ -215,6 +245,10 @@ public class HouseholdAgent extends Agent {
         }
     }
 
+    /**
+     * Chooses the agent's daily preference for timeslots based on the daily demand curve.
+     * A reusable behaviour of HouseholdAgent.
+     */
     public class DetermineTimeSlotPreferenceBehaviour extends OneShotBehaviour {
         public DetermineTimeSlotPreferenceBehaviour(Agent a) {
             super(a);
@@ -249,6 +283,10 @@ public class HouseholdAgent extends Agent {
         }
     }
 
+    /**
+     * Measures how satisfied the agent is with each of its requested/desired timeslots.
+     * A reusable behaviour of HouseholdAgent.
+     */
     public class CalculateSlotSatisfactionBehaviour extends OneShotBehaviour {
         public CalculateSlotSatisfactionBehaviour(Agent a) {
             super(a);
@@ -260,6 +298,10 @@ public class HouseholdAgent extends Agent {
         }
     }
 
+    /**
+     * Listens for the daily initial timeslot allocation from the Advertising agent.
+     * A reusable behaviour of HouseholdAgent.
+     */
     public class ReceiveRandomInitialTimeSlotAllocationBehaviour extends Behaviour {
         private boolean wasInitialAllocationReceived = false;
 
@@ -292,6 +334,12 @@ public class HouseholdAgent extends Agent {
         }
     }
 
+    /**
+     * Starts an exchange round of the Message Passing type on the side of the Household agent.
+     * Sets off a chain of behaviours that represent the actions of this agent in an exchange round.
+     * Specific to the Message Passing exchange type.
+     * A reusable behaviour of HouseholdAgent.
+     */
     public class InitiateExchangeListenerBehaviour extends Behaviour {
         private boolean isExchangeActive = false;
 
@@ -353,6 +401,10 @@ public class HouseholdAgent extends Agent {
         }
     }
 
+    /**
+     * Informs the Advertising agent about the timeslots that this agent is willing to trade for one that it requested.
+     * A reusable behaviour of HouseholdAgent.
+     */
     public class AdvertiseUnwantedTimeSlotsBehaviour extends Behaviour {
         private boolean isAdPosted = false;
 
@@ -399,6 +451,11 @@ public class HouseholdAgent extends Agent {
 
     /* Exchange Requester Behaviours */
 
+    /**
+     * Listens for the advertised timeslots being published by the Advertising agent and places an inquiry.
+     * Specific to the Message Passing exchange type.
+     * A reusable behaviour of HouseholdAgent.
+     */
     public class ExchangeOpenListenerBehaviour extends Behaviour {
         private boolean didAdvertiseTimeSlots = false;
         public ExchangeOpenListenerBehaviour(Agent a) {
@@ -445,6 +502,10 @@ public class HouseholdAgent extends Agent {
         }
     }
 
+    /**
+     * Listens for the response to the previously placed inquiry from the Advertising agent and acts accordingly.
+     * A reusable behaviour of HouseholdAgent.
+     */
     public class InquiryResultListenerBehaviour extends Behaviour {
         private boolean resultReceived = false;
 
@@ -519,6 +580,11 @@ public class HouseholdAgent extends Agent {
 
     /* Exchange Receiver Behaviours */
 
+    /**
+     * Listens for incoming trade offers from the Advertising agent.
+     * Specific to the Message Passing exchange type.
+     * A reusable behaviour of HouseholdAgent.
+     */
     public class TradeOfferListenerBehaviour extends Behaviour {
         private boolean proposalProcessed = false;
         public TradeOfferListenerBehaviour(Agent a) {
@@ -591,6 +657,11 @@ public class HouseholdAgent extends Agent {
         }
     }
 
+    /**
+     * Listens for notifications about required social capita adjustments following the recently accepted trade.
+     * Specific to the Message Passing exchange type.
+     * A reusable behaviour of HouseholdAgent.
+     */
     public class SocialCapitaSyncReceiverBehaviour extends Behaviour {
         private boolean socialCapitaSyncHandled = false;
         public SocialCapitaSyncReceiverBehaviour(Agent a) {
@@ -634,6 +705,12 @@ public class HouseholdAgent extends Agent {
         }
     }
 
+    /**
+     * Starts an exchange round of the Smart Contract type on the side of the Household agent.
+     * Sets off a chain of behaviours that represent the actions of this agent in an exchange round.
+     * Specific to the Smart Contract exchange type.
+     * A reusable behaviour of HouseholdAgent.
+     */
     public class InitiateExchangeListenerSCBehaviour extends Behaviour {
         private boolean isExchangeActive = false;
 
@@ -698,6 +775,11 @@ public class HouseholdAgent extends Agent {
         }
     }
 
+    /**
+     * Listens for the advertised timeslots being published by the Advertising agent and places an inquiry.
+     * Specific to the Smart Contract exchange type.
+     * A reusable behaviour of HouseholdAgent.
+     */
     public class InquiryResultListenerSCBehaviour extends Behaviour {
         private boolean resultReceived = false;
 
@@ -761,6 +843,11 @@ public class HouseholdAgent extends Agent {
         }
     }
 
+    /**
+     * Listens for incoming trade offers from another Household agent.
+     * Specific to the Smart Contract exchange type.
+     * A reusable behaviour of HouseholdAgent.
+     */
     public class TradeOfferListenerSCBehaviour extends Behaviour {
         private boolean proposalProcessed = false;
 
@@ -833,6 +920,11 @@ public class HouseholdAgent extends Agent {
         }
     }
 
+    /**
+     * Listens for the response following sending a trade offer to another Household agent.
+     * Specific to the Smart Contract exchange type.
+     * A reusable behaviour of HouseholdAgent.
+     */
     public class TradeOfferResponseListenerSCBehaviour extends Behaviour {
         private boolean proposalReplyReceived = false;
 
@@ -916,6 +1008,10 @@ public class HouseholdAgent extends Agent {
         }
     }
 
+    /**
+     * Notifies the Advertising agent that this agent is done with the exchange round.
+     * A reusable behaviour of HouseholdAgent.
+     */
     public class FinishExchangeRoundBehaviour extends OneShotBehaviour {
         public FinishExchangeRoundBehaviour(Agent a) {
             super(a);
@@ -954,6 +1050,10 @@ public class HouseholdAgent extends Agent {
         }
     }
 
+    /**
+     * Listens for a request from the Advertising agent to participate in social learning.
+     * A reusable behaviour of HouseholdAgent.
+     */
     public class SocialLearningListenerBehaviour extends Behaviour {
         private boolean processedSocialLearningMessage = false;
 
@@ -1031,6 +1131,10 @@ public class HouseholdAgent extends Agent {
         }
     }
 
+    /**
+     * Notifies the Advertising agent that this agent finished the current day.
+     * A reusable behaviour of HouseholdAgent.
+     */
     public class CallItADayBehaviour extends OneShotBehaviour {
         public CallItADayBehaviour(Agent a) {
             super(a);
@@ -1056,6 +1160,9 @@ public class HouseholdAgent extends Agent {
         }
     }
 
+    /**
+     * Sets the initial state of the agent.
+     */
     private void initialAgentSetup() {
         // Assign the singleton first
         this.config = SimulationConfigurationSingleton.getInstance();
