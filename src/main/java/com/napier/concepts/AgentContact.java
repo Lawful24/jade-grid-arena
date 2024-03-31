@@ -6,10 +6,17 @@ import jade.core.AID;
 import java.io.Serializable;
 import java.util.Objects;
 
+/**
+ * Contains the contact information of a Household agent.
+ *
+ * @author László Tárkányi
+ */
 public class AgentContact implements Serializable {
     private final AID agentIdentifier;
     private AgentStrategyType type;
     private double currentSatisfaction;
+
+    /* Constructors */
 
     public AgentContact(AID agentIdentifier) {
         this.agentIdentifier = agentIdentifier;
@@ -26,6 +33,8 @@ public class AgentContact implements Serializable {
         this.currentSatisfaction = currentSatisfaction;
     }
 
+    /* Accessors */
+
     public AID getAgentIdentifier() {
         return agentIdentifier;
     }
@@ -37,6 +46,8 @@ public class AgentContact implements Serializable {
     public double getCurrentSatisfaction() {
         return currentSatisfaction;
     }
+
+    /* Mutators */
 
     public void setType(AgentStrategyType type) {
         this.type = type;

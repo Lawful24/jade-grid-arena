@@ -3,6 +3,11 @@ package com.napier.concepts;
 import java.io.Serializable;
 import java.util.Objects;
 
+/**
+ * Represents an immutable timeslot asset.
+ *
+ * @author László Tárkányi
+ */
 public class TimeSlot implements Serializable {
     private final int startHour;
     private final double energyAvailableKwh = 1.0;
