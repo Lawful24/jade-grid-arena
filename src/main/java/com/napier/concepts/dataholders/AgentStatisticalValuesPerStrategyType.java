@@ -8,6 +8,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 
+/**
+ * Calculates and contains statistical data about a simulation run.
+ * This class was converted from the original ArrayList implementation in ResourceExchangeArena.
+ *
+ * TODO: Cite Arena code
+ *
+ * @author László Tárkányi
+ */
 public class AgentStatisticalValuesPerStrategyType implements Serializable {
     private final double upperQuarter;
     private final double lowerQuarter;

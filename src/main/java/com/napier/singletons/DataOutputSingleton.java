@@ -325,7 +325,7 @@ public class DataOutputSingleton {
      * @param socialStatisticalValues A wrapper object containing statistical values of the social Household agent population.
      * @param selfishStatisticalValues A wrapper object containing statistical values of the selfish Household agent population.
      * @param initialRandomAllocationAverageSatisfaction The average satisfaction of the whole agent population regarding the timeslots that were initially allocated to them at the start of the day.
-     * @param optimumAveragePossibleSatisfaction The best possible average satisfaction the agent population could achieve during a given day, based on the initial timeslot allocations.
+     * @param optimumAveragePossibleSatisfaction The highest possible average satisfaction the agent population could achieve during a given day, based on the initial timeslot allocations.
      */
     public void appendDailyData(
             int currentSimulationRun,
@@ -413,7 +413,7 @@ public class DataOutputSingleton {
      * @param currentDay The number of the active day in a simulation run.
      * @param currentExchangeRound The number of a given exchange round in a day.
      * @param agentStrategyType A type of Household agents participating in the exchange round.
-     * @param isTradeOfferReceiver Whether the Household agent is a requester or a receiver in the given exchange round.
+     * @param isTradeOfferReceiver Whether the agent is a receiver of a trade offer or not. TODO: might need an "isTradeOfferRequester" because just because an agent isn't a receiver it doesn't automatically make it a requester
      * @param cpuTimeUsedThisExchangeRound The number of nanoseconds it took for an agent to complete the given exchange round.
      */
     public void appendPerformanceData(
