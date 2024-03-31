@@ -20,6 +20,12 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Comparator;
 
+/**
+ * An agent that keeps track of the time passed in the application and synchronises the communication between other agents.
+ * Only one of them can exist in an application.
+ *
+ * @author László Tárkányi
+ */
 public class TickerAgent extends Agent {
     // Simulation tracker attributes
     private int currentSimulationSet;
@@ -70,6 +76,10 @@ public class TickerAgent extends Agent {
         System.exit(0);
     }
 
+    /**
+     * Seeks out all the Household type agents and save them for contacting them in the future.
+     * A reusable behaviour of TickerAgent.
+     */
     public class FindHouseholdsBehaviour extends OneShotBehaviour {
         public FindHouseholdsBehaviour(Agent a) {
             super(a);
@@ -82,6 +92,10 @@ public class TickerAgent extends Agent {
         }
     }
 
+    /**
+     * Seeks out the only Advertising Board type agent and saves it for contacting it in the future.
+     * A reusable behaviour of TickerAgent.
+     */
     public class FindAdvertisingBoardBehaviour extends OneShotBehaviour {
         public FindAdvertisingBoardBehaviour(Agent a) {
             super(a);
@@ -93,6 +107,10 @@ public class TickerAgent extends Agent {
         }
     }
 
+    /**
+     * The daily cycle of notifying all other agents about the start of a day or a simulation run, and listening for when those agents are done with their day.
+     * A reusable behaviour of TickerAgent.
+     */
     public class DailySyncBehaviour extends Behaviour {
         private int step = 1;
         private EndOfDayAdvertisingBoardDataHolder endOfDayData = null;
@@ -309,6 +327,9 @@ public class TickerAgent extends Agent {
         }
     }
 
+    /**
+     * Sets the initial state of the agent.
+     */
     private void initialAgentSetup() {
         this.config = SimulationConfigurationSingleton.getInstance();
         this.timeTracker = TickerTrackerSingleton.getInstance();
@@ -322,6 +343,9 @@ public class TickerAgent extends Agent {
         this.runReset();
     }
 
+    /**
+     * Marks the start of a simulation set and modifies the configuration according to the comparison level.
+     */
     private void setupSimulationSet() {
         this.simulationReset();
 
@@ -460,6 +484,9 @@ public class TickerAgent extends Agent {
         );
     }
 
+    /**
+     * Sets the state of the agent to the same as before the first simulation set started.
+     */
     private void simulationReset() {
         this.runReset();
 
@@ -472,12 +499,21 @@ public class TickerAgent extends Agent {
         this.numOfSelfishTakeoverRuns = 0;
     }
 
+    /**
+     * Sets the state of the agent to the same as before the first run of the current simulation run started.
+     */
     private void runReset() {
         this.currentDay = 1;
         this.currentDayAfterTakeover = 0;
         this.takeover = false;
     }
 
+    /**
+     * Filters the daily data collected by the Advertising agent to takeover data.
+     *
+     * @param endOfDayData The holder of the data that the Advertising agent collected during a day.
+     * @param isFinalDayOfRun Whether the current day is the final day of the simulation run or not.
+     */
     private void extractTakeoverData(EndOfDayAdvertisingBoardDataHolder endOfDayData, boolean isFinalDayOfRun) {
         // TODO: Cite Arena code
         if (isFinalDayOfRun) {
@@ -519,6 +555,9 @@ public class TickerAgent extends Agent {
         }
     }
 
+    /**
+     * Outputs overall simulation data for each strategy type takeover.
+     */
     private void writeSimulationData() {
         if (this.numOfSocialTakeoverRuns > 0 || this.numOfSelfishTakeoverRuns > 0) {
             // TODO: Cite Arena code
@@ -539,6 +578,11 @@ public class TickerAgent extends Agent {
         outputInstance.flushAllDataWriters();
     }
 
+    /**
+     * Determines whether the application is at a state where it should shut down.
+     *
+     * @return (boolean) True if all the simulation sets have finished based on the comparison level defined in the configuration file.
+     */
     private boolean shouldShutEnvironmentDown() {
         boolean shutdown;
 
@@ -551,6 +595,12 @@ public class TickerAgent extends Agent {
         return shutdown;
     }
 
+    /**
+     * Processes and sends the filtered takeover data to the data writer for a selected agent strategy type.
+     *
+     * @param agentStrategyType The type of takeovers that should be processed.
+     * @return (int) The number of the median speed simulation run of all takeover runs from the given type.
+     */
     private int processTakeoverDataByType(AgentStrategyType agentStrategyType) {
         double takeoverDaysSum = 0;
         double averageSatisfactionsSum = 0;
