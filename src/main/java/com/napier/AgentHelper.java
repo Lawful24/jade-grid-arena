@@ -437,7 +437,7 @@ public class AgentHelper {
      * @return (int) The number assigned to the provided Household agent.
      */
     private static int getHouseholdAgentNumber(String agentNickname) {
-        return Integer.parseInt(agentNickname.substring(agentNickname.length() - 1));
+        return Integer.parseInt(agentNickname.substring("Household-".length()));
     }
 
     /**

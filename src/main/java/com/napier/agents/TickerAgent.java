@@ -74,6 +74,8 @@ public class TickerAgent extends Agent {
         AgentHelper.printAgentLog(getLocalName(), "Terminating...");
         AgentHelper.deregisterAgent(this);
 
+        outputInstance.closeAllDataWriters();
+
         System.exit(0);
     }
 
@@ -278,8 +280,6 @@ public class TickerAgent extends Agent {
                                     "Terminate",
                                     ACLMessage.INFORM
                             );
-
-                            outputInstance.closeAllDataWriters();
 
                             // Terminate the ticker agent itself
                             myAgent.doDelete();

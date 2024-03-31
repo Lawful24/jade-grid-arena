@@ -85,7 +85,7 @@ public class SimulationConfigurationSingleton {
         this.doesUtiliseSingleAgentType = Boolean.parseBoolean(properties.getProperty("agent.singleType"));
         this.selectedSingleAgentType = inputToStrategyEnum(properties.getProperty("agent.selectedSingleType"));
         this.doesUtiliseSocialCapita = Boolean.parseBoolean(properties.getProperty("agent.useSocialCapital"));
-        this.beta = Integer.parseInt(properties.getProperty("agent.beta"));
+        this.beta = Double.parseDouble(properties.getProperty("agent.beta"));
         this.comparisonLevel = Integer.parseInt(properties.getProperty("simulation.comparisonLevel"));
         this.demandCurves = inputToDouble2DArray(properties.getProperty("demand.curves"));
         this.availabilityCurve = inputToIntArray(properties.getProperty("availability.curve"));
