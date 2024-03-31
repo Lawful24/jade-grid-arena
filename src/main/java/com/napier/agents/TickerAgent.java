@@ -121,7 +121,11 @@ public class TickerAgent extends Agent {
 
         @Override
         public void action() {
-            // TODO: Cite JADE workbook for the step logic
+            /*
+            The source of the step logic:
+            Dr Simon Powers: SET10111 Multi-Agent Systems - Practical textbook; Edinburgh Napier University
+            */
+
             switch (step) {
                 // Step 1: Let all other agents know that the new day (or a new simulation run) has started
                 case 1:

@@ -77,7 +77,11 @@ public class SmartContract {
 
             @Override
             public void action() {
-                // TODO: Cite JADE workbook or JADE documentation for the step logic
+                /*
+                The source of the step logic:
+                Dr Simon Powers: SET10111 Multi-Agent Systems - Practical textbook; Edinburgh Napier University
+                */
+
                 switch (step) {
                     // Step 1: Reply to the requester
                     case 1:

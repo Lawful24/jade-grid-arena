@@ -66,7 +66,11 @@ public class Main {
         // Create the first instance of the configuration singleton before the agent threads can access it
         SimulationConfigurationSingleton config = SimulationConfigurationSingleton.getInstance();
 
-        // TODO: Cite the JADE workbook
+        /*
+        The source for creating and initialising the agents participating in the simulation:
+        Dr Simon Powers: SET10111 Multi-Agent Systems - Practical textbook; Edinburgh Napier University
+        */
+
         // Set up and create the main agent container
         Profile profile = new ProfileImpl();
         Runtime runtime = Runtime.instance();

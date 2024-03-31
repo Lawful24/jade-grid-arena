@@ -36,7 +36,11 @@ public class AgentHelper {
      * @param agentClassName The canonical name of the agent class.
      */
     public static void registerAgent(Agent agentToRegister, String agentClassName) {
-        // TODO: Cite JADE workbook or JADE documentation
+        /*
+        The source for the Directory Facilitator operations:
+        Dr Simon Powers: SET10111 Multi-Agent Systems - Practical textbook; Edinburgh Napier University
+        */
+
         // Create a Directory Facilitator Description with the AID of the agent
         DFAgentDescription dfAgentDescription = new DFAgentDescription();
         dfAgentDescription.setName(agentToRegister.getAID());
@@ -61,7 +65,11 @@ public class AgentHelper {
      * @param agentToDeregister The agent object to deregister.
      */
     public static void deregisterAgent(Agent agentToDeregister) {
-        // TODO: Cite JADE workbook
+        /*
+        The source for the Directory Facilitator operations:
+        Dr Simon Powers: SET10111 Multi-Agent Systems - Practical textbook; Edinburgh Napier University
+        */
+
         // Deregister agent from the Directory Facilitator
         try {
             DFService.deregister(agentToDeregister);
@@ -80,7 +88,11 @@ public class AgentHelper {
      * @return (ArrayList of AgentContacts) A list of the agents saved in a custom AgentContact wrapper format.
      */
     public static ArrayList<AgentContact> saveAgentContacts(Agent agent, String agentTypeToFind) {
-        // TODO: Cite JADE workbook
+        /*
+        The source for the Directory Facilitator operations:
+        Dr Simon Powers: SET10111 Multi-Agent Systems - Practical textbook; Edinburgh Napier University
+        */
+
         ArrayList<AgentContact> agentContacts = new ArrayList<>();
 
         DFAgentDescription agentDescription = new DFAgentDescription();
