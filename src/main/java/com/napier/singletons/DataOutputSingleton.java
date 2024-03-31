@@ -274,14 +274,14 @@ public class DataOutputSingleton {
                 this.simulationDataTXTWriter.append("Unique time-slots: ").append(String.valueOf(this.config.getNumOfUniqueTimeSlots())).append("\n");
                 this.simulationDataTXTWriter.append("Slots per agent: ").append(String.valueOf(this.config.getNumOfSlotsPerAgent())).append("\n");
                 this.simulationDataTXTWriter.append("Number of agents to evolve: ").append(String.valueOf(this.config.getNumOfAgentsToEvolve())).append("\n");
-                this.simulationDataTXTWriter.append("Starting ratio of agent types: ")
+                this.simulationDataTXTWriter.append("Starting ratio of agent types (")
                         .append(this.getAgentStrategyTypeCapString(AgentStrategyType.SELFISH))
-                        .append(" ")
+                        .append(":")
+                        .append(this.getAgentStrategyTypeCapString(AgentStrategyType.SOCIAL))
+                        .append(") : ")
                         .append(String.valueOf(this.config.getSelfishPopulationCount()))
-                        .append(" : ")
-                        .append(String.valueOf(this.config.getPopulationCount() - this.config.getSelfishPopulationCount()))
-                        .append(" ")
-                        .append(this.getAgentStrategyTypeCapString(AgentStrategyType.SOCIAL));
+                        .append(":")
+                        .append(String.valueOf(this.config.getPopulationCount() - this.config.getSelfishPopulationCount()));
                 this.simulationDataTXTWriter.append("\n\n");
             } catch (IOException e) {
                 System.err.println("Could not write in exchange data output file.");
@@ -524,7 +524,7 @@ public class DataOutputSingleton {
                         this.simulationDataTXTWriter.append("Average Takeover Satisfaction (social): ").append(String.valueOf(averageTakeoverSatisfactionsSum / numOfTypeTakeovers)).append("\n");
                         this.simulationDataTXTWriter.append("Average Takeover SD (social): ").append(String.valueOf(averageTakeoverSatisfactionStandardDeviationsSum / numOfTypeTakeovers)).append("\n");
                         this.simulationDataTXTWriter.append("Average Final Satisfaction (social): ").append(String.valueOf(averageTakeoverSatisfactionsSum / numOfTypeFinalDayDataHolders)).append("\n");
-                        this.simulationDataTXTWriter.append("Average Final SD (social): ").append(String.valueOf(averageTakeoverSatisfactionStandardDeviationsSum / numOfTypeFinalDayDataHolders)).append("\n\n");
+                        this.simulationDataTXTWriter.append("Average Final SD (social): ").append(String.valueOf(averageTakeoverSatisfactionStandardDeviationsSum / numOfTypeFinalDayDataHolders)).append("\n");
 
                         break;
                     case SELFISH:
