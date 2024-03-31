@@ -59,6 +59,7 @@ public class HouseholdAgent extends Agent {
     private boolean isExchangeTypeBeingSwitched;
     private boolean isExchangeActive;
     private long exchangeRoundStartTime;
+    private boolean isRequestingTradeOffer;
     private boolean isReceivingTradeOffer;
 
     // Agent contact attributes
@@ -401,6 +402,7 @@ public class HouseholdAgent extends Agent {
         public void reset() {
             super.reset();
 
+            isRequestingTradeOffer = false;
             isReceivingTradeOffer = false;
         }
     }
@@ -523,38 +525,43 @@ public class HouseholdAgent extends Agent {
             ACLMessage inquiryReplyMessage = AgentHelper.receiveCFPReply(myAgent);
 
             if (inquiryReplyMessage != null) {
-                // Check if the trade offer sent to the owner of a desired timeslot was accepted
-                if (inquiryReplyMessage.getPerformative() == ACLMessage.AGREE) {
-                    // Make sure the incoming object is readable
-                    Serializable receivedObject = AgentHelper.readReceivedContentObject(inquiryReplyMessage, myAgent.getLocalName(), TradeOffer.class);
+                // Check if the agent's inquiry was accepted and a trade offer was sent
+                if (inquiryReplyMessage.getPerformative() != ACLMessage.REFUSE) {
+                    // Check if the trade offer sent to the owner of a desired timeslot was accepted
+                    if (inquiryReplyMessage.getPerformative() == ACLMessage.AGREE) {
+                        // Make sure the incoming object is readable
+                        Serializable receivedObject = AgentHelper.readReceivedContentObject(inquiryReplyMessage, myAgent.getLocalName(), TradeOffer.class);
 
-                    // Make sure the incoming object is of the expected type
-                    if (receivedObject instanceof TradeOffer) {
-                        // Finalise the trade
-                        boolean doesReceiverGainSocialCapita = completeRequestedExchange((TradeOffer) receivedObject);
+                        // Make sure the incoming object is of the expected type
+                        if (receivedObject instanceof TradeOffer) {
+                            // Finalise the trade
+                            boolean doesReceiverGainSocialCapita = completeRequestedExchange((TradeOffer) receivedObject);
 
-                        // Adjust the agent's properties based on the trade offer
-                        // The content of the incoming message is a boolean that carries the information whether
-                        // the requesting party should lose social capita following the trade.
-                        if (Boolean.parseBoolean(inquiryReplyMessage.getConversationId())) {
-                            totalSocialCapita--;
+                            // Adjust the agent's properties based on the trade offer
+                            // The content of the incoming message is a boolean that carries the information whether
+                            // the requesting party should lose social capita following the trade.
+                            if (Boolean.parseBoolean(inquiryReplyMessage.getConversationId())) {
+                                totalSocialCapita--;
+                            }
+
+                            // Send a message to the Advertising agent to forward to the receiving Household agent
+                            AgentHelper.sendMessage(
+                                    myAgent,
+                                    advertisingAgent,
+                                    Boolean.toString(doesReceiverGainSocialCapita),
+                                    ((TradeOffer) receivedObject).receiverAgent(),
+                                    ACLMessage.PROPAGATE
+                            );
+                        } else {
+                            AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be handled: the received object has an incorrect type or is null.");
                         }
 
-                        // Send a message to the Advertising agent to forward to the receiving Household agent
-                        AgentHelper.sendMessage(
-                                myAgent,
-                                advertisingAgent,
-                                Boolean.toString(doesReceiverGainSocialCapita),
-                                ((TradeOffer) receivedObject).receiverAgent(),
-                                ACLMessage.PROPAGATE
-                        );
-                    } else {
-                        AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be handled: the received object has an incorrect type or is null.");
+                        numOfDailyAcceptedRequestedExchanges++;
+                    } else if (inquiryReplyMessage.getPerformative() == ACLMessage.CANCEL) {
+                        numOfDailyRejectedRequestedExchanges++;
                     }
 
-                    numOfDailyAcceptedRequestedExchanges++;
-                } else if (inquiryReplyMessage.getPerformative() == ACLMessage.CANCEL) {
-                    numOfDailyRejectedRequestedExchanges++;
+                    isRequestingTradeOffer = true;
                 }
 
                 // If the inquiry is refused, do nothing
@@ -775,6 +782,7 @@ public class HouseholdAgent extends Agent {
             super.reset();
 
             isTradeStarted = false;
+            isRequestingTradeOffer = false;
             isReceivingTradeOffer = false;
         }
     }
@@ -818,6 +826,8 @@ public class HouseholdAgent extends Agent {
                     } else {
                         AgentHelper.printAgentError(myAgent.getLocalName(), "Trade offer cannot be handled: the received object has an incorrect type or is null.");
                     }
+
+                    isRequestingTradeOffer = true;
                 }
 
                 // The reasons for the potential refusal of the inquiry are:
@@ -1040,6 +1050,7 @@ public class HouseholdAgent extends Agent {
                     "Exchange Done",
                     new EndOfExchangeHouseholdDataHolder(
                             currentSatisfaction,
+                            isRequestingTradeOffer,
                             isReceivingTradeOffer,
                             exchangeRoundEndTime - exchangeRoundStartTime
                     ),

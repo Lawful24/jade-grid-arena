@@ -990,6 +990,7 @@ public class AdvertisingBoardAgent extends Agent {
                         timeTracker.getCurrentDay(),
                         currentExchangeRound,
                         strategyType,
+                        dataHolders.get(householdAgent).isTradeOfferRequester(),
                         dataHolders.get(householdAgent).isTradeOfferReceiver(),
                         dataHolders.get(householdAgent).exchangeRoundHouseholdCPUTime()
                 );

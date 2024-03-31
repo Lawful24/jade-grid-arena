@@ -227,7 +227,8 @@ public class DataOutputSingleton {
                 performanceDataCSVWriter.append("Day,");
                 performanceDataCSVWriter.append("Round,");
                 performanceDataCSVWriter.append("Strategy Type,");
-                performanceDataCSVWriter.append("Requester/Receiver,");
+                performanceDataCSVWriter.append("Requester,");
+                performanceDataCSVWriter.append("Receiver,");
                 performanceDataCSVWriter.append("CPU Time Used (ns)");
                 performanceDataCSVWriter.append("\n");
             } catch (IOException e) {
@@ -452,7 +453,8 @@ public class DataOutputSingleton {
      * @param currentDay The number of the active day in a simulation run.
      * @param currentExchangeRound The number of a given exchange round in a day.
      * @param agentStrategyType A type of Household agents participating in the exchange round.
-     * @param isTradeOfferReceiver Whether the agent is a receiver of a trade offer or not. TODO: might need an "isTradeOfferRequester" because just because an agent isn't a receiver it doesn't automatically make it a requester
+     * @param isTradeOfferRequester Whether the agent is a requester of a trade offer or not.
+     * @param isTradeOfferReceiver Whether the agent is a receiver of a trade offer or not.
      * @param cpuTimeUsedThisExchangeRound The number of nanoseconds it took for an agent to complete the given exchange round.
      */
     public void appendPerformanceData(
@@ -460,6 +462,7 @@ public class DataOutputSingleton {
             int currentDay,
             int currentExchangeRound,
             AgentStrategyType agentStrategyType,
+            boolean isTradeOfferRequester,
             boolean isTradeOfferReceiver,
             long cpuTimeUsedThisExchangeRound
     ) {
@@ -469,6 +472,7 @@ public class DataOutputSingleton {
                 this.performanceDataCSVWriter.append(String.valueOf(currentDay)).append(",");
                 this.performanceDataCSVWriter.append(String.valueOf(currentExchangeRound)).append(",");
                 this.performanceDataCSVWriter.append(String.valueOf(agentStrategyType)).append(",");
+                this.performanceDataCSVWriter.append(String.valueOf(isTradeOfferRequester)).append(",");
                 this.performanceDataCSVWriter.append(String.valueOf(isTradeOfferReceiver)).append(",");
                 this.performanceDataCSVWriter.append(String.valueOf(cpuTimeUsedThisExchangeRound)).append("\n");
             } catch (IOException e) {
