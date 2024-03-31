@@ -438,10 +438,11 @@ public class AgentHelper {
         return Arrays.asList(ACLMessage.getAllPerformativeNames()).contains(ACLMessage.getPerformative(performative));
     }
 
-    // TODO: Cite Arena code
     /**
      * Calculates the Agents satisfaction with a given list of time-slots by comparing the list with the time-slots
      * requested by this Agent.
+     *
+     * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/Agent.java">ResourceExchangeArena</a>
      *
      * @param timeSlotsToConsider The set of time-slots to consider.
      * @param requestedTimeSlots  The set of time-slots requested.
@@ -493,10 +494,11 @@ public class AgentHelper {
         return satisfaction / SimulationConfigurationSingleton.getInstance().getNumOfSlotsPerAgent();
     }
 
-    // TODO: Cite Arena code
     /**
      * Takes all Agents individual satisfactions and calculates the average satisfaction of all Agents in the
      * simulation.
+     *
+     * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/CalculateSatisfaction.java">ResourceExchangeArena</a>
      *
      * @param householdAgentContacts Array List of all the Household agents that exist in the current simulation.
      * @return Double Returns the average satisfaction between 0 and 1 of all agents in the simulation.
@@ -511,10 +513,11 @@ public class AgentHelper {
         return agentSatisfactions.stream().mapToDouble(val -> val).average().orElse(0.0);
     }
 
-    // TODO: Cite Arena code
     /**
      * Takes all Agents of a given types individual satisfactions and calculates the average satisfaction of the Agents
      * of that type.
+     *
+     * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/CalculateSatisfaction.java">ResourceExchangeArena</a>
      *
      * @param householdAgentContacts Array List of all the agents that exist in the current simulation.
      * @param agentStrategyType The type for which to calculate the average satisfaction of all Agents of that type.
@@ -532,10 +535,11 @@ public class AgentHelper {
         return agentSatisfactions.stream().mapToDouble(val -> val).average().orElse(0.0);
     }
 
-    // TODO: Cite Arena code
     /**
      * Returns the optimum average satisfaction possible for all agents given the current requests and allocations in
      * the simulation.
+     *
+     * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/CalculateSatisfaction.java">ResourceExchangeArena</a>
      *
      * @param allAllocatedTimeSlots The timeslots that were distributed at the start of the day.
      * @param allRequestedTimeSlots All timeslots that were requested by all Household agents at the start of the day.
@@ -562,7 +566,12 @@ public class AgentHelper {
         return satisfiedSlots / totalSlots;
     }
 
-    // TODO: Cite Arena code
+    /**
+     * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/Agent.java">ResourceExchangeArena</a>
+     *
+     * @param requestedTimeSlots The desired timeslots of a given Household agent.
+     * @return (ArrayList of TimeSlotSatisfactionPairs) A list of tuples with the Household agent's desired timeslot and its corresponding satisfaction based on the agent's demand curve.
+     */
     public static ArrayList<TimeSlotSatisfactionPair> calculateSatisfactionPerSlot(ArrayList<TimeSlot> requestedTimeSlots) {
         ArrayList<TimeSlotSatisfactionPair> timeSlotSatisfactionPairs = new ArrayList<>();
         double[] satisfactionCurve = SimulationConfigurationSingleton.getInstance().getSatisfactionCurve();
@@ -595,10 +604,11 @@ public class AgentHelper {
         return timeSlotSatisfactionPairs;
     }
 
-    // TODO: Cite Arena code
     /**
      * Takes all Agents of a given types individual satisfactions and calculates the variance between the average
      * satisfaction of the Agents of that type.
+     *
+     * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/CalculateSatisfaction.java">ResourceExchangeArena</a>
      *
      * @param agentContacts Array List of all the agents that exist in the current simulation.
      * @param agentType The type for which to calculate the variance between the average satisfactions of all Agents of

@@ -196,7 +196,11 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public void action() {
-            // TODO: Cite Arena code
+            /*
+            The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+            See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/Day.java
+            */
+
             // Fill the available time-slots with all the slots that exist each day.
             int numOfRequiredTimeSlots = config.getPopulationCount() * config.getNumOfSlotsPerAgent();
 
@@ -234,7 +238,11 @@ public class AdvertisingBoardAgent extends Agent {
             Collections.shuffle(householdAgentContacts, config.getRandom());
 
             for (AgentContact contact : householdAgentContacts) {
-                // TODO: Cite Arena code
+                /*
+                The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+                See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/Day.java
+                */
+
                 TimeSlot[] initialTimeSlots = new TimeSlot[config.getNumOfSlotsPerAgent()];
 
                 for (int i = 0; i < config.getNumOfSlotsPerAgent(); i++) {
@@ -740,7 +748,7 @@ public class AdvertisingBoardAgent extends Agent {
                         );
 
                         // Check if the requester has any timeslots to offer in return and if a desired timeslot was found
-                        if (timeSlotOwnerPair != null) { // TODO: change all occurrences of "sender" to "requester"
+                        if (timeSlotOwnerPair != null) {
                             AID receiverAgent = timeSlotOwnerPair.second();
 
                             // Offer the requester's least wanted timeslot - the first element of the advert
@@ -943,7 +951,11 @@ public class AdvertisingBoardAgent extends Agent {
                 );
             }
 
-            // TODO: Cite Arena code
+            /*
+            The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+            See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/Day.java
+            */
+
             if (numOfSuccessfulExchanges == 0) {
                 exchangeTimeout++;
             } else {
@@ -1019,7 +1031,11 @@ public class AdvertisingBoardAgent extends Agent {
 
         @Override
         public void action() {
-            // TODO: Cite Arena code
+            /*
+            The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+            See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/SocialLearning.java
+            */
+
             // Copy agents to store all agents that haven't yet been selected for social learning.
             ArrayList<AID> unselectedAgents = new ArrayList<>(getHouseholdAgentAIDList());
 
@@ -1317,7 +1333,11 @@ public class AdvertisingBoardAgent extends Agent {
         TimeSlot targetTimeSlot = null;
         AID targetReceiver = null;
 
-        // TODO: Cite Arena code
+        /*
+        The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+        See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/SocialLearning.java
+        */
+
         ArrayList<AID> shuffledAdvertPosters = new ArrayList<>(adverts.keySet());
 
         // Remove the requesting agent from the temp advert catalogue to avoid an unnecessary check
@@ -1359,7 +1379,9 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
-    // TODO: Cite Arena code
+    /**
+     * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/CalculateSatisfaction.java">ResourceExchangeArena</a>
+     */
     private void calculateInitialAndOptimumSatisfactions() {
         ArrayList<TimeSlot> allAllocatedTimeSlots = new ArrayList<>();
         ArrayList<TimeSlot> allRequestedTimeSlots = new ArrayList<>();

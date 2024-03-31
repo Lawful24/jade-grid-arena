@@ -256,7 +256,11 @@ public class HouseholdAgent extends Agent {
 
         @Override
         public void action() {
-            // TODO: Cite Arena code
+            /*
+            The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+            See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/Agent.java
+            */
+
             if (!requestedTimeSlots.isEmpty()) {
                 requestedTimeSlots.clear();
             }
@@ -1074,7 +1078,11 @@ public class HouseholdAgent extends Agent {
 
                     // Make sure the incoming object is of the expected type
                     if (receivedObject instanceof AgentContact advertisingAgentsHouseholdContact) {
-                        // TODO: Cite Arena code
+                        /*
+                        The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+                        See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/SocialLearning.java
+                        */
+
                         // Copy the observed agents strategy if it is better than its own, with likelihood dependent on the
                         // difference between the agents satisfaction and the observed satisfaction.
                         double observedAgentSatisfaction = advertisingAgentsHouseholdContact.getCurrentSatisfaction();
@@ -1188,10 +1196,11 @@ public class HouseholdAgent extends Agent {
         initializeFavoursStore();
     }
 
-    // TODO: Cite Arena code
     /**
      * Identifies all other Agents in the ExchangeArena and initialises counts of favours given to and received from
      * each other Agent.
+     *
+     * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/Agent.java">ResourceExchangeArena</a>
      */
     private void initializeFavoursStore() {
         if (config.doesUtiliseSocialCapita()) {
@@ -1210,9 +1219,10 @@ public class HouseholdAgent extends Agent {
         }
     }
 
-    // TODO: Cite Arena code
     /**
      * Determine whether the Agent will be willing to accept a received exchange request.
+     *
+     * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/Agent.java">ResourceExchangeArena</a>
      *
      * @param offer The exchange that is to be considered.
      * @return Boolean Whether the request was accepted.
@@ -1266,10 +1276,11 @@ public class HouseholdAgent extends Agent {
         return exchangeRequestApproved;
     }
 
-    // TODO: Cite Arena code
     /**
      * Completes an exchange that was originally requested by another Agent, making the exchange and updating this
      * Agents relationship with the other Agent involved.
+     *
+     * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/Agent.java">ResourceExchangeArena</a>
      *
      * @param offer The exchange that is to be completed.
      * @return Boolean Whether the other agent gained social capital.
@@ -1298,10 +1309,11 @@ public class HouseholdAgent extends Agent {
         return otherAgentSCLoss;
     }
 
-    // TODO: Cite Arena code
     /**
      * Completes an exchange that was originally requested by this Agent, making the exchange and updating this Agents
      * relationship with the other Agent involved.
+     *
+     * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/Agent.java">ResourceExchangeArena</a>
      *
      * @param offer The exchange that is to be completed.
      * @return Boolean Whether the other agent gained social capital.

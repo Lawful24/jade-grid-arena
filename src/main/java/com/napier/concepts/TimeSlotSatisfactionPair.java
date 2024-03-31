@@ -1,6 +1,8 @@
 package com.napier.concepts;
 
-// TODO: Cite Arena code
+/**
+ * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/SlotSatisfactionPair.java">ResourceExchangeArena</a>
+ */
 public class TimeSlotSatisfactionPair {
     TimeSlot timeSlot;
     double satisfaction;

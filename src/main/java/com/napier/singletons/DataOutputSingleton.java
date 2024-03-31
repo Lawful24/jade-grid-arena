@@ -63,7 +63,11 @@ public class DataOutputSingleton {
      * @param selectedSingleAgentType The only agent type used currently in the simulation if it only uses one of the 2 agent strategies.
      */
     private void createSimulationResultsFolderTree(boolean doesUtiliseSocialCapita, boolean doesUtiliseSingleAgentType, AgentStrategyType selectedSingleAgentType) {
-        // TODO: Cite Arena code
+        /*
+        The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+        See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/ResourceExchangeArena.java
+        */
+
         // Create a directory to store the data output by all simulations being run.
         this.simulationDataOutputParentFolderPath = this.config.getResultsFolderPath() + "/" + this.config.getStartingSeed() + "/useSC_" + doesUtiliseSocialCapita + "_AType_";
 
@@ -81,7 +85,11 @@ public class DataOutputSingleton {
         this.simulationDataOutputFolderPath = this.simulationDataOutputParentFolderPath + "/data";
 
         try {
-            // TODO: Cite Arena code
+            /*
+            The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+            See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/ResourceExchangeArena.java
+            */
+
             // Create a directory to store the data output by the simulation.
             Files.createDirectories(Path.of(this.simulationDataOutputFolderPath));
         } catch (IOException e) {
@@ -94,14 +102,18 @@ public class DataOutputSingleton {
      */
     private void createAgentDataOutputFile() {
         if (this.simulationDataOutputFolderPath != null) {
-            // TODO: Cite Arena code
+            /*
+            The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+            See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/ArenaEnvironment.java
+            */
+
             File agentDataFile = new File(this.simulationDataOutputFolderPath, "agentData.csv");
 
             try {
                 this.agentDataCSVWriter = new FileWriter(agentDataFile);
 
                 // Write first row of the .csv file
-                agentDataCSVWriter.append("Simulation Run,"); // TODO: convert these statements into an array and then map a function to convert it into csv data
+                agentDataCSVWriter.append("Simulation Run,");
                 agentDataCSVWriter.append("Day,");
                 agentDataCSVWriter.append("Agent Type,");
                 agentDataCSVWriter.append("Satisfaction,");
@@ -126,7 +138,11 @@ public class DataOutputSingleton {
      */
     private void createDailyDataOutputFile() {
         if (this.simulationDataOutputFolderPath != null) {
-            // TODO: Cite Arena code
+            /*
+            The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+            See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/ArenaEnvironment.java
+            */
+
             File dailyDataFile = new File(this.simulationDataOutputFolderPath, "dailyData.csv");
 
             try {
@@ -168,7 +184,11 @@ public class DataOutputSingleton {
      */
     private void createExchangeDataOutputFile() {
         if (this.simulationDataOutputFolderPath != null) {
-            // TODO: Cite Arena code
+            /*
+            The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+            See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/ArenaEnvironment.java
+            */
+
             File exchangeDataFile = new File(this.simulationDataOutputFolderPath, "exchangeData.csv");
 
             try {
@@ -224,7 +244,11 @@ public class DataOutputSingleton {
      */
     private void createSimulationDataOutputFile(boolean doesUtiliseSocialCapita, boolean doesUtiliseSingleAgentType, AgentStrategyType selectedSingleAgentType) {
         if (this.simulationDataOutputParentFolderPath != null) {
-            // TODO: Cite Arena code
+            /*
+            The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+            See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/ArenaEnvironment.java
+            */
+
             File simulationDataFile = new File(this.simulationDataOutputParentFolderPath, "simulationData.txt");
 
             try {
@@ -291,7 +315,11 @@ public class DataOutputSingleton {
     ) {
         if (agentDataCSVWriter != null) {
             try {
-                // TODO: Cite Arena code
+                /*
+                The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+                See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/Day.java
+                */
+
                 this.agentDataCSVWriter.append(String.valueOf(currentSimulationRun)).append(",");
                 this.agentDataCSVWriter.append(String.valueOf(currentDay)).append(",");
                 this.agentDataCSVWriter.append(String.valueOf(agentStrategyType)).append(","); // TODO: could be an issue with the scripts expecting an int
@@ -343,7 +371,11 @@ public class DataOutputSingleton {
     ) {
         if (this.dailyDataCSVWriter != null) {
             try {
-                // TODO: Cite Arena code
+                /*
+                The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+                See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/Day.java
+                */
+
                 this.dailyDataCSVWriter.append(String.valueOf(currentSimulationRun)).append(",");
                 this.dailyDataCSVWriter.append(String.valueOf(currentDay)).append(",");
                 this.dailyDataCSVWriter.append(String.valueOf(socialPopulationCount)).append(",");
@@ -392,7 +424,11 @@ public class DataOutputSingleton {
     ) {
         if (this.exchangeDataCSVWriter != null) {
             try {
-                // TODO: Cite Arena code
+                /*
+                The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+                See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/Exchange.java
+                */
+
                 this.exchangeDataCSVWriter.append(String.valueOf(currentSimulationRun)).append(",");
                 this.exchangeDataCSVWriter.append(String.valueOf(currentDay)).append(",");
                 this.exchangeDataCSVWriter.append(String.valueOf(currentExchangeRound)).append(","); // TODO: this starts at 0 in the original code
@@ -468,7 +504,11 @@ public class DataOutputSingleton {
             try {
                 switch (agentStrategyType) {
                     case SOCIAL:
-                        // TODO: Cite Arena code
+                        /*
+                        The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+                        See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/ArenaEnvironment.java
+                        */
+
                         this.simulationDataTXTWriter.append("Social Takeovers: ").append(String.valueOf(numOfTypeTakeovers)).append("\n");
                         this.simulationDataTXTWriter.append("Fastest Social: Run ").append(String.valueOf(fastestTakeoverRun)).append("\n");
                         this.simulationDataTXTWriter.append("Slowest Social: Run ").append(String.valueOf(slowestTakeoverRun)).append("\n");
@@ -481,7 +521,11 @@ public class DataOutputSingleton {
 
                         break;
                     case SELFISH:
-                        // TODO: Cite Arena code
+                        /*
+                        The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+                        See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/ArenaEnvironment.java
+                        */
+
                         this.simulationDataTXTWriter.append("Selfish Takeovers: ").append(String.valueOf(numOfTypeTakeovers)).append("\n");
                         this.simulationDataTXTWriter.append("Fastest selfish: Run ").append(String.valueOf(fastestTakeoverRun)).append("\n");
                         this.simulationDataTXTWriter.append("Slowest selfish: Run ").append(String.valueOf(slowestTakeoverRun)).append("\n");

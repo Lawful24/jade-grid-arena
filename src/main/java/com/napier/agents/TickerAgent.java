@@ -229,7 +229,11 @@ public class TickerAgent extends Agent {
 
             // Make sure that the incoming data from the Advertising agent is not null
             if (endOfDayData != null) {
-                // TODO: Cite Arena code
+                /*
+                The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+                See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/Day.java
+                */
+
                 // Check if a takeover has happened in the current run
                 // This will trigger the count of the additional days defined in the configuration file
                 if (((endOfDayData.numOfSelfishAgents() == 0 || endOfDayData.numOfSocialAgents() == 0) || config.getNumOfAgentsToEvolve() == 0) && !takeover) {
@@ -511,11 +515,12 @@ public class TickerAgent extends Agent {
     /**
      * Filters the daily data collected by the Advertising agent to takeover data.
      *
+     * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/Day.java">ResourceExchangeArena</a>
+     *
      * @param endOfDayData The holder of the data that the Advertising agent collected during a day.
      * @param isFinalDayOfRun Whether the current day is the final day of the simulation run or not.
      */
     private void extractTakeoverData(EndOfDayAdvertisingBoardDataHolder endOfDayData, boolean isFinalDayOfRun) {
-        // TODO: Cite Arena code
         if (isFinalDayOfRun) {
             if (endOfDayData.numOfSelfishAgents() == 0.0) {
                 this.socialTakeoverDayDataHolders.add(new TakeoverDayDataHolder(
@@ -557,10 +562,11 @@ public class TickerAgent extends Agent {
 
     /**
      * Outputs overall simulation data for each strategy type takeover.
+     *
+     * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/ArenaEnvironment.java">ResourceExchangeArena</a>
      */
     private void writeSimulationData() {
         if (this.numOfSocialTakeoverRuns > 0 || this.numOfSelfishTakeoverRuns > 0) {
-            // TODO: Cite Arena code
             int middleSocialRun = 0;
             int middleSelfishRun = 0;
 
@@ -620,7 +626,10 @@ public class TickerAgent extends Agent {
             numOfTypeTakeoverRuns = this.numOfSelfishTakeoverRuns;
         }
 
-        // TODO: Cite Arena code
+        /*
+        The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+        See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/ArenaEnvironment.java
+        */
         Comparator<TakeoverDayDataHolder> takeoverDataHolderComparator = Comparator.comparing(TakeoverDayDataHolder::takeoverDay);
 
         takeoverDayDataHolders.sort(takeoverDataHolderComparator);

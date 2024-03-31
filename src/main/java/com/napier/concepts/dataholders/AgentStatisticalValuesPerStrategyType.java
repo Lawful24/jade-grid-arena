@@ -12,7 +12,7 @@ import java.util.Collections;
  * Calculates and contains statistical data about a simulation run.
  * This class was converted from the original ArrayList implementation in ResourceExchangeArena.
  *
- * TODO: Cite Arena code
+ * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/CalculateSatisfaction.java">ResourceExchangeArena</a>
  *
  * @author László Tárkányi
  */
@@ -25,7 +25,6 @@ public class AgentStatisticalValuesPerStrategyType implements Serializable {
     private final double median;
 
     public AgentStatisticalValuesPerStrategyType(ArrayList<AgentContact> householdAgentContacts, AgentStrategyType agentStrategyType) {
-        // TODO: Cite Arena code
         ArrayList<Double> agentSatisfactions = new ArrayList<>();
 
         for (AgentContact agentContact : householdAgentContacts) {
@@ -33,6 +32,11 @@ public class AgentStatisticalValuesPerStrategyType implements Serializable {
                 agentSatisfactions.add(agentContact.getCurrentSatisfaction());
             }
         }
+
+        /*
+        The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+        See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/Day.java
+        */
 
         Collections.sort(agentSatisfactions);
 
@@ -112,9 +116,10 @@ public class AgentStatisticalValuesPerStrategyType implements Serializable {
         return median;
     }
 
-    // TODO: Cite Arena code
     /**
      * Use linear interpolation to calculate a percentile from an array of data.
+     *
+     * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/CalculateSatisfaction.java">ResourceExchangeArena</a>
      *
      * @param xs Array of values from which the percentile is calculated.
      * @return Double value of the percentile requested.

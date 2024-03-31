@@ -316,10 +316,11 @@ public class SimulationConfigurationSingleton {
         return Arrays.stream(input.split(",")).mapToDouble(Double::parseDouble).toArray();
     }
 
-    // TODO: Cite Arena code
     /**
      * Converts a String into a two-dimensional double array.
      * The String has to be in the following format: 1.0,1.0,0.0,1.0||0.0,0.0,1.0,0.0
+     *
+     * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/ResourceExchangeArena.java">ResourceExchangeArena</a>
      *
      * @param input The text containing the values of the array.
      * @return (double[][]) The array form of the input text.
@@ -356,13 +357,12 @@ public class SimulationConfigurationSingleton {
         return Arrays.stream(input.split(",")).mapToInt(Integer::parseInt).toArray();
     }
 
-    // TODO: Flag as nullable
     /**
      * Converts a String to an agent strategy type enum.
      * The String has to be in the following format: social
      *
      * @param input The String containing the strategy type.
-     * @return (AgentStrategyType) The enum form of the input text.
+     * @return (AgentStrategyType) The enum form of the input text or null if the input format is incorrect.
      */
     private AgentStrategyType inputToStrategyEnum(String input) {
         return input.equals("social") ? AgentStrategyType.SOCIAL : input.equals("selfish") ? AgentStrategyType.SELFISH : null;
@@ -390,7 +390,11 @@ public class SimulationConfigurationSingleton {
         return Math.round(fraction * selfishRatio);
     }
 
-    // TODO: Cite Arena code
+    /**
+     * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/ArenaEnvironment.java">ResourceExchangeArena</a>
+     *
+     * @return (double[][]) The sorted demand curves using bucket sort.
+     */
     private double[][] bucketSortDemandCurves() {
         double[][] bucketedDemandCurves = new double[this.demandCurves.length][this.numOfUniqueTimeSlots];
 
@@ -417,7 +421,12 @@ public class SimulationConfigurationSingleton {
         return bucketedDemandCurves;
     }
 
-    // TODO: Cite Arena code
+    /**
+     * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/ArenaEnvironment.java">ResourceExchangeArena</a>
+     *
+     * @return (double[]) The demand values based on the bucket sorted demand curves.
+     * @throws NullPointerException If the demand curves have not been bucket sorted before this is called and the demand curves have not been read.
+     */
     private double[] calculateTotalDemandValues() throws NullPointerException {
         double[] totalDemandValues = new double[this.demandCurves.length];
 
@@ -452,7 +461,11 @@ public class SimulationConfigurationSingleton {
         int curveIndex = 0;
 
         if (this.bucketedDemandCurves != null) {
-            // TODO: Cite Arena code
+            /*
+            The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+            See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/Day.java
+            */
+
             for (int i = 0; i < this.populationCount; i++) {
                 unallocatedCurveIndices.add(curveIndex);
                 curveIndex++;
@@ -471,7 +484,11 @@ public class SimulationConfigurationSingleton {
         return unallocatedCurveIndices;
     }
 
-    // TODO: Cite Arena code
+    /**
+     * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/ArenaEnvironment.java">ResourceExchangeArena</a>
+     *
+     * @return (int[])
+     */
     private int[] bucketSortAvailabilityCurve() {
         // The availability curve is bucketed before the simulations for efficiency, as they will all use the same bucketed values.
         int[] bucketedAvailabilityCurve = new int[this.numOfUniqueTimeSlots];
@@ -495,7 +512,11 @@ public class SimulationConfigurationSingleton {
         return bucketedAvailabilityCurve;
     }
 
-    // TODO: Cite Arena code
+    /**
+     * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/ArenaEnvironment.java">ResourceExchangeArena</a>
+     *
+     * @return The total amount of energy to distribute among the Household agents.
+     */
     private int calculateTotalAvailableEnergy() {
         int totalAvailableEnergy = 0;
 
@@ -506,6 +527,11 @@ public class SimulationConfigurationSingleton {
         return totalAvailableEnergy;
     }
 
+    /**
+     * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/ResourceExchangeArena.java">ResourceExchangeArena</a>
+     *
+     * @return The number of agents selected for social learning.
+     */
     private int calculateNumberOfAgentsToEvolve() {
         return (int)Math.round(((double)this.populationCount / 100.0) * this.evolutionPercentage);
     }

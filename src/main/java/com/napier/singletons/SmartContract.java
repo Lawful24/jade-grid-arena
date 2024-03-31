@@ -175,7 +175,12 @@ public class SmartContract {
         }
     }
 
-    // TODO: Cite https://www.baeldung.com/sha-256-hashing-java#:~:text=The%20SHA%20(Secure%20Hash%20Algorithm,text%20or%20a%20data%20file.
+    /**
+     * @see <a href="https://www.baeldung.com/sha-256-hashing-java#:~:text=The%20SHA%20">Baeldung: SHA-256 and SHA3-256 Hashing in Java</a>
+     *
+     * @param hash The byte array representation of an encrypted Transaction object.
+     * @return The hexadecimal representation of the provided byte array.
+     */
     private static String bytesToHex(byte[] hash) {
         StringBuilder hexString = new StringBuilder(2 * hash.length);
 
