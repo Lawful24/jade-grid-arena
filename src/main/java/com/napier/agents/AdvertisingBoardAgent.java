@@ -29,6 +29,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 
+/**
+ * An agent of the advertiser archetype. Its main purpose is to help Household agents advertise their timeslots
+ * and conduct trades between them as the third party.
+ * Only one of them can exist in this application.
+ *
+ * @author László Tárkányi
+ */
 public class AdvertisingBoardAgent extends Agent {
     // Generated attributes
     private ArrayList<TimeSlot> availableTimeSlots;
@@ -77,6 +84,10 @@ public class AdvertisingBoardAgent extends Agent {
         AgentHelper.deregisterAgent(this);
     }
 
+    /**
+     * Seeks out the only Ticker type agent and saves it for contacting it in the future.
+     * A reusable behaviour of AdvertisingBoardAgent.
+     */
     public class FindTickerBehaviour extends OneShotBehaviour {
         public FindTickerBehaviour(Agent a) {
             super(a);
@@ -88,6 +99,10 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
+    /**
+     * Seeks out all the Household type agents and save them for contacting them in the future.
+     * A reusable behaviour of AdvertisingBoardAgent.
+     */
     public class FindHouseholdsBehaviour extends OneShotBehaviour {
         public FindHouseholdsBehaviour(Agent a) {
             super(a);
@@ -100,6 +115,10 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
+    /**
+     * A listener for messages from the Ticker agent. It is also responsible for initiating the agent's daily activities.
+     * A repeated behaviour of AdvertisingBoardAgent.
+     */
     public class TickerDailyBehaviour extends CyclicBehaviour {
         public TickerDailyBehaviour(Agent a) {
             super(a);
@@ -166,6 +185,10 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
+    /**
+     * Creates timeslot assets based on the configuration settings.
+     * A reusable behaviour of AdvertisingBoardAgent.
+     */
     public class GenerateTimeSlotsBehaviour extends OneShotBehaviour {
         public GenerateTimeSlotsBehaviour(Agent a) {
             super(a);
@@ -197,6 +220,10 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
+    /**
+     * Gives out an equal number of timeslots to all Household agents regardless of their preferences.
+     * A reusable behaviour of AdvertisingBoardAgent.
+     */
     public class DistributeInitialRandomTimeSlotAllocations extends OneShotBehaviour {
         public DistributeInitialRandomTimeSlotAllocations(Agent a) {
             super(a);
@@ -238,6 +265,12 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
+    /**
+     * Starts an exchange round of the Message Passing type on the side of the Advertising agent.
+     * Sets off a chain of behaviours that represent the actions of this agent in an exchange round.
+     * Specific to the Message Passing exchange type.
+     * A reusable behaviour of AdvertisingBoardAgent.
+     */
     public class InitiateExchangeBehaviour extends OneShotBehaviour {
         private final SequentialBehaviour exchangeRoundSequence = new SequentialBehaviour();
 
@@ -274,6 +307,10 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
+    /**
+     * Listens for adverts from Household agents that contain the timeslots that they do not require.
+     * A reusable behaviour of AdvertisingBoardAgent.
+     */
     public class NewAdvertListenerBehaviour extends Behaviour {
         private int numOfAdvertsReceived = 0;
 
@@ -337,6 +374,11 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
+    /**
+     * Listens for incoming requests from Household agents regarding their timeslot preferences.
+     * Specific to the Message Passing exchange type.
+     * A reusable behaviour of AdvertisingBoardAgent.
+     */
     public class InquiryListenerBehaviour extends Behaviour {
         private int numOfRequestsProcessed = 0;
         private final ArrayList<AID> agentsToReceiveATradeOffer = new ArrayList<>();
@@ -364,11 +406,11 @@ public class AdvertisingBoardAgent extends Agent {
                     AdvertisingBoardAgent.this.requestedTimeSlots.put(requesterAgent, new ArrayList<>(Arrays.asList(requestedTimeSlotsHolder.timeSlots())));
 
                     // Prepare a trade offer to the owner of the desired timeslot if that timeslot is available for trade
-                    ArrayList<TimeSlot> sendersAdvertisedTimeSlots = adverts.get(requesterAgent);
+                    ArrayList<TimeSlot> requestersAdvertisedTimeSlots = adverts.get(requesterAgent);
 
                     // Check if the household agent has made interaction with another household agent in the current exchange round
-                    // Find out if the sender has any timeslots available to trade
-                    if (!householdAgentsInteractions.get(requesterAgent) && !sendersAdvertisedTimeSlots.isEmpty()) {
+                    // Find out if the requester has any timeslots available to trade
+                    if (!householdAgentsInteractions.get(requesterAgent) && !requestersAdvertisedTimeSlots.isEmpty()) {
                         // Flip the "made interaction" flag
                         householdAgentsInteractions.replace(requesterAgent, true);
 
@@ -379,13 +421,13 @@ public class AdvertisingBoardAgent extends Agent {
                                 agentsToReceiveATradeOffer
                         );
 
-                        // Check if the sender has any timeslots to offer in return and if a desired timeslot was found
+                        // Check if the requester has any timeslots to offer in return and if a desired timeslot was found
                         if (timeSlotOwnerPair != null) {
                             AID receiverAgent = timeSlotOwnerPair.second();
 
-                            // Offer the sender's least wanted timeslot - the first element of the advert
+                            // Offer the requester's least wanted timeslot - the first element of the advert
                             // Send the trade offer to the agent that has the desired timeslot, with the
-                            // sender's nickname as the text content
+                            // requester's nickname as the text content
                             AgentHelper.sendMessage(
                                     myAgent,
                                     receiverAgent,
@@ -393,7 +435,7 @@ public class AdvertisingBoardAgent extends Agent {
                                     new TradeOffer(
                                             requesterAgent,
                                             receiverAgent,
-                                            sendersAdvertisedTimeSlots.getFirst(),
+                                            requestersAdvertisedTimeSlots.getFirst(),
                                             timeSlotOwnerPair.first()
                                     ),
                                     ACLMessage.PROPOSE
@@ -430,9 +472,9 @@ public class AdvertisingBoardAgent extends Agent {
 
                 if (refuseRequest) {
                     // Reach this block if any of these events happened:
-                    // - the sender had no timeslots advertised to offer in return
+                    // - the requester had no timeslots advertised to offer in return
                     // - the object sent by the requester can't be processed
-                    // - the recipient of the request has already made interaction with another agent this round
+                    // - the receiver has already made interaction with another agent this round
                     // - none of the desired timeslots were found in the adverts
 
                     // Send a reply to the requester agent about the request not being fulfilled
@@ -468,6 +510,11 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
+    /**
+     * Listens for the responses from the trade offers that were sent out as a result of the Household agent inquiries.
+     * Specific to the Message Passing exchange type.
+     * A reusable behaviour of AdvertisingBoardAgent.
+     */
     public class TradeOfferResponseListenerBehaviour extends Behaviour {
         private int numOfTradeOfferReplies = 0;
 
@@ -543,6 +590,11 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
+    /**
+     * Listens for messages to forward from the requester to the receiver after a successful trade.
+     * Specific to the Message Passing exchange type.
+     * A reusable behaviour of AdvertisingBoardAgent.
+     */
     public class SocialCapitaSyncPropagateBehaviour extends Behaviour {
         private int numOfMessagesPropagated = 0;
 
@@ -601,6 +653,12 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
+    /**
+     * Starts an exchange round of the Message Passing type on the side of the Advertising agent.
+     * Sets off a chain of behaviours that represent the actions of this agent in an exchange round.
+     * Specific to the Smart Contract exchange type.
+     * A reusable behaviour of AdvertisingBoardAgent.
+     */
     public class InitiateSCExchangeBehaviour extends OneShotBehaviour {
         private final SequentialBehaviour exchangeRoundSequence = new SequentialBehaviour();
 
@@ -636,6 +694,11 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
+    /**
+     * Listens for incoming requests from Household agents regarding their timeslot preferences.
+     * Specific to the Smart Contract exchange type.
+     * A reusable behaviour of AdvertisingBoardAgent.
+     */
     public class InquiryListenerSCBehaviour extends Behaviour {
         private int numOfRequestsProcessed = 0;
         private final ArrayList<AID> agentsToReceiveATradeOffer = new ArrayList<>();
@@ -661,11 +724,11 @@ public class AdvertisingBoardAgent extends Agent {
                     requestedTimeSlots.put(requesterAgent, new ArrayList<>(Arrays.asList(requestedTimeSlotsHolder.timeSlots())));
 
                     // Prepare a trade offer to the owner of the desired timeslot if that timeslot is available for trade
-                    ArrayList<TimeSlot> sendersAdvertisedTimeSlots = adverts.get(requesterAgent);
+                    ArrayList<TimeSlot> requestersAdvertisedTimeSlots = adverts.get(requesterAgent);
 
                     // Check if the household agent has made interaction with another household agent in the current exchange round
-                    // Find out if the sender has any timeslots available to trade
-                    if (!householdAgentsInteractions.get(requesterAgent) && !sendersAdvertisedTimeSlots.isEmpty()) {
+                    // Find out if the requester has any timeslots available to trade
+                    if (!householdAgentsInteractions.get(requesterAgent) && !requestersAdvertisedTimeSlots.isEmpty()) {
                         // Flip the "made interaction" flag
                         householdAgentsInteractions.replace(requesterAgent, true);
 
@@ -690,7 +753,7 @@ public class AdvertisingBoardAgent extends Agent {
                                     new TradeOffer(
                                             requesterAgent,
                                             receiverAgent,
-                                            sendersAdvertisedTimeSlots.getFirst(),
+                                            requestersAdvertisedTimeSlots.getFirst(),
                                             timeSlotOwnerPair.first()
                                     ),
                                     ACLMessage.AGREE
@@ -727,9 +790,9 @@ public class AdvertisingBoardAgent extends Agent {
 
                 if (refuseRequest) {
                     // Reach this block if any of these events happened:
-                    // - the sender had no timeslots advertised to offer in return
+                    // - the requester had no timeslots advertised to offer in return
                     // - the object sent by the requester can't be processed
-                    // - the recipient of the request has already made interaction with another agent this round
+                    // - the receiver of the request has already made interaction with another agent this round
                     // - none of the desired timeslots were found in the adverts
 
                     // Send a reply to the requester agent about the request not being fulfilled
@@ -765,6 +828,11 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
+    /**
+     * Listens for the outcome of the trades that were started as a result of the inquiries.
+     * Specific to the Smart Contract exchange type.
+     * A reusable behaviour of AdvertisingBoardAgent.
+     */
     public class StartedTradesOutcomeSCListener extends Behaviour {
         private int numOfOutcomesReceived = 0;
 
@@ -820,6 +888,10 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
+    /**
+     * Listens for Household agents being finished with the exchange round on their side.
+     * A reusable behaviour of AdvertisingBoardAgent.
+     */
     public class ExchangeRoundOverListener extends Behaviour {
         private final HashMap<AID, EndOfExchangeHouseholdDataHolder> dataHolders = new HashMap<>();
 
@@ -936,6 +1008,10 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
+    /**
+     * Starts the social learning activity at the end of a day.
+     * A reusable behaviour of AdvertisingBoardAgent.
+     */
     public class InitiateSocialLearningBehaviour extends OneShotBehaviour {
         public InitiateSocialLearningBehaviour(Agent a) {
             super(a);
@@ -988,6 +1064,10 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
+    /**
+     * Listens for the responses from the Household agents being finished with the social learning activity.
+     * A reusable behaviour of AdvertisingBoardAgent.
+     */
     public class SocialLearningOverListenerBehaviour extends Behaviour {
         private int socialLearningOverMessagesReceived = 0;
 
@@ -1040,6 +1120,10 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
+    /**
+     * Listens for Household agents being done with their daily activities and notifying the Ticker agent.
+     * A reusable behaviour of AdvertisingBoardAgent.
+     */
     public class CallItADayBehaviour extends Behaviour {
         private final HashMap<AgentContact, EndOfDayHouseholdAgentDataHolder> householdAgentsEndOfDayData = new HashMap<>();
 
@@ -1170,6 +1254,9 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
+    /**
+     * Sets the initial state of the agent.
+     */
     private void initialAgentSetup() {
         this.availableTimeSlots = new ArrayList<>();
         this.initialRandomAllocatedTimeSlots = new HashMap<>();
@@ -1189,10 +1276,18 @@ public class AdvertisingBoardAgent extends Agent {
         this.outputInstance = DataOutputSingleton.getInstance();
     }
 
+    /**
+     * Extracts the list of AID objects from the interaction storage map.
+     *
+     * @return (ArrayList of Agent Identifiers) A list of all known Household agent contacts.
+     */
     private ArrayList<AID> getHouseholdAgentAIDList() {
         return new ArrayList<>(this.householdAgentsInteractions.keySet());
     }
 
+    /**
+     * Sets the state of the agent to the same as before the first exchange started.
+     */
     private void resetExchange() {
         this.adverts.clear();
         this.numOfTradesStarted = 0;
@@ -1210,6 +1305,14 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
+    /**
+     * Seeks out a one of the requester Household agent's desired timeslots.
+     *
+     * @param requestedTimeSlots The Household agent's desired timeslots.
+     * @param requesterHouseholdAgent The AID of the requester Household agent.
+     * @param agentsToReceiveATradeOffer The storage of Household agents who are receiving a trade offer in the current exchange round.
+     * @return (Pair(Timeslot, AID)) The pair containing the desired timeslot and its current owner, or null if no desired timeslots were found or the requester has no advertised timeslots of its own.
+     */
     private Pair<TimeSlot, AID> findRequestedTimeSlotInAdverts(TimeSlot[] requestedTimeSlots, AID requesterHouseholdAgent, ArrayList<AID> agentsToReceiveATradeOffer) {
         TimeSlot targetTimeSlot = null;
         AID targetReceiver = null;
@@ -1256,8 +1359,8 @@ public class AdvertisingBoardAgent extends Agent {
         }
     }
 
+    // TODO: Cite Arena code
     private void calculateInitialAndOptimumSatisfactions() {
-        // TODO: Cite Arena code
         ArrayList<TimeSlot> allAllocatedTimeSlots = new ArrayList<>();
         ArrayList<TimeSlot> allRequestedTimeSlots = new ArrayList<>();
 

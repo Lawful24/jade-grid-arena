@@ -22,7 +22,7 @@ import java.util.Comparator;
 
 /**
  * An agent that keeps track of the time passed in the application and synchronises the communication between other agents.
- * Only one of them can exist in an application.
+ * Only one of them can exist in this application.
  *
  * @author László Tárkányi
  */
