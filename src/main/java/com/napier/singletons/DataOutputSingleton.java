@@ -24,7 +24,6 @@ public class DataOutputSingleton {
     private FileWriter agentDataCSVWriter;
     private FileWriter dailyDataCSVWriter;
     private FileWriter exchangeDataCSVWriter;
-    private FileWriter performanceDataCSVWriter;
     private File dailyDataFile;
 
     // Singleton
@@ -54,7 +53,6 @@ public class DataOutputSingleton {
         this.createAgentDataOutputFile();
         this.createExchangeDataOutputFile();
         this.createDailyDataOutputFile();
-        this.createPerformanceDataOutputFile();
         this.createSimulationDataOutputFile(doesUtiliseSocialCapita, doesUtiliseSingleAgentType, selectedSingleAgentType);
     }
 
@@ -202,37 +200,14 @@ public class DataOutputSingleton {
                 exchangeDataCSVWriter.append("Day,");
                 exchangeDataCSVWriter.append("Round,");
                 exchangeDataCSVWriter.append("Agent Type,");
-                exchangeDataCSVWriter.append("Satisfaction");
+                exchangeDataCSVWriter.append("Satisfaction,");
+                exchangeDataCSVWriter.append("Average Household Agent CPU Time,");
+                exchangeDataCSVWriter.append("Average Requester CPU Time,");
+                exchangeDataCSVWriter.append("Average Receiver CPU Time,");
+                exchangeDataCSVWriter.append("Average Non-participant CPU Time");
                 exchangeDataCSVWriter.append("\n");
             } catch (IOException e) {
                 System.err.println("Could not write in exchange data output file.");
-            }
-        } else {
-            System.err.println("Data writer tried writing to file without knowing the path of its parent folder.");
-        }
-    }
-
-    /**
-     * Creates a new file or overwrites an existing one with the same name and writes the first row as a data index.
-     */
-    private void createPerformanceDataOutputFile() {
-        if (this.simulationDataOutputFolderPath != null) {
-            File performanceDataFile = new File(this.simulationDataOutputFolderPath, "performanceData.csv");
-
-            try {
-                this.performanceDataCSVWriter = new FileWriter(performanceDataFile);
-
-                // Write first row of the .csv file
-                performanceDataCSVWriter.append("Simulation Run,");
-                performanceDataCSVWriter.append("Day,");
-                performanceDataCSVWriter.append("Round,");
-                performanceDataCSVWriter.append("Strategy Type,");
-                performanceDataCSVWriter.append("Requester,");
-                performanceDataCSVWriter.append("Receiver,");
-                performanceDataCSVWriter.append("CPU Time Used (ns)");
-                performanceDataCSVWriter.append("\n");
-            } catch (IOException e) {
-                System.err.println("Could not write in performance data output file.");
             }
         } else {
             System.err.println("Data writer tried writing to file without knowing the path of its parent folder.");
@@ -418,13 +393,21 @@ public class DataOutputSingleton {
      * @param currentExchangeRound The number of a given exchange round in a day.
      * @param agentStrategyType A type of Household agents participating in the exchange round.
      * @param averageSatisfactionForType The average satisfaction in the given type population of Household agents.
+     * @param averagePerformanceForType The average CPU time spent on the exchange round for a given type of Household agents.
+     * @param averageRequesterPerformanceByType The average CPU time that an agent that requested a trade spent on the exchange round for a given type of Household agents.
+     * @param averageReceiverPerformanceByType The average CPU time that an agent that received a trade offer spent on the exchange round for a given type of Household agents.
+     * @param averageNoTradePerformanceByType The average CPU time that an agent that neither requested nor received a trade offer spent on the exchange round for a given type of Household agents.
      */
     public void appendExchangeData(
             int currentSimulationRun,
             int currentDay,
             int currentExchangeRound,
             AgentStrategyType agentStrategyType,
-            double averageSatisfactionForType
+            double averageSatisfactionForType,
+            float averagePerformanceForType,
+            float averageRequesterPerformanceByType,
+            float averageReceiverPerformanceByType,
+            float averageNoTradePerformanceByType
     ) {
         if (this.exchangeDataCSVWriter != null) {
             try {
@@ -437,46 +420,13 @@ public class DataOutputSingleton {
                 this.exchangeDataCSVWriter.append(String.valueOf(currentDay)).append(",");
                 this.exchangeDataCSVWriter.append(String.valueOf(currentExchangeRound)).append(",");
                 this.exchangeDataCSVWriter.append(String.valueOf(agentStrategyType)).append(",");
-                this.exchangeDataCSVWriter.append(String.valueOf(averageSatisfactionForType)).append("\n");
+                this.exchangeDataCSVWriter.append(String.valueOf(averageSatisfactionForType)).append(",");
+                this.exchangeDataCSVWriter.append(String.valueOf(averagePerformanceForType)).append(",");
+                this.exchangeDataCSVWriter.append(String.valueOf(averageRequesterPerformanceByType)).append(",");
+                this.exchangeDataCSVWriter.append(String.valueOf(averageReceiverPerformanceByType)).append(",");
+                this.exchangeDataCSVWriter.append(String.valueOf(averageNoTradePerformanceByType)).append("\n");
             } catch (IOException e) {
                 System.err.println("Error while trying to append data to the exchange data file.");
-            }
-        } else {
-            System.err.println("Tried to write data output file but the FileWriter was null.");
-        }
-    }
-
-    /**
-     * Append a record to the performance data file
-     *
-     * @param currentSimulationRun The number of the active simulation run in a simulation set.
-     * @param currentDay The number of the active day in a simulation run.
-     * @param currentExchangeRound The number of a given exchange round in a day.
-     * @param agentStrategyType A type of Household agents participating in the exchange round.
-     * @param isTradeOfferRequester Whether the agent is a requester of a trade offer or not.
-     * @param isTradeOfferReceiver Whether the agent is a receiver of a trade offer or not.
-     * @param cpuTimeUsedThisExchangeRound The number of nanoseconds it took for an agent to complete the given exchange round.
-     */
-    public void appendPerformanceData(
-            int currentSimulationRun,
-            int currentDay,
-            int currentExchangeRound,
-            AgentStrategyType agentStrategyType,
-            boolean isTradeOfferRequester,
-            boolean isTradeOfferReceiver,
-            long cpuTimeUsedThisExchangeRound
-    ) {
-        if (this.performanceDataCSVWriter != null) {
-            try {
-                this.performanceDataCSVWriter.append(String.valueOf(currentSimulationRun)).append(",");
-                this.performanceDataCSVWriter.append(String.valueOf(currentDay)).append(",");
-                this.performanceDataCSVWriter.append(String.valueOf(currentExchangeRound)).append(",");
-                this.performanceDataCSVWriter.append(String.valueOf(agentStrategyType)).append(",");
-                this.performanceDataCSVWriter.append(String.valueOf(isTradeOfferRequester)).append(",");
-                this.performanceDataCSVWriter.append(String.valueOf(isTradeOfferReceiver)).append(",");
-                this.performanceDataCSVWriter.append(String.valueOf(cpuTimeUsedThisExchangeRound)).append("\n");
-            } catch (IOException e) {
-                System.err.println("Error while trying to append data to the performance data file.");
             }
         } else {
             System.err.println("Tried to write data output file but the FileWriter was null.");
@@ -566,7 +516,6 @@ public class DataOutputSingleton {
             this.agentDataCSVWriter.flush();
             this.dailyDataCSVWriter.flush();
             this.exchangeDataCSVWriter.flush();
-            this.performanceDataCSVWriter.flush();
         } catch (IOException e) {
             System.err.println("Error while trying to flush the data writers.");
         }
@@ -581,7 +530,6 @@ public class DataOutputSingleton {
             this.agentDataCSVWriter.close();
             this.dailyDataCSVWriter.close();
             this.exchangeDataCSVWriter.close();
-            this.performanceDataCSVWriter.close();
         } catch (IOException e) {
             System.err.println("Error while trying to close the data writers.");
         }

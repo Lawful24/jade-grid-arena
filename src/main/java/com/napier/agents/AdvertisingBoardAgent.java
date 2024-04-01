@@ -964,35 +964,44 @@ public class AdvertisingBoardAgent extends Agent {
 
             // Write exchange data to file
             for (AgentStrategyType agentStrategyType : AgentStrategyType.values()) {
+                long exchangeRoundPerformanceSumByType = 0L;
+                long exchangeRoundRequesterPerformanceSum = 0L;
+                long exchangeRoundReceiverPerformanceSum = 0L;
+                long exchangeRoundNoTradePerformanceSum = 0L;
+                int numOfRequesters = 0;
+                int numOfReceivers = 0;
+                int numOfNoTraders = 0;
+
+                // Find the overall performance of a Household in an exchange for calculating the average
+                for (AgentContact householdAgentContact : householdAgentContacts) {
+                    EndOfExchangeHouseholdDataHolder exchangeData = this.dataHolders.get(householdAgentContact.getAgentIdentifier());
+
+                    if (householdAgentContact.getType() == agentStrategyType) {
+                        exchangeRoundPerformanceSumByType += exchangeData.exchangeRoundHouseholdCPUTime();
+
+                        if (exchangeData.isTradeOfferRequester()) {
+                            exchangeRoundRequesterPerformanceSum += exchangeData.exchangeRoundHouseholdCPUTime();
+                            numOfRequesters++;
+                        } else if (exchangeData.isTradeOfferReceiver()) {
+                            exchangeRoundReceiverPerformanceSum += exchangeData.exchangeRoundHouseholdCPUTime();
+                            numOfReceivers++;
+                        } else {
+                            exchangeRoundNoTradePerformanceSum += exchangeData.exchangeRoundHouseholdCPUTime();
+                            numOfNoTraders++;
+                        }
+                    }
+                }
+
                 outputInstance.appendExchangeData(
                         timeTracker.getCurrentSimulationRun(),
                         timeTracker.getCurrentDay(),
                         currentExchangeRound,
                         agentStrategyType,
-                        AgentHelper.averageAgentSatisfaction(householdAgentContacts, agentStrategyType)
-                );
-            }
-
-            // Write performance data to file
-            for (AID householdAgent : this.dataHolders.keySet()) {
-                AgentStrategyType strategyType = null;
-
-                for (AgentContact householdAgentContact : householdAgentContacts) {
-                    if (householdAgentContact.getAgentIdentifier().equals(householdAgent)) {
-                        strategyType = householdAgentContact.getType();
-
-                        break;
-                    }
-                }
-
-                outputInstance.appendPerformanceData(
-                        timeTracker.getCurrentSimulationRun(),
-                        timeTracker.getCurrentDay(),
-                        currentExchangeRound,
-                        strategyType,
-                        dataHolders.get(householdAgent).isTradeOfferRequester(),
-                        dataHolders.get(householdAgent).isTradeOfferReceiver(),
-                        dataHolders.get(householdAgent).exchangeRoundHouseholdCPUTime()
+                        AgentHelper.averageAgentSatisfaction(householdAgentContacts, agentStrategyType),
+                        (float)exchangeRoundPerformanceSumByType / (numOfRequesters + numOfReceivers + numOfNoTraders),
+                        (float)exchangeRoundRequesterPerformanceSum / (float)numOfRequesters,
+                        (float)exchangeRoundReceiverPerformanceSum / (float)numOfReceivers,
+                        (float)exchangeRoundNoTradePerformanceSum / (float)numOfNoTraders
                 );
             }
 

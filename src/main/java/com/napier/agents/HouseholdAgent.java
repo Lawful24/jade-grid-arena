@@ -359,7 +359,9 @@ public class HouseholdAgent extends Agent {
 
             // Check if there is a switch happening currently between exchange types
             if (newExchangeMessage != null || isExchangeTypeBeingSwitched) {
+                // Check what the currently used exchange type is and use that for the next exchange
                 if (config.getExchangeType() == ExchangeType.MessagePassing) {
+                    // Start the performance measurement for the current exchange round
                     exchangeRoundStartTime = System.nanoTime();
 
                     if (config.isDebugMode()) {
