@@ -32,7 +32,6 @@ import java.util.HashMap;
  * At least 2 of them has to exist in this application.
  *
  * @author László Tárkányi
- *
  */
 public class HouseholdAgent extends Agent {
     // Agent attributes

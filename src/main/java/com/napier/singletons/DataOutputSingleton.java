@@ -443,8 +443,10 @@ public class DataOutputSingleton {
      * @param medianTakeoverRun The number of the run with the median number of days it took to achieve a Household agent population takeover.
      * @param numOfTypeFinalDayDataHolders The number of data wrappers for a final day of a simulation run of a given type.
      * @param takeoverDaysSum The total number from all runs before a Household agent population takeover happened.
-     * @param averageTakeoverSatisfactionsSum The sum of all average satisfactions from all runs at the time of a Household agent population takeover.
-     * @param averageTakeoverSatisfactionStandardDeviationsSum The standard deviation of the average satisfaction at the time of a Household agent population takeover.
+     * @param averageSatisfactionsOnTakeoverDaySum The sum of all average satisfactions from all runs at the time of a Household agent population takeover.
+     * @param averageSatisfactionsOnFinalDaySum The sum of all average satisfactions from all runs on the final day of each run.
+     * @param averageSatisfactionStandardDeviationsOnTakeoverDaySum The average standard deviation of Household satisfaction from all runs at the time of a Household agent population takeover.
+     * @param averageSatisfactionStandardDeviationsOnFinalDaySum The average standard deviation of Household satisfaction from all runs on the final day of each run.
      */
     public void appendSimulationDataByTakeoverType(
             AgentStrategyType agentStrategyType,
@@ -454,51 +456,29 @@ public class DataOutputSingleton {
             int medianTakeoverRun,
             int numOfTypeFinalDayDataHolders,
             double takeoverDaysSum,
-            double averageTakeoverSatisfactionsSum,
-            double averageTakeoverSatisfactionStandardDeviationsSum
+            double averageSatisfactionsOnTakeoverDaySum,
+            double averageSatisfactionsOnFinalDaySum,
+            double averageSatisfactionStandardDeviationsOnTakeoverDaySum,
+            double averageSatisfactionStandardDeviationsOnFinalDaySum
     ) {
         if (this.simulationDataTXTWriter != null) {
+            String strategyTypeString = this.getAgentStrategyTypeCapString(agentStrategyType);
+
             try {
-                switch (agentStrategyType) {
-                    case SOCIAL:
-                        /*
-                        The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
-                        See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/ArenaEnvironment.java
-                        */
+                /*
+                The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
+                See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/ArenaEnvironment.java
+                */
 
-                        this.simulationDataTXTWriter.append("Social Takeovers: ").append(String.valueOf(numOfTypeTakeovers)).append("\n");
-                        this.simulationDataTXTWriter.append("Fastest Social: Run ").append(String.valueOf(fastestTakeoverRun)).append("\n");
-                        this.simulationDataTXTWriter.append("Slowest Social: Run ").append(String.valueOf(slowestTakeoverRun)).append("\n");
-                        this.simulationDataTXTWriter.append("Typical Social: Run ").append(String.valueOf(medianTakeoverRun)).append("\n");
-                        this.simulationDataTXTWriter.append("Average Takeover Days (social): ").append(String.valueOf(takeoverDaysSum / numOfTypeTakeovers)).append("\n");
-                        this.simulationDataTXTWriter.append("Average Takeover Satisfaction (social): ").append(String.valueOf(averageTakeoverSatisfactionsSum / numOfTypeTakeovers)).append("\n");
-                        this.simulationDataTXTWriter.append("Average Takeover SD (social): ").append(String.valueOf(averageTakeoverSatisfactionStandardDeviationsSum / numOfTypeTakeovers)).append("\n");
-                        this.simulationDataTXTWriter.append("Average Final Satisfaction (social): ").append(String.valueOf(averageTakeoverSatisfactionsSum / numOfTypeFinalDayDataHolders)).append("\n");
-                        this.simulationDataTXTWriter.append("Average Final SD (social): ").append(String.valueOf(averageTakeoverSatisfactionStandardDeviationsSum / numOfTypeFinalDayDataHolders)).append("\n\n");
-
-                        break;
-                    case SELFISH:
-                        /*
-                        The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
-                        See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/ArenaEnvironment.java
-                        */
-
-                        this.simulationDataTXTWriter.append("Selfish Takeovers: ").append(String.valueOf(numOfTypeTakeovers)).append("\n");
-                        this.simulationDataTXTWriter.append("Fastest selfish: Run ").append(String.valueOf(fastestTakeoverRun)).append("\n");
-                        this.simulationDataTXTWriter.append("Slowest selfish: Run ").append(String.valueOf(slowestTakeoverRun)).append("\n");
-                        this.simulationDataTXTWriter.append("Typical selfish: Run ").append(String.valueOf(medianTakeoverRun)).append("\n");
-                        this.simulationDataTXTWriter.append("Average Takeover Days (selfish): ").append(String.valueOf(takeoverDaysSum / numOfTypeTakeovers)).append("\n");
-                        this.simulationDataTXTWriter.append("Average Takeover Satisfaction (selfish): ").append(String.valueOf(averageTakeoverSatisfactionsSum / numOfTypeTakeovers)).append("\n");
-                        this.simulationDataTXTWriter.append("Average Takeover SD (selfish): ").append(String.valueOf(averageTakeoverSatisfactionStandardDeviationsSum / numOfTypeTakeovers)).append("\n");
-                        this.simulationDataTXTWriter.append("Average Final Satisfaction (selfish): ").append(String.valueOf(averageTakeoverSatisfactionsSum / numOfTypeFinalDayDataHolders)).append("\n");
-                        this.simulationDataTXTWriter.append("Average Final SD (selfish): ").append(String.valueOf(averageTakeoverSatisfactionStandardDeviationsSum / numOfTypeFinalDayDataHolders));
-
-                        break;
-                    default:
-                        System.err.println("Tried to append undefined exchange type data.");
-
-                        break;
-                }
+                this.simulationDataTXTWriter.append(strategyTypeString).append(" Takeovers: ").append(String.valueOf(numOfTypeTakeovers)).append("\n");
+                this.simulationDataTXTWriter.append("Fastest ").append(strategyTypeString).append(": Run ").append(String.valueOf(fastestTakeoverRun)).append("\n");
+                this.simulationDataTXTWriter.append("Slowest ").append(strategyTypeString).append(": Run ").append(String.valueOf(slowestTakeoverRun)).append("\n");
+                this.simulationDataTXTWriter.append("Typical ").append(strategyTypeString).append(": Run ").append(String.valueOf(medianTakeoverRun)).append("\n");
+                this.simulationDataTXTWriter.append("Average Takeover Days (").append(strategyTypeString).append("): ").append(String.valueOf(takeoverDaysSum / numOfTypeTakeovers)).append("\n");
+                this.simulationDataTXTWriter.append("Average Takeover Satisfaction (").append(strategyTypeString).append("): ").append(String.valueOf(averageSatisfactionsOnTakeoverDaySum / numOfTypeTakeovers)).append("\n");
+                this.simulationDataTXTWriter.append("Average Takeover SD (").append(strategyTypeString).append("): ").append(String.valueOf(averageSatisfactionStandardDeviationsOnTakeoverDaySum / numOfTypeTakeovers)).append("\n");
+                this.simulationDataTXTWriter.append("Average Final Satisfaction (").append(strategyTypeString).append("): ").append(String.valueOf(averageSatisfactionsOnFinalDaySum / numOfTypeFinalDayDataHolders)).append("\n");
+                this.simulationDataTXTWriter.append("Average Final SD (").append(strategyTypeString).append("): ").append(String.valueOf(averageSatisfactionStandardDeviationsOnFinalDaySum / numOfTypeFinalDayDataHolders)).append("\n\n");
             } catch (IOException e) {
                 System.err.println("Error while trying to append social run data to the simulation data file.");
             }

@@ -9,7 +9,7 @@ import java.io.Serializable;
  *
  * @author László Tárkányi
  *
- * @param timeSlots The array containing the timeslot objects.
+ * @param timeSlots (TimeSlot[]) The array containing the timeslot objects.
  */
 public record SerializableTimeSlotArray(
         TimeSlot[] timeSlots

@@ -3,7 +3,7 @@ package com.napier.agents;
 import com.napier.AgentHelper;
 import com.napier.concepts.AgentContact;
 import com.napier.concepts.dataholders.EndOfDayAdvertisingBoardDataHolder;
-import com.napier.concepts.dataholders.TakeoverDayDataHolder;
+import com.napier.concepts.dataholders.PopulationEndOfDayDataHolder;
 import com.napier.singletons.BlockchainSingleton;
 import com.napier.singletons.SimulationConfigurationSingleton;
 import com.napier.singletons.DataOutputSingleton;
@@ -36,10 +36,10 @@ public class TickerAgent extends Agent {
     private boolean takeover;
 
     // Takeover data attributes
-    private ArrayList<TakeoverDayDataHolder> socialTakeoverDayDataHolders;
-    private ArrayList<TakeoverDayDataHolder> selfishTakeoverDayDataHolders;
-    private ArrayList<TakeoverDayDataHolder> socialFinalDayDataHolders;
-    private ArrayList<TakeoverDayDataHolder> selfishFinalDayDataHolders;
+    private ArrayList<PopulationEndOfDayDataHolder> socialPopulationEndOfDayDataHolders;
+    private ArrayList<PopulationEndOfDayDataHolder> selfishPopulationEndOfDayDataHolders;
+    private ArrayList<PopulationEndOfDayDataHolder> socialFinalDayDataHolders;
+    private ArrayList<PopulationEndOfDayDataHolder> selfishFinalDayDataHolders;
     private int numOfSocialTakeoverRuns;
     private int numOfSelfishTakeoverRuns;
 
@@ -500,8 +500,8 @@ public class TickerAgent extends Agent {
         this.runReset();
 
         this.currentSimulationRun = 1;
-        this.socialTakeoverDayDataHolders = new ArrayList<>();
-        this.selfishTakeoverDayDataHolders = new ArrayList<>();
+        this.socialPopulationEndOfDayDataHolders = new ArrayList<>();
+        this.selfishPopulationEndOfDayDataHolders = new ArrayList<>();
         this.socialFinalDayDataHolders = new ArrayList<>();
         this.selfishFinalDayDataHolders = new ArrayList<>();
         this.numOfSocialTakeoverRuns = 0;
@@ -526,9 +526,9 @@ public class TickerAgent extends Agent {
      * @param isFinalDayOfRun Whether the current day is the final day of the simulation run or not.
      */
     private void extractTakeoverData(EndOfDayAdvertisingBoardDataHolder endOfDayData, boolean isFinalDayOfRun) {
-        if (isFinalDayOfRun) {
+        if (!isFinalDayOfRun) {
             if (endOfDayData.numOfSelfishAgents() == 0.0) {
-                this.socialTakeoverDayDataHolders.add(new TakeoverDayDataHolder(
+                this.socialPopulationEndOfDayDataHolders.add(new PopulationEndOfDayDataHolder(
                         this.currentSimulationRun,
                         this.currentDay,
                         endOfDayData.averageSocialSatisfaction(),
@@ -537,7 +537,7 @@ public class TickerAgent extends Agent {
 
                 this.numOfSocialTakeoverRuns++;
             } else {
-                this.selfishTakeoverDayDataHolders.add(new TakeoverDayDataHolder(
+                this.selfishPopulationEndOfDayDataHolders.add(new PopulationEndOfDayDataHolder(
                         this.currentSimulationRun,
                         this.currentDay,
                         endOfDayData.averageSelfishSatisfaction(),
@@ -548,14 +548,14 @@ public class TickerAgent extends Agent {
             }
         } else {
             if (endOfDayData.numOfSelfishAgents() == 0.0) {
-                this.socialFinalDayDataHolders.add(new TakeoverDayDataHolder(
+                this.socialFinalDayDataHolders.add(new PopulationEndOfDayDataHolder(
                         this.currentSimulationRun,
                         this.currentDay,
                         endOfDayData.averageSocialSatisfaction(),
                         endOfDayData.averageSocialSatisfactionStandardDeviation()
                 ));
             } else {
-                this.selfishFinalDayDataHolders.add(new TakeoverDayDataHolder(
+                this.selfishFinalDayDataHolders.add(new PopulationEndOfDayDataHolder(
                         this.currentSimulationRun,
                         this.currentDay,
                         endOfDayData.averageSelfishSatisfaction(),
@@ -621,19 +621,21 @@ public class TickerAgent extends Agent {
      */
     private int processTakeoverDataByType(AgentStrategyType agentStrategyType) {
         double takeoverDaysSum = 0;
-        double averageSatisfactionsSum = 0;
-        double averageSatisfactionStandardDeviationsSum = 0;
-        ArrayList<TakeoverDayDataHolder> takeoverDayDataHolders;
-        ArrayList<TakeoverDayDataHolder> finalDayDataHolders;
+        double averageSatisfactionsOnTakeoverDaySum = 0;
+        double averageSatisfactionStandardDeviationsOnTakeoverDaySum = 0;
+        double averageSatisfactionsOnFinalDaySum = 0;
+        double averageSatisfactionStandardDeviationsOnFinalDaySum = 0;
+        ArrayList<PopulationEndOfDayDataHolder> populationEndOfDayDataHolders;
+        ArrayList<PopulationEndOfDayDataHolder> finalDayDataHolders;
         int numOfTypeTakeoverRuns;
 
         // Determine the type of data to use
         if (agentStrategyType == AgentStrategyType.SOCIAL) {
-            takeoverDayDataHolders = this.socialTakeoverDayDataHolders;
+            populationEndOfDayDataHolders = this.socialPopulationEndOfDayDataHolders;
             finalDayDataHolders = this.socialFinalDayDataHolders;
             numOfTypeTakeoverRuns = this.numOfSocialTakeoverRuns;
         } else {
-            takeoverDayDataHolders = this.selfishTakeoverDayDataHolders;
+            populationEndOfDayDataHolders = this.selfishPopulationEndOfDayDataHolders;
             finalDayDataHolders = this.selfishFinalDayDataHolders;
             numOfTypeTakeoverRuns = this.numOfSelfishTakeoverRuns;
         }
@@ -642,30 +644,25 @@ public class TickerAgent extends Agent {
         The following code snippet was derived from ResourceExchangeArena, the original model this project is based on.
         See more: https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/ArenaEnvironment.java
         */
-        Comparator<TakeoverDayDataHolder> takeoverDataHolderComparator = Comparator.comparing(TakeoverDayDataHolder::takeoverDay);
+        Comparator<PopulationEndOfDayDataHolder> takeoverDataHolderComparator = Comparator.comparing(PopulationEndOfDayDataHolder::day);
 
-        takeoverDayDataHolders.sort(takeoverDataHolderComparator);
+        populationEndOfDayDataHolders.sort(takeoverDataHolderComparator);
         finalDayDataHolders.sort(takeoverDataHolderComparator);
 
-        for(TakeoverDayDataHolder run: takeoverDayDataHolders) {
-            takeoverDaysSum += run.takeoverDay();
-            averageSatisfactionsSum += run.averageSatisfaction();
-            averageSatisfactionStandardDeviationsSum += run.averageSatisfactionStandardDeviation();
+        for(PopulationEndOfDayDataHolder run: populationEndOfDayDataHolders) {
+            takeoverDaysSum += run.day();
+            averageSatisfactionsOnTakeoverDaySum += run.averageSatisfaction();
+            averageSatisfactionStandardDeviationsOnTakeoverDaySum += run.averageSatisfactionStandardDeviation();
         }
 
-        takeoverDaysSum = 0;
-        averageSatisfactionsSum = 0;
-        averageSatisfactionStandardDeviationsSum = 0;
-
-        for(TakeoverDayDataHolder run: finalDayDataHolders) {
-            takeoverDaysSum += run.takeoverDay();
-            averageSatisfactionsSum += run.averageSatisfaction();
-            averageSatisfactionStandardDeviationsSum += run.averageSatisfactionStandardDeviation();
+        for(PopulationEndOfDayDataHolder run: finalDayDataHolders) {
+            averageSatisfactionsOnFinalDaySum += run.averageSatisfaction();
+            averageSatisfactionStandardDeviationsOnFinalDaySum += run.averageSatisfactionStandardDeviation();
         }
 
-        TakeoverDayDataHolder middleTakeover = takeoverDayDataHolders.get((int) Math.floor(numOfTypeTakeoverRuns / 2.0f));
-        TakeoverDayDataHolder slowestTakeover = takeoverDayDataHolders.get(numOfTypeTakeoverRuns - 1);
-        TakeoverDayDataHolder fastestTakeover = takeoverDayDataHolders.getFirst();
+        PopulationEndOfDayDataHolder middleTakeover = populationEndOfDayDataHolders.get((int) Math.floor(numOfTypeTakeoverRuns / 2.0f));
+        PopulationEndOfDayDataHolder slowestTakeover = populationEndOfDayDataHolders.get(numOfTypeTakeoverRuns - 1);
+        PopulationEndOfDayDataHolder fastestTakeover = populationEndOfDayDataHolders.getFirst();
 
         DataOutputSingleton.getInstance().appendSimulationDataByTakeoverType(
                 agentStrategyType,
@@ -675,8 +672,10 @@ public class TickerAgent extends Agent {
                 middleTakeover.simulationRun(),
                 finalDayDataHolders.size(),
                 takeoverDaysSum,
-                averageSatisfactionsSum,
-                averageSatisfactionStandardDeviationsSum
+                averageSatisfactionsOnTakeoverDaySum,
+                averageSatisfactionsOnFinalDaySum,
+                averageSatisfactionStandardDeviationsOnTakeoverDaySum,
+                averageSatisfactionStandardDeviationsOnFinalDaySum
         );
 
         return middleTakeover.simulationRun();
