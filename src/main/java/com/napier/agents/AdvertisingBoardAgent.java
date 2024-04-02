@@ -294,8 +294,6 @@ public class AdvertisingBoardAgent extends Agent {
             exchangeRoundSequence.addSubBehaviour(new NewAdvertListenerBehaviour(myAgent));
             exchangeRoundSequence.addSubBehaviour(new InquiryListenerBehaviour(myAgent));
             exchangeRoundSequence.addSubBehaviour(new TradeOfferResponseListenerBehaviour(myAgent));
-            exchangeRoundSequence.addSubBehaviour(new SocialCapitaSyncPropagateBehaviour(myAgent));
-            exchangeRoundSequence.addSubBehaviour(new ExchangeRoundOverListener(myAgent));
             myAgent.addBehaviour(exchangeRoundSequence);
 
             // Broadcast the start of the exchange round to all Household agents
@@ -594,6 +592,12 @@ public class AdvertisingBoardAgent extends Agent {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "done listening for trades");
             }
 
+            if (numOfSuccessfulExchanges > 0) {
+                myAgent.addBehaviour(new SocialCapitaSyncPropagateBehaviour(myAgent));
+            } else {
+                myAgent.addBehaviour(new ExchangeRoundOverListener(myAgent));
+            }
+
             return 0;
         }
     }
@@ -656,6 +660,8 @@ public class AdvertisingBoardAgent extends Agent {
             if (config.isDebugMode()) {
                 AgentHelper.printAgentLog(myAgent.getLocalName(), "done propagating");
             }
+
+            myAgent.addBehaviour(new ExchangeRoundOverListener(myAgent));
 
             return 0;
         }
