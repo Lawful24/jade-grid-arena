@@ -363,7 +363,7 @@ public class TickerAgent extends Agent {
             case 1:
                 switch (this.currentSimulationSet) {
                     case 1:
-                        config.modifyConfiguration(false, config.getSelectedSingleAgentType(), true);
+                        config.modifyConfiguration(false, config.getSelectedSingleAgentType(), true, ExchangeType.MessagePassing);
 
                         AgentHelper.printAgentLog(
                                 getLocalName(),
@@ -374,7 +374,7 @@ public class TickerAgent extends Agent {
 
                         break;
                     case 2:
-                        config.modifyConfiguration(false, config.getSelectedSingleAgentType(), false);
+                        config.modifyConfiguration(false, config.getSelectedSingleAgentType(), false, ExchangeType.MessagePassing);
 
                         AgentHelper.printAgentLog(
                                 getLocalName(),
@@ -390,7 +390,7 @@ public class TickerAgent extends Agent {
             case 2:
                 switch (this.currentSimulationSet) {
                     case 1:
-                        config.modifyConfiguration(true, AgentStrategyType.SELFISH, false);
+                        config.modifyConfiguration(true, AgentStrategyType.SELFISH, false, ExchangeType.MessagePassing);
 
                         AgentHelper.printAgentLog(
                                 getLocalName(),
@@ -401,7 +401,7 @@ public class TickerAgent extends Agent {
 
                         break;
                     case 2:
-                        config.modifyConfiguration(true, AgentStrategyType.SOCIAL, false);
+                        config.modifyConfiguration(true, AgentStrategyType.SOCIAL, false, ExchangeType.MessagePassing);
 
                         AgentHelper.printAgentLog(
                                 getLocalName(),
@@ -412,7 +412,7 @@ public class TickerAgent extends Agent {
 
                         break;
                     case 3:
-                        config.modifyConfiguration(true, AgentStrategyType.SOCIAL, true);
+                        config.modifyConfiguration(true, AgentStrategyType.SOCIAL, true, ExchangeType.MessagePassing);
 
                         AgentHelper.printAgentLog(
                                 getLocalName(),
@@ -423,7 +423,7 @@ public class TickerAgent extends Agent {
 
                         break;
                     case 4:
-                        config.modifyConfiguration(false, config.getSelectedSingleAgentType(), true);
+                        config.modifyConfiguration(false, config.getSelectedSingleAgentType(), true, ExchangeType.MessagePassing);
 
                         AgentHelper.printAgentLog(
                                 getLocalName(),
@@ -434,7 +434,7 @@ public class TickerAgent extends Agent {
 
                         break;
                     case 5:
-                        config.modifyConfiguration(false, config.getSelectedSingleAgentType(), true);
+                        config.modifyConfiguration(false, config.getSelectedSingleAgentType(), true, ExchangeType.MessagePassing);
 
                         AgentHelper.printAgentLog(
                                 getLocalName(),
@@ -450,7 +450,7 @@ public class TickerAgent extends Agent {
             case 3:
                 switch (this.currentSimulationSet) {
                     case 1:
-                        config.setExchangeType(ExchangeType.MessagePassing);
+                        config.modifyConfiguration(config.doesUtiliseSingleAgentType(), config.getSelectedSingleAgentType(), config.doesUtiliseSocialCapita(), ExchangeType.MessagePassing);
 
                         AgentHelper.printAgentLog(
                                 getLocalName(),
@@ -461,7 +461,7 @@ public class TickerAgent extends Agent {
 
                         break;
                     case 2:
-                        config.setExchangeType(ExchangeType.SmartContract);
+                        config.modifyConfiguration(config.doesUtiliseSingleAgentType(), config.getSelectedSingleAgentType(), config.doesUtiliseSocialCapita(), ExchangeType.SmartContract);
 
                         AgentHelper.printAgentLog(
                                 getLocalName(),

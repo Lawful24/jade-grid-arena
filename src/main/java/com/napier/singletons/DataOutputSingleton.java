@@ -253,7 +253,7 @@ public class DataOutputSingleton {
                         .append(this.getAgentStrategyTypeCapString(AgentStrategyType.SELFISH))
                         .append(":")
                         .append(this.getAgentStrategyTypeCapString(AgentStrategyType.SOCIAL))
-                        .append(") : ")
+                        .append("): ")
                         .append(String.valueOf(this.config.getSelfishPopulationCount()))
                         .append(":")
                         .append(String.valueOf(this.config.getPopulationCount() - this.config.getSelfishPopulationCount()));
@@ -474,7 +474,7 @@ public class DataOutputSingleton {
                         this.simulationDataTXTWriter.append("Average Takeover Satisfaction (social): ").append(String.valueOf(averageTakeoverSatisfactionsSum / numOfTypeTakeovers)).append("\n");
                         this.simulationDataTXTWriter.append("Average Takeover SD (social): ").append(String.valueOf(averageTakeoverSatisfactionStandardDeviationsSum / numOfTypeTakeovers)).append("\n");
                         this.simulationDataTXTWriter.append("Average Final Satisfaction (social): ").append(String.valueOf(averageTakeoverSatisfactionsSum / numOfTypeFinalDayDataHolders)).append("\n");
-                        this.simulationDataTXTWriter.append("Average Final SD (social): ").append(String.valueOf(averageTakeoverSatisfactionStandardDeviationsSum / numOfTypeFinalDayDataHolders)).append("\n");
+                        this.simulationDataTXTWriter.append("Average Final SD (social): ").append(String.valueOf(averageTakeoverSatisfactionStandardDeviationsSum / numOfTypeFinalDayDataHolders)).append("\n\n");
 
                         break;
                     case SELFISH:

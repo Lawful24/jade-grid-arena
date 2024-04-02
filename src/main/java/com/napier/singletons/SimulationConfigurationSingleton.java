@@ -238,10 +238,11 @@ public class SimulationConfigurationSingleton {
      * @param selectedSingleAgentType The strategy type that the Household agents can use, if they can only use one. (If they can be either selfish or social, call getSelectedSingleAgentType().)
      * @param doesUtiliseSocialCapita Whether social capita should be used in the exchanges of the next simulation set.
      */
-    public void modifyConfiguration(boolean doesUtiliseSingleAgentType, AgentStrategyType selectedSingleAgentType, boolean doesUtiliseSocialCapita) {
+    public void modifyConfiguration(boolean doesUtiliseSingleAgentType, AgentStrategyType selectedSingleAgentType, boolean doesUtiliseSocialCapita, ExchangeType exchangeType) {
         this.resetRandomSeed();
         this.setSingleAgentTypeUsed(doesUtiliseSingleAgentType, selectedSingleAgentType);
         this.setDoesUtiliseSocialCapita(doesUtiliseSocialCapita);
+        this.setExchangeType(exchangeType);
     }
 
     private void setSingleAgentTypeUsed(boolean doesUtiliseSingleAgentType, AgentStrategyType selectedSingleAgentType) {
