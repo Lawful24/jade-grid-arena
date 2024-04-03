@@ -74,6 +74,11 @@ public class Main {
         // Set up and create the main agent container
         Profile profile = new ProfileImpl();
         Runtime runtime = Runtime.instance();
+
+        // Overwrite the default maximum value of agents in the main container
+        // It is originally 100
+        // This needs to be modified for running simulations with 200+ agents
+        profile.setParameter("jade_domain_df_maxresult", "200");
         ContainerController container = runtime.createMainContainer(profile);
 
         try {
