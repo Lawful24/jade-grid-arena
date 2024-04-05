@@ -1,8 +1,8 @@
-package com.napier.singletons;
+package com.napier.arena.singletons;
 
-import com.napier.types.AgentStrategyType;
-import com.napier.types.ExchangeType;
-import com.napier.Main;
+import com.napier.arena.types.AgentStrategyType;
+import com.napier.arena.types.ExchangeType;
+import com.napier.arena.Main;
 
 import java.io.FileInputStream;
 import java.io.IOException;

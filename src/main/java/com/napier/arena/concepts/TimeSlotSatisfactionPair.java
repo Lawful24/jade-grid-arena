@@ -1,4 +1,4 @@
-package com.napier.concepts;
+package com.napier.arena.concepts;
 
 /**
  * @see <a href="https://github.com/NathanABrooks/ResourceExchangeArena/blob/master/src/resource_exchange_arena/SlotSatisfactionPair.java">ResourceExchangeArena</a>

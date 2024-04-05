@@ -1,15 +1,15 @@
-package com.napier.agents;
+package com.napier.arena.agents;
 
-import com.napier.AgentHelper;
-import com.napier.concepts.AgentContact;
-import com.napier.concepts.dataholders.EndOfDayAdvertisingBoardDataHolder;
-import com.napier.concepts.dataholders.PopulationEndOfDayDataHolder;
-import com.napier.singletons.BlockchainSingleton;
-import com.napier.singletons.SimulationConfigurationSingleton;
-import com.napier.singletons.DataOutputSingleton;
-import com.napier.singletons.TickerTrackerSingleton;
-import com.napier.types.AgentStrategyType;
-import com.napier.types.ExchangeType;
+import com.napier.arena.AgentHelper;
+import com.napier.arena.concepts.AgentContact;
+import com.napier.arena.concepts.dataholders.EndOfDayAdvertisingBoardDataHolder;
+import com.napier.arena.concepts.dataholders.PopulationEndOfDayDataHolder;
+import com.napier.arena.singletons.BlockchainSingleton;
+import com.napier.arena.singletons.SimulationConfigurationSingleton;
+import com.napier.arena.singletons.DataOutputSingleton;
+import com.napier.arena.singletons.TickerTrackerSingleton;
+import com.napier.arena.types.AgentStrategyType;
+import com.napier.arena.types.ExchangeType;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;

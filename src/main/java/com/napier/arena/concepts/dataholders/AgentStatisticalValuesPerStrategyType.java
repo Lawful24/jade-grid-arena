@@ -1,7 +1,7 @@
-package com.napier.concepts.dataholders;
+package com.napier.arena.concepts.dataholders;
 
-import com.napier.concepts.AgentContact;
-import com.napier.types.AgentStrategyType;
+import com.napier.arena.concepts.AgentContact;
+import com.napier.arena.types.AgentStrategyType;
 
 import java.io.Serializable;
 import java.util.ArrayList;

@@ -1,4 +1,4 @@
-package com.napier.types;
+package com.napier.arena.types;
 
 /**
  * Contains the exchange methods that can be used in the simulation.

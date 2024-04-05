@@ -1,6 +1,6 @@
-package com.napier.concepts.dataholders;
+package com.napier.arena.concepts.dataholders;
 
-import com.napier.concepts.TimeSlot;
+import com.napier.arena.concepts.TimeSlot;
 
 import java.io.Serializable;
 

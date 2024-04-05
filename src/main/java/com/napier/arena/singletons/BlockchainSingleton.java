@@ -1,4 +1,4 @@
-package com.napier.singletons;
+package com.napier.arena.singletons;
 
 import java.util.LinkedList;
 

@@ -1,7 +1,7 @@
-package com.napier.singletons;
+package com.napier.arena.singletons;
 
-import com.napier.concepts.dataholders.AgentStatisticalValuesPerStrategyType;
-import com.napier.types.AgentStrategyType;
+import com.napier.arena.concepts.dataholders.AgentStatisticalValuesPerStrategyType;
+import com.napier.arena.types.AgentStrategyType;
 
 import java.io.File;
 import java.io.FileWriter;

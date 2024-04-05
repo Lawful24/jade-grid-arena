@@ -1,10 +1,10 @@
-package com.napier;
+package com.napier.arena;
 
-import com.napier.agents.AdvertisingBoardAgent;
-import com.napier.agents.HouseholdAgent;
-import com.napier.agents.TickerAgent;
-import com.napier.singletons.SimulationConfigurationSingleton;
-import com.napier.types.ExchangeType;
+import com.napier.arena.agents.AdvertisingBoardAgent;
+import com.napier.arena.agents.HouseholdAgent;
+import com.napier.arena.agents.TickerAgent;
+import com.napier.arena.singletons.SimulationConfigurationSingleton;
+import com.napier.arena.types.ExchangeType;
 import jade.core.Profile;
 import jade.core.ProfileImpl;
 import jade.core.Runtime;

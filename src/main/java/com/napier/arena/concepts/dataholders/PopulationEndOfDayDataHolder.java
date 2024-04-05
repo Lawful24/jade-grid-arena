@@ -1,4 +1,4 @@
-package com.napier.concepts.dataholders;
+package com.napier.arena.concepts.dataholders;
 
 /**
  * A wrapper for general information about the entire Household agent population at the end of a day.

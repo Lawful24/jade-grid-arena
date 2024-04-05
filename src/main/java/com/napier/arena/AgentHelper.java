@@ -1,10 +1,10 @@
-package com.napier;
+package com.napier.arena;
 
-import com.napier.concepts.AgentContact;
-import com.napier.concepts.TimeSlot;
-import com.napier.concepts.TimeSlotSatisfactionPair;
-import com.napier.singletons.SimulationConfigurationSingleton;
-import com.napier.types.AgentStrategyType;
+import com.napier.arena.concepts.TimeSlot;
+import com.napier.arena.concepts.TimeSlotSatisfactionPair;
+import com.napier.arena.singletons.SimulationConfigurationSingleton;
+import com.napier.arena.concepts.AgentContact;
+import com.napier.arena.types.AgentStrategyType;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.domain.DFService;

@@ -1,19 +1,19 @@
-package com.napier.agents;
+package com.napier.arena.agents;
 
-import com.napier.AgentHelper;
+import com.napier.arena.AgentHelper;
 
-import com.napier.concepts.AgentContact;
-import com.napier.concepts.dataholders.AgentStatisticalValuesPerStrategyType;
-import com.napier.concepts.dataholders.EndOfDayAdvertisingBoardDataHolder;
-import com.napier.concepts.dataholders.EndOfDayHouseholdAgentDataHolder;
-import com.napier.concepts.dataholders.EndOfExchangeHouseholdDataHolder;
-import com.napier.concepts.dataholders.SerializableTimeSlotArray;
-import com.napier.concepts.TimeSlot;
-import com.napier.concepts.TradeOffer;
-import com.napier.singletons.SimulationConfigurationSingleton;
-import com.napier.singletons.DataOutputSingleton;
-import com.napier.singletons.TickerTrackerSingleton;
-import com.napier.types.AgentStrategyType;
+import com.napier.arena.concepts.AgentContact;
+import com.napier.arena.concepts.dataholders.AgentStatisticalValuesPerStrategyType;
+import com.napier.arena.concepts.dataholders.EndOfDayAdvertisingBoardDataHolder;
+import com.napier.arena.concepts.dataholders.EndOfDayHouseholdAgentDataHolder;
+import com.napier.arena.concepts.dataholders.EndOfExchangeHouseholdDataHolder;
+import com.napier.arena.concepts.dataholders.SerializableTimeSlotArray;
+import com.napier.arena.concepts.TimeSlot;
+import com.napier.arena.concepts.TradeOffer;
+import com.napier.arena.singletons.SimulationConfigurationSingleton;
+import com.napier.arena.singletons.DataOutputSingleton;
+import com.napier.arena.singletons.TickerTrackerSingleton;
+import com.napier.arena.types.AgentStrategyType;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;

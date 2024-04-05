@@ -1,4 +1,4 @@
-package com.napier.concepts.dataholders;
+package com.napier.arena.concepts.dataholders;
 
 import java.io.Serializable;
 

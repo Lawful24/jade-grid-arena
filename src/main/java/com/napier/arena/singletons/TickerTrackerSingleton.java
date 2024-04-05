@@ -1,4 +1,4 @@
-package com.napier.singletons;
+package com.napier.arena.singletons;
 
 /**
  * Contains the state of the currently running simulation set.

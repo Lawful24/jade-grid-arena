@@ -1,4 +1,4 @@
-package com.napier.concepts;
+package com.napier.arena.concepts;
 
 import java.io.Serializable;
 import java.util.Objects;
